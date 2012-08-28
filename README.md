@@ -19,6 +19,7 @@ It supports basically nothing, including, but not limited to:
 * Not supporting textures, procedural or not, unless we call a plain colour a texture.
 * Not being realtime, unless we call 30 FPS at 160x100 on a 2.1 GHz dualcore realtime.
 * Not using any acceleration structures to make the rendering faster.
+* As of August 28th, it has also been certified to be slow as hell on a Raspberry Pi Model B: ~80 times slower for the same 1280x800 scene, probably because of the kernel that U have there not using hard-float ABI.
 
 Compilation
 -----------
