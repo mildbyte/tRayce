@@ -7,8 +7,8 @@
 struct Camera {
     Vector position;
     Vector direction;
-    float width, height;
-    float planeDistance;
+    double width, height;
+    double planeDistance;
 };
 
 #endif

@@ -2,22 +2,22 @@
 
 bool Sphere::intersects(Ray ray) {
     //Assumes the ray is normalized
-    float b = 2 * (ray.direction.getX() * (ray.origin.getX() - position_.getX())
+    double b = 2 * (ray.direction.getX() * (ray.origin.getX() - position_.getX())
         + ray.direction.getY() * (ray.origin.getY() - position_.getY())
         + ray.direction.getZ() * (ray.origin.getZ() - position_.getZ())
     );
 
-    float c = (ray.origin.getX() - position_.getX()) * (ray.origin.getX() - position_.getX()) +
+    double c = (ray.origin.getX() - position_.getX()) * (ray.origin.getX() - position_.getX()) +
         (ray.origin.getY() - position_.getY()) * (ray.origin.getY() - position_.getY()) +
         (ray.origin.getZ() - position_.getZ()) * (ray.origin.getZ() - position_.getZ()) -
         radius_ * radius_;
 
-    float d = b * b - 4 * c;
+    double d = b * b - 4 * c;
 
     //Negative delta means no intersections
     if (d < 0.0) return false;
 
-    float t = (-b - sqrt(d)) * 0.5;
+    double t = (-b - sqrt(d)) * 0.5;
     if (t > 0.0001) return true;
     t = (-b + sqrt(d)) * 0.5;
     if (t > 0.0001) return true;
@@ -29,22 +29,22 @@ Intersection Sphere::getIntersection(Ray ray) {
     Intersection result;
     result.happened = false;
 
-    float b = 2 * (ray.direction.getX() * (ray.origin.getX() - position_.getX())
+    double b = 2 * (ray.direction.getX() * (ray.origin.getX() - position_.getX())
         + ray.direction.getY() * (ray.origin.getY() - position_.getY())
         + ray.direction.getZ() * (ray.origin.getZ() - position_.getZ())
     );
 
-    float c = (ray.origin.getX() - position_.getX()) * (ray.origin.getX() - position_.getX()) +
+    double c = (ray.origin.getX() - position_.getX()) * (ray.origin.getX() - position_.getX()) +
         (ray.origin.getY() - position_.getY()) * (ray.origin.getY() - position_.getY()) +
         (ray.origin.getZ() - position_.getZ()) * (ray.origin.getZ() - position_.getZ()) -
         radius_ * radius_;
 
-    float d = b * b - 4 * c;
+    double d = b * b - 4 * c;
 
     //Negative delta means no intersections
     if (d < 0) return result;
 
-    float t = (-b - sqrt(d)) * 0.5;
+    double t = (-b - sqrt(d)) * 0.5;
     if (t > 0.001) result.happened = true;
     else {
         t = (-b + sqrt(d)) * 0.5;

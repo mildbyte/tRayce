@@ -6,13 +6,13 @@
 
 struct Material {
     Vector color;
-    float diffuse;
-    float specular;
-    float specularExp;
-    float transparency;
-    float refrIndex;
+    double diffuse;
+    double specular;
+    double specularExp;
+    double transparency;
+    double refrIndex;
     bool isTransparent;
-    float reflectivity;
+    double reflectivity;
     bool isReflective;
 
     Material() {

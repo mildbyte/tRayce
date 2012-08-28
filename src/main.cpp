@@ -10,7 +10,7 @@ using namespace std;
 
 /*bool collides(Sphere sphere1, Sphere sphere2) {
     Vector distvect = sphere1.position_ - sphere2.position;
-    float distance = distvect.normalize();
+    double distance = distvect.normalize();
     return distvect >= (sphere1.radius_ + sphere2.radius_);
 }*/
 
@@ -18,7 +18,7 @@ using namespace std;
 void randomScene(Scene* scene) {
     for (int i = 0; i < 30; i++) {
         Sphere *testSphere = new Sphere(
-            (float)(rand() % 30 / 15.0f),
+            (double)(rand() % 30 / 15.0f),
             Vector( (rand() % 240 - 120)/10.0, (rand() % 160 - 80) / 10.0, (rand() % 100) / 10.0 )
         );
 
@@ -32,7 +32,7 @@ void randomScene(Scene* scene) {
 
 //A sample postprocess routine. This one makes the image grayscale.
 BitmapPixel postProcess(BitmapPixel pix) {
-	float lum = pix.color.getX() * 0.30 + pix.color.getY() * 0.59 + pix.color.getZ() * 0.11;
+	double lum = pix.color.getX() * 0.30 + pix.color.getY() * 0.59 + pix.color.getZ() * 0.11;
     pix.color.setX (lum);
     pix.color.setY (lum);
     pix.color.setZ (lum);        

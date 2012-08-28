@@ -23,7 +23,7 @@ public:
     bool intersects(Ray ray);
 
     //Does the ray intersect an object closer than a certain value?
-    bool intersectsCloser(Ray ray, float distance);
+    bool intersectsCloser(Ray ray, double distance);
 };
 
 #endif

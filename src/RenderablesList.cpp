@@ -28,7 +28,7 @@ Intersection RenderablesList::getFirstIntersection(Ray ray) {
     Intersection bestInter;
     Intersection currInter;
 
-    float mindist = 0;
+    double mindist = 0;
     bool found = false;
 
     std::list<Renderable*>::iterator it = rendlist_.begin();
@@ -49,7 +49,7 @@ Intersection RenderablesList::getFirstIntersection(Ray ray) {
     return bestInter;
 }
 
-bool RenderablesList::intersectsCloser(Ray ray, float distance) {
+bool RenderablesList::intersectsCloser(Ray ray, double distance) {
     //Checks if the ray intersects an object closer that at a certain distance.
     //Used to check if a point on an object is shaded (faster than checking
     //every object on the scene.

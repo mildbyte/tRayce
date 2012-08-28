@@ -23,12 +23,12 @@ private:
     //Traces a single ray and returns the resultant color
     Vector traceRay(const Ray ray, int depth);
 
-    float width_, height_; //Horizontal and vertical resolution
+    double width_, height_; //Horizontal and vertical resolution
 
     Renderable* prevHit_; //Previously hit object, used to optimize AA (only
                           //trace several rays when encountering a new object)
 
-    float prevDist_;      //Distance to the hit object
+    double prevDist_;      //Distance to the hit object
 
     //Store the previously traced row of objects and the current
     //Used to optimize AA (do AA only if the pixel above it has a different
@@ -36,7 +36,7 @@ private:
     Renderable **prevRow_, **currRow_;
 
     //Shading coefficient (how much a point is obscured) calculation
-    float calculateShadingCoefficient(Light* light, Vector point, Vector toLight, float lightDist);
+    double calculateShadingCoefficient(Light* light, Vector point, Vector toLight, double lightDist);
 
     //Phong (diffuse+specular) shading
     Vector calculatePhongColor(Intersection inter, Ray ray);
@@ -61,7 +61,7 @@ public:
     Camera camera;
 
     //Ambient lighting strength
-    float ambientCoefficient;
+    double ambientCoefficient;
 
     //The maximum tracing depth
     int traceDepth;

@@ -1,6 +1,6 @@
 #include "Bitmap.h"
 
-unsigned char clamp (float value) {
+unsigned char clamp (double value) {
     unsigned int result = (unsigned int)(255 * value);
     if (result > 255)
         result = 255;
@@ -22,7 +22,7 @@ Bitmap::~Bitmap() {
     delete[] bits_;
 }
 
-void Bitmap::setPixel(int x, int y, Vector pixel, float depth)
+void Bitmap::setPixel(int x, int y, Vector pixel, double depth)
 {
     //Check if the address is out of bounds
     if ((x > width_) || (x < 0) || (y > height_) || (y < 0)) return;

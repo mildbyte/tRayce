@@ -20,9 +20,9 @@ Vector Vector::operator-() {
     return result;
 }
 
-float Vector::normalize() {
+double Vector::normalize() {
     //Returns the distance. Sometimes can be handy.
-    float factor = sqrt(
+    double factor = sqrt(
                     x_ * x_
                   + y_ * y_
                   + z_ * z_

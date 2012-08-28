@@ -3,7 +3,7 @@
 bool Box::intersects(Ray ray) {
     Vector rayOrigin = ray.origin;
     Vector rayDirection = ray.direction;
-    float distance[6] = {-1, -1, -1, -1, -1, -1};
+    double distance[6] = {-1, -1, -1, -1, -1, -1};
     Vector boxEnd = _aabb.point + _aabb.size;
 
 
@@ -18,7 +18,7 @@ bool Box::intersects(Ray ray) {
     distance[5] = (boxEnd.getZ() - rayOrigin.getZ()) / ray.direction.getZ();
 
     int closestFace = -1;
-    float minDist = 0;
+    double minDist = 0;
 
     for (int i = 0; i < 6; i++) {
         Vector rayToBox = rayOrigin + ray.direction * distance[i];
@@ -40,7 +40,7 @@ bool Box::intersects(Ray ray) {
 }
 
 Intersection Box::getIntersection(Ray ray) {
-    float distance[6] = {-1, -1, -1, -1, -1, -1};
+    double distance[6] = {-1, -1, -1, -1, -1, -1};
     Vector boxEnd = _aabb.point + _aabb.size;
 
     distance[0] = (_aabb.point.getX() - ray.origin.getX()) / ray.direction.getX();
@@ -53,7 +53,7 @@ Intersection Box::getIntersection(Ray ray) {
     distance[5] = (boxEnd.getZ() - ray.origin.getZ()) / ray.direction.getZ();
 
     int closestFace = -1;
-    float minDist = 0;
+    double minDist = 0;
 
     for (int i = 0; i < 6; i++) {
         Vector rayToBox = ray.origin + ray.direction * distance[i];

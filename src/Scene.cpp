@@ -39,7 +39,7 @@ Scene::Scene(int width, int height) {
     memset(currRow_, NULL, width * sizeof (Renderable*));
 }
 
-float Scene::calculateShadingCoefficient(Light* light, Vector point, Vector toLight, float lightDist) {
+double Scene::calculateShadingCoefficient(Light* light, Vector point, Vector toLight, double lightDist) {
     //Calculates the shading coefficient (how much a point is obscured)
     //Different calculations for different light types
     switch(light->type) {
@@ -73,10 +73,10 @@ float Scene::calculateShadingCoefficient(Light* light, Vector point, Vector toLi
                 return 1;
             }
 
-            float contribution = 1.0 / (softShadowSamples*softShadowSamples);
+            double contribution = 1.0 / (softShadowSamples*softShadowSamples);
             //Each ray contributes 1/ssSamples^2 of the shading coefficient
 
-            float totalShade = 0;
+            double totalShade = 0;
             AreaLight *currLight = ((AreaLight*)(light));
 
             //dx, dy: direction of one square on the grid
@@ -97,7 +97,7 @@ float Scene::calculateShadingCoefficient(Light* light, Vector point, Vector toLi
                     gridPos += dx * (rand() / RAND_MAX) + dy * (rand() / RAND_MAX);
                     //Calculate the position relative to the point in question
                     gridPos -= point;
-                    float distance = gridPos.normalize();
+                    double distance = gridPos.normalize();
                     Ray pointToLight;
 
                     pointToLight.direction = gridPos;
@@ -130,14 +130,14 @@ Vector Scene::calculatePhongColor(Intersection inter, Ray ray) {
     //and the normal to a point) and point color due to specular highlight
 
     Vector totalColor(0, 0, 0); //Total calculated color
-    float shade = 0; //Shading coefficient for the current light
+    double shade = 0; //Shading coefficient for the current light
 
     //Iterate through every light in the scene
     for (std::list<Light*>::iterator it = lights_.begin();
         it != lights_.end(); it++) {
 
         Vector toLight = ((Light*)(*it))->position - inter.coords;
-        float distance = toLight.normalize();
+        double distance = toLight.normalize();
 
         //See if the point is affected by light
         shade = calculateShadingCoefficient(*it, inter.coords, toLight, distance)
@@ -156,7 +156,7 @@ Vector Scene::calculatePhongColor(Intersection inter, Ray ray) {
 
         //The more the reflected vector coincides with the view->object ray,
         //the stronger is the specular coefficient.
-        float specCoef = ray.direction.dot(reflLight);
+        double specCoef = ray.direction.dot(reflLight);
         if (specCoef > 0) {
             specCoef = powf(specCoef,
                             inter.object->material.specularExp) * shade;
@@ -179,8 +179,8 @@ Vector Scene::calculateRefraction(Intersection inter, Ray ray, int level) {
     //Refracts the ray and sends it further
 
     //Refraction index
-    float n = 1 / inter.object->material.refrIndex;
-    float c1 = inter.normal.dot(ray.direction);
+    double n = 1 / inter.object->material.refrIndex;
+    double c1 = inter.normal.dot(ray.direction);
 
     //If the ray hit the primitive from the inside, reverse the refraction index.
     if (inter.fromTheInside) n = 1/n;
@@ -189,7 +189,7 @@ Vector Scene::calculateRefraction(Intersection inter, Ray ray, int level) {
     //However, we still need to make the cosine positive
     if (c1 < 0) c1 = -c1;
 
-    float c2 = 1 - n * n * (1 - c1 * c1);
+    double c2 = 1 - n * n * (1 - c1 * c1);
 
     //Bail out if the cosine of the angle squared is > 1 (total internal
     //reflection) or negative (cannot calculate the square root)
@@ -275,8 +275,8 @@ void Scene::render(char* filename, BitmapPixel (*postProcess)(BitmapPixel)) {
     //x, y: coordinates converted to the image plane
     //dx, dy: change in x(y) with respect to realx(realy)
     int realx, realy;
-    float dx = camera.width / (float)width_;
-    float dy = camera.height / (float)height_;
+    double dx = camera.width / (double)width_;
+    double dy = camera.height / (double)height_;
 
     //The resulting color of the pixel
     Vector resultColor;
@@ -284,11 +284,11 @@ void Scene::render(char* filename, BitmapPixel (*postProcess)(BitmapPixel)) {
     //Renderable that has been hit previously (before now)
     Renderable* prevHit = NULL;
 
-    float y = camera.position.getY() - camera.height / 2.0 + dy * 0.5;
+    double y = camera.position.getY() - camera.height / 2.0 + dy * 0.5;
     realy = 0;
     do {
         //Work through rows, adding dx to the x coordinate
-        float x = camera.position.getX() - camera.width / 2.0 + dx * 0.5;
+        double x = camera.position.getX() - camera.width / 2.0 + dx * 0.5;
         realx = 0;
         do {
 
@@ -316,7 +316,7 @@ void Scene::render(char* filename, BitmapPixel (*postProcess)(BitmapPixel)) {
 
                 prevHit = prevHit_;
 
-                float contribution = 1.0 / (msaaSamples*msaaSamples);
+                double contribution = 1.0 / (msaaSamples*msaaSamples);
                 resultColor.set(0, 0, 0);
 
 
@@ -324,9 +324,9 @@ void Scene::render(char* filename, BitmapPixel (*postProcess)(BitmapPixel)) {
                 //The dx(dy) * 0.5 is subtracted so that gridX, gridY points to
                 //the top left corner of the current square
 
-                float gridX = x - dx * 0.5;
+                double gridX = x - dx * 0.5;
                 for (int i = 1; i <= msaaSamples; i++) {
-                    float gridY = y - dy * 0.5;
+                    double gridY = y - dy * 0.5;
                     for (int j = 1; j <= msaaSamples; j++) {
                         //Generate a random direction in the current square
                         ray.direction.setX(gridX + rand()/RAND_MAX * dx/msaaSamples);

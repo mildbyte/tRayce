@@ -11,7 +11,7 @@ struct Intersection {
     bool happened;
     Vector coords;
     Vector normal;
-    float distance;
+    double distance;
     Renderable* object;
     bool fromTheInside;
 };

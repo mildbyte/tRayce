@@ -8,11 +8,11 @@
 
 class Sphere: public Renderable {
 private:
-    float radius_;
+    double radius_;
     Vector position_;
 public:
     Sphere() {}
-    Sphere(float radius, Vector position) {radius_ = radius; position_ = position;}
+    Sphere(double radius, Vector position) {radius_ = radius; position_ = position;}
     virtual bool intersects(Ray ray);
     virtual Intersection getIntersection (Ray ray);
 };
