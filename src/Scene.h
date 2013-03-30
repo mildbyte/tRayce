@@ -7,6 +7,7 @@
 #include "Light.h"
 #include "Bitmap.h"
 #include "Camera.h"
+#include "PhotonMap.h"
 #include <list>
 #include <cstring>
 #include <cstdlib>
@@ -16,6 +17,9 @@ private:
     //Scene objects
     std::list<Light*> lights_;
     RenderablesList renderables_;
+
+    //The photon map
+    PhotonMap* photonMap_;
 
     //The rendered buffer
     Bitmap* rendered_;
@@ -51,6 +55,9 @@ private:
 
     //Convert one pixel to world coordinates and trace it
     Vector tracePixel(double x, double y);
+
+    //Throw photons at the wall and see what sticks
+    void populatePhotonMap();
 public:
     //Necessary to specify width and height to allocate memory
     Scene(int width, int height);
@@ -87,8 +94,12 @@ public:
 
     //Do photon mapping?
     bool photonMapping;
-
+    
+    //How many primary photons to launch?
     int photonCount;
+
+    //Maximum number of photon bounces
+    int photonBounces;
 };
 
 #endif

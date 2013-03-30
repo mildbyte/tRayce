@@ -29,7 +29,9 @@ PhotonMap::~PhotonMap() {
     delete(photons_);
 }
 
-void PhotonMap::addPhoton(Photon p) {
+void PhotonMap::addPhoton(Vector position, Vector direction, Vector energy) {
+    Photon p;
+    p.position = position; p.direction = direction; p.energy = energy;
     photons_[currPtr_++] = p;
 }
 

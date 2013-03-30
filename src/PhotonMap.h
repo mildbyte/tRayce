@@ -19,7 +19,7 @@ public:
     PhotonMap(int size);
     ~PhotonMap();
     
-    void addPhoton(Photon p);
+    void addPhoton(Vector position, Vector direction, Vector energy);
     Vector gatherPhotons(Vector point, Vector normal, double radius, double exposure);
 };
 

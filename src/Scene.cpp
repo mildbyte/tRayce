@@ -285,8 +285,68 @@ Vector Scene::tracePixel(double x, double y) {
     return traceRay(ray, traceDepth);
 }
 
+void Scene::populatePhotonMap() {
+    //Construct the map
+    //There will be one photon per bounce
+    photonMap_ = new PhotonMap(photonCount * photonBounces);
+
+    //The number of photons emitted per light depends on the light's intensity
+    double totalIntensity = 0;
+    for (std::list<Light*>::iterator it = lights_.begin();
+        it != lights_.end(); it++) totalIntensity += ((Light*)(*it))->brightness;
+
+
+    for (std::list<Light*>::iterator it = lights_.begin();
+        it != lights_.end(); it++) {
+        int photonsToCast = (((Light*)(*it))->brightness/totalIntensity) * photonCount;
+
+        for (int i = 0; i < photonCount; i++) {
+            //Make the light->scene ray
+            Ray photonRay;
+            photonRay.origin = ((Light*)(*it))->position;
+            
+            //Generate a random direction for our ray
+            photonRay.direction.setX(rand());
+            photonRay.direction.setY(rand());
+            photonRay.direction.setZ(rand());
+            photonRay.direction.normalize();
+            
+            Vector photonEnergy(1, 1, 1);
+
+            int currBounces = 1;
+
+            Intersection inter = renderables_.getFirstIntersection(photonRay);
+
+            while (inter.happened && currBounces < photonBounces) {
+                //Record the photon               
+                photonMap_->addPhoton(inter.coords, photonRay.direction, 
+                                      inter.object->material.color * (1/sqrt(currBounces)));
+
+                //New point to cast the ray from
+                photonRay.origin = inter.coords;
+
+                //Reflect the ray
+                Vector reflDir = photonRay.direction - inter.normal 
+                    * 2.0f * photonRay.direction.dot(inter.normal);
+                reflDir.normalize();
+                photonRay.direction = reflDir;
+
+                //Send the ray onwards
+                Intersection inter = renderables_.getFirstIntersection(photonRay);
+
+                currBounces++;
+            }
+        }
+    }
+}
+
 void Scene::render(char* filename, BitmapPixel (*postProcess)(BitmapPixel)) {
     //Renders the scene to a file
+
+    //Populate the photon map (should really be done once per scene, not every render,
+    //is here for testing).
+    if (photonMapping) populatePhotonMap();
+
     //imagePlaneX and imagePlaneY are the unit x and y vectors in the image plane.
     Vector imagePlaneX(
         camera.direction.getZ(),
