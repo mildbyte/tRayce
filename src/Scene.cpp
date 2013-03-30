@@ -263,44 +263,62 @@ Vector Scene::traceRay(const Ray ray, int level) {
     return resultColor;
 }
 
-void Scene::render(char* filename, BitmapPixel (*postProcess)(BitmapPixel)) {
-    //Renders the scene to a file
-
+//Converts screen to image coordinates and traces them.
+Vector Scene::tracePixel(double x, double y) {
     Ray ray;
 
     //Uses conic projection, casts the rays from the same point.
     ray.origin = camera.position;
 
-    //realx, realy: real coordinates (on the rendered image)
-    //x, y: coordinates converted to the image plane
-    //dx, dy: change in x(y) with respect to realx(realy)
-    int realx, realy;
-    double dx = camera.width / (double)width_;
-    double dy = camera.height / (double)height_;
+    Vector xWorld = xPixel * (x - 0.5 * width_ + 0.5);
+    Vector yWorld = yPixel * (y - 0.5 * height_ + 0.5);
+
+    //First move to the centre of the image plane, then in the image plane
+    //to the needed point.
+    ray.direction = (camera.direction * camera.planeDistance)
+                  + xWorld + yWorld;
+    ray.direction.normalize();
+
+    return traceRay(ray, traceDepth);
+}
+
+void Scene::render(char* filename, BitmapPixel (*postProcess)(BitmapPixel)) {
+    //Renders the scene to a file
+    //imagePlaneX and imagePlaneY are the unit x and y vectors in the image plane.
+    Vector imagePlaneX(
+        camera.direction.getZ(),
+        0,
+        -camera.direction.getX());
+    
+    Vector imagePlaneY(
+         -camera.direction.getY()*camera.direction.getX(),
+         camera.direction.getZ()*camera.direction.getZ() 
+            + camera.direction.getX() * camera.direction.getX(),
+         -camera.direction.getZ()*camera.direction.getY());
+
+    imagePlaneX.normalize();
+    imagePlaneY.normalize();
+
+    //xPixel and yPixel: one pixel in the image plane
+    xPixel = imagePlaneX * (camera.width / (double)width_);
+    yPixel = imagePlaneY * (camera.height / (double)height_);
+
+    printf("xPixel = %f, %f, %f\n", xPixel.getX(), xPixel.getY(), xPixel.getZ());
+    printf("yPixel = %f, %f, %f\n", yPixel.getX(), yPixel.getY(), yPixel.getZ());
 
     //The resulting color of the pixel
     Vector resultColor;
 
-    //Renderable that has been hit previously (before now)
+    //Renderable that has been hit previously
     Renderable* prevHit = NULL;
+    
+    //Each MSAA sample's contribution to the final pixel
+    double contribution = 1.0 / (msaaSamples*msaaSamples);
 
-    double y = camera.position.getY() - camera.height / 2.0 + dy * 0.5;
-    realy = 0;
-    do {
-        //Work through rows, adding dx to the x coordinate
-        double x = camera.position.getX() - camera.width / 2.0 + dx * 0.5;
-        realx = 0;
-        do {
-
-            //Fire a preemptive ray to see if the hit object has become different
-            ray.direction.setX(x);
-            ray.direction.setY(y);
-            ray.direction.setZ(camera.planeDistance);
-
-            ray.direction.normalize();
-
-            //Trace a ray through the pixel on the image plane
-            resultColor = traceRay(ray, traceDepth);
+    for (int realy = 0; realy < height_; realy++) {
+        for (int realx = 0; realx < width_; realx++) {
+            //Trace a preemptive ray through the pixel on the image plane
+            resultColor = tracePixel(realx, realy);
 
             currRow_[realx] = prevHit_;
 
@@ -310,38 +328,21 @@ void Scene::render(char* filename, BitmapPixel (*postProcess)(BitmapPixel)) {
                          || (prevHit_ != prevRow_[realx]))){
                 //Antialiased image
                 //Divides every pixel into an msaaSamples x msaaSamples grid
-                //Traces a ray through a random position inside each square
-                //Converges faster than supersampling or random sampling
-                //Is essentially both of these combined
-
+                //Traces a ray through the centre of each square
                 prevHit = prevHit_;
 
-                double contribution = 1.0 / (msaaSamples*msaaSamples);
                 resultColor.set(0, 0, 0);
 
-
                 //Traverse the grid
-                //The dx(dy) * 0.5 is subtracted so that gridX, gridY points to
-                //the top left corner of the current square
-
-                double gridX = x - dx * 0.5;
                 for (int i = 1; i <= msaaSamples; i++) {
-                    double gridY = y - dy * 0.5;
                     for (int j = 1; j <= msaaSamples; j++) {
-                        //Generate a random direction in the current square
-                        ray.direction.setX(gridX + rand()/RAND_MAX * dx/msaaSamples);
-                        ray.direction.setY(gridY + rand()/RAND_MAX * dy/msaaSamples);
-                        ray.direction.setZ(camera.planeDistance);
-                        ray.direction.normalize();
-
                         //Trace the ray (contributes only a part of the
                         //resultant color)
-                        resultColor += traceRay(ray, traceDepth) * contribution;
-
-                        //Next position in the square
-                        gridY += dy/msaaSamples;
+                        resultColor += tracePixel(
+                            realx + 1.0/(msaaSamples + 1.0) * (i + 0.5) - 0.5,
+                            realy + 1.0/(msaaSamples + 1.0) * (j + 0.5) - 0.5)
+                            * contribution;
                     }
-                    gridX += dx / msaaSamples;
                 }
                 //Mark the antialiased pixels (for debugging purposes)
                 //resultColor.set(1, 1, 1);
@@ -350,18 +351,11 @@ void Scene::render(char* filename, BitmapPixel (*postProcess)(BitmapPixel)) {
             //Set the result color (either AA'd or w/o AA)
             rendered_->setPixel(realx, realy, resultColor, prevDist_);
 
-            //Next pixel in the row
-            x += dx;
-
             //Copy the collision data in the current row
             memcpy(prevRow_, currRow_, sizeof(Renderable*) * width_);
-        } while (++realx < width_);
-
-        //Row traced, next row
-        y += dy;
-    } while (++realy < height_);
-
-    rendered_->foreach(postProcess);
+        } 
+    } 
+    if (postProcess) rendered_->foreach(postProcess);
 
     //Save the resulting bitmap to file
     rendered_->saveToFile(filename);

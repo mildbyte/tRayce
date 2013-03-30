@@ -39,8 +39,6 @@ BitmapPixel postProcess(BitmapPixel pix) {
     return pix;
 }
 
-BitmapPixel noPostProcess (BitmapPixel pix) { return pix; }
-
 int main()
 {
     srand((unsigned)time(0));
@@ -49,11 +47,11 @@ int main()
     scene.backgroundColor.set(0, 0, 0);
     scene.doAA = false;
     scene.msaaSamples = 4;
-    scene.msaaOptimize = true;
+    scene.msaaOptimize = false;
     //scene.camera.height = 15;
     scene.softShadowSamples = 1;
-    scene.traceDepth = 4;
-    scene.camera.position.setY(2);
+    scene.traceDepth = 1;
+    scene.camera.position.setY(0);
     scene.camera.position.setZ(-20);
     scene.camera.planeDistance = 20;
 
@@ -61,6 +59,9 @@ int main()
     Sphere *redSphere = new Sphere(5, Vector(-1, 5, 13));
     Sphere *greenSphere = new Sphere(3, Vector(-7, 7, 8));
     Sphere *blueSphere = new Sphere(3, Vector(10, 7, 15));
+
+    scene.camera.direction = Vector(-1, 5, 13) - scene.camera.position;
+    scene.camera.direction.normalize();
 
 
 //    Box *redSphere = new Box(Vector(-6, -2, 9), Vector(6, 6, 6));
@@ -91,11 +92,11 @@ int main()
     yellowSphere->material.isReflective = false;
     yellowSphere->material.specular = 0.3;
 */
-    bottomPlane->material.color = Vector(0.3, 0.3, 0.3);
+    bottomPlane->material.color = Vector(0.5, 0.5, 0.0);
     bottomPlane->material.isReflective = true;
     bottomPlane->material.reflectivity = 1;
 
-    upPlane->material.color = Vector(0.3, 0.3, 0.3);
+    upPlane->material.color = Vector(0.0, 0.5, 0.5);
     upPlane->material.isReflective = false;
     upPlane->material.specular = 0;
     upPlane->material.reflectivity = 0.2;
@@ -135,7 +136,7 @@ int main()
     topLight3->brightness = 0.3;
     scene.addLight(topLight3);
 
-    scene.render("test.bmp", &noPostProcess);
+    scene.render("test.bmp", NULL);
 
     return 0;
 }

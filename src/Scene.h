@@ -35,6 +35,8 @@ private:
     //object in it)
     Renderable **prevRow_, **currRow_;
 
+    Vector xPixel, yPixel; //X and Y directions in the image plane
+
     //Shading coefficient (how much a point is obscured) calculation
     double calculateShadingCoefficient(Light* light, Vector point, Vector toLight, double lightDist);
 
@@ -46,6 +48,9 @@ private:
 
     //Reflection contribution
     Vector calculateReflection(Intersection inter, Ray ray, int depth);
+
+    //Convert one pixel to world coordinates and trace it
+    Vector tracePixel(double x, double y);
 public:
     //Necessary to specify width and height to allocate memory
     Scene(int width, int height);
