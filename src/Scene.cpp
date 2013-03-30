@@ -331,6 +331,9 @@ void Scene::populatePhotonMap() {
 
                 //New point to cast the ray from
                 photonRay.origin = inter.coords;
+                
+                inter.normal.normalize(); //not normalized by the intersection
+                                          //to save CPU cycles
 
                 //Reflect the ray
                 Vector reflDir = photonRay.direction - inter.normal 
