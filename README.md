@@ -11,15 +11,13 @@ It supports basically nothing, including, but not limited to:
 
 * Not having a scene definition language, unless we call C++ a scene definition language.
 * Not supporting primitives other than spheres, planes and axis-aligned boxes.
-* Not supporting changing the camera's direction. Meaning axis-aligned boxes
-    don't exactly look exciting.
 * Not using CUDA/SSE.
 * Not being able to export the rendered image into anything but an uncompressed
     BMP file.
 * Not supporting textures, procedural or not, unless we call a plain colour a texture.
 * Not being realtime, unless we call 30 FPS at 160x100 on a 2.1 GHz dualcore realtime.
 * Not using any acceleration structures to make the rendering faster.
-* As of August 28th, it has also been certified to be slow as hell on a Raspberry Pi Model B: ~80 times slower for the same 1280x800 scene, probably because of the kernel that U have there not using hard-float ABI.
+* As of August 28th, it has also been certified to be slow as hell on a Raspberry Pi Model B: ~80 times slower for the same 1280x800 scene, probably because of the kernel that I have there not using hard-float ABI.
 
 Compilation
 -----------
@@ -43,8 +41,7 @@ Some features that tRayce does support:
 * **Adjusting the camera**: `Scene.camera` sets up parameters such the dimensions
     of the image plane the rays would be cast through (`Scene::camera.height` 
     and `width`), the focus distance (`Scene::camera.planeDistance`) and the
-    position (`Scene::camera.position`). The direction of the camera can't be
-    adjusted yet.
+    position (`Scene::camera.position`).
 * **Multisample anti-aliasing** (`Scene::doAA`): casts several rays per pixel
     (`Scene::msaaSamples` squared) to make the result smoother. Since using this
     incurs a large performance penalty, there is an option `Scene::msaaOptimize`
