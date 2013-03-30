@@ -285,6 +285,11 @@ Vector Scene::tracePixel(double x, double y) {
     return traceRay(ray, traceDepth);
 }
 
+Vector combineColors(Vector c1, Vector c2) {
+    return Vector(c1.getX() * c2.getX(), c1.getY() * c2.getY(),
+                  c1.getZ() * c2.getZ());
+}
+
 void Scene::populatePhotonMap() {
     //Construct the map
     //There will be one photon per bounce
@@ -319,8 +324,10 @@ void Scene::populatePhotonMap() {
 
             while (inter.happened && currBounces < photonBounces) {
                 //Record the photon               
+                photonEnergy = combineColors(photonEnergy, 
+                                             inter.object->material.color);
                 photonMap_->addPhoton(inter.coords, photonRay.direction, 
-                                      inter.object->material.color * (1/sqrt(currBounces)));
+                                      photonEnergy * (1/sqrt(currBounces)));
 
                 //New point to cast the ray from
                 photonRay.origin = inter.coords;
