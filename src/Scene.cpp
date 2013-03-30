@@ -37,6 +37,9 @@ Scene::Scene(int width, int height) {
 
     currRow_ = new Renderable*[width];
     memset(currRow_, NULL, width * sizeof (Renderable*));
+
+    photonMapping = false;
+    photonCount = 1000;
 }
 
 double Scene::calculateShadingCoefficient(Light* light, Vector point, Vector toLight, double lightDist) {
@@ -302,9 +305,6 @@ void Scene::render(char* filename, BitmapPixel (*postProcess)(BitmapPixel)) {
     //xPixel and yPixel: one pixel in the image plane
     xPixel = imagePlaneX * (camera.width / (double)width_);
     yPixel = imagePlaneY * (camera.height / (double)height_);
-
-    printf("xPixel = %f, %f, %f\n", xPixel.getX(), xPixel.getY(), xPixel.getZ());
-    printf("yPixel = %f, %f, %f\n", yPixel.getX(), yPixel.getY(), yPixel.getZ());
 
     //The resulting color of the pixel
     Vector resultColor;

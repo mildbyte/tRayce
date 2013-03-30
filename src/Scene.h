@@ -84,6 +84,11 @@ public:
     int softShadowSamples;
 
     Vector backgroundColor;
+
+    //Do photon mapping?
+    bool photonMapping;
+
+    int photonCount;
 };
 
 #endif
