@@ -16,7 +16,8 @@ private:
     Photon* photons_;
     int currPtr_;
 
-    Photon* kdTree_;
+    int* kdTree_;
+    int* indices_;
 
     int countPhotonsAt(Vector point, double distsq);
     double getDistance(Vector point, int noPhotons);
@@ -24,13 +25,17 @@ private:
     void balanceTree(int left, int right, int depth, int location);
     double getComponent(Vector a, char axis);
     
-    void replaceMaxDist(Photon newPh, double newPhDist);
+    void replaceMaxDist(int newPh, double newPhDist);
     void findNearestNeighbours(Vector point, int treePos);
     void nearestNeighboursWrapper(Vector point, int amount);
 
+    void dumpTree();
+    void dumpList();
+    void dumpNeighbours();
+
     int neighboursNeeded_;
     int foundNeighbours_;
-    Photon* neighbours_;
+    int* neighbours_;
     double* neighbourDists_;
 
 public:

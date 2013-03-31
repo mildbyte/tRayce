@@ -268,7 +268,7 @@ Vector Scene::traceRay(const Ray ray, int level) {
         //Gathering the photons replaces classic raytracing
         resultColor = photonMap_->gatherPhotons(inter.coords,
             inter.normal, photonExposure, photonGatherRadius, 10);
-        resultColor += calculatePhongColor(inter, ray);
+//        resultColor += calculatePhongColor(inter, ray);
 /*
         for (int i = 0; i < 5; i++) {
             //Sampling ray from the surface of the entity
@@ -343,7 +343,6 @@ void Scene::populatePhotonMap() {
     //The number of photons emitted per light depends on the light's intensity
     double totalIntensity = 0;
     
-    int photonsHit = 0;
     int allHits = 0;
 
     for (std::list<Light*>::iterator it = lights_.begin();
@@ -372,9 +371,9 @@ void Scene::populatePhotonMap() {
             int currBounces = 1;
 
             Intersection inter = renderables_.getFirstIntersection(photonRay);
-            if (inter.happened) photonsHit++;
 
             while (inter.happened && currBounces < photonBounces) {
+                allHits++;
                 //Record the photon               
                 photonEnergy = combineColors(photonEnergy, 
                                              inter.object->material.color);
@@ -392,16 +391,14 @@ void Scene::populatePhotonMap() {
 
                 //Send the ray onwards
                 inter = renderables_.getFirstIntersection(photonRay);
-                if (inter.happened) allHits++;
                 currBounces++;
             }
         }
     }
     
+    printf("Total hits: %d\n", allHits);
     photonMap_->makeTree();
 
-    printf("Total primary hits: %d\n", photonsHit);
-    printf("Total hits: %d\n", photonsHit + allHits);
 }
 
 void Scene::render(char* filename, BitmapPixel (*postProcess)(BitmapPixel)) {
@@ -484,8 +481,11 @@ void Scene::render(char* filename, BitmapPixel (*postProcess)(BitmapPixel)) {
             memcpy(prevRow_, currRow_, sizeof(Renderable*) * width_);
         } 
     } 
+
+    printf("Rendering complete, postprocessing...");
     if (postProcess) rendered_->foreach(postProcess);
 
+    printf("Saving...");
     //Save the resulting bitmap to file
     rendered_->saveToFile(filename);
 }

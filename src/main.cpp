@@ -36,7 +36,7 @@ BitmapPixel postProcess(BitmapPixel pix) {
 int main()
 {
     srand((unsigned)time(0));
-    Scene scene(40, 30);
+    Scene scene(32, 24);
 //    scene.camera.height = 15;
     scene.backgroundColor.set(0, 0, 0);
     scene.doAA = false;
@@ -49,7 +49,7 @@ int main()
     scene.camera.planeDistance = 20;
 
     scene.photonMapping = true;
-    scene.photonCount = 1000;
+    scene.photonCount = 10000; 
     scene.photonGatherRadius = 16;
     scene.photonBounces = 3;
     scene.photonExposure = 1;
