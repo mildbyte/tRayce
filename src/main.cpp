@@ -8,12 +8,6 @@
 
 using namespace std;
 
-/*bool collides(Sphere sphere1, Sphere sphere2) {
-    Vector distvect = sphere1.position_ - sphere2.position;
-    double distance = distvect.normalize();
-    return distvect >= (sphere1.radius_ + sphere2.radius_);
-}*/
-
 //Generates a random scene with a bunch of spheres
 void randomScene(Scene* scene) {
     for (int i = 0; i < 30; i++) {
@@ -42,13 +36,12 @@ BitmapPixel postProcess(BitmapPixel pix) {
 int main()
 {
     srand((unsigned)time(0));
-    Scene scene(320, 240);
+    Scene scene(40, 30);
 //    scene.camera.height = 15;
     scene.backgroundColor.set(0, 0, 0);
     scene.doAA = false;
     scene.msaaSamples = 4;
     scene.msaaOptimize = false;
-    //scene.camera.height = 15;
     scene.softShadowSamples = 1;
     scene.traceDepth = 1;
     scene.camera.position.setY(0);
@@ -56,8 +49,8 @@ int main()
     scene.camera.planeDistance = 20;
 
     scene.photonMapping = true;
-    scene.photonCount = 10000;
-    scene.photonGatherRadius = 0.7;
+    scene.photonCount = 1000;
+    scene.photonGatherRadius = 16;
     scene.photonBounces = 3;
     scene.photonExposure = 1;
 
@@ -77,6 +70,8 @@ int main()
 
     Plane *bottomPlane = new Plane(Vector(0, 10, 0), Vector(0, -1, 0));
     Plane *upPlane = new Plane(Vector(0, 0, 16), Vector(0, 0, -1));
+    Plane *leftPlane = new Plane(Vector(-11, 0, 0), Vector(1, 0, 0));
+    Plane *rightPlane = new Plane(Vector(14, 0, 0), Vector(-1, 0, 0));
 
     redSphere->material.color = Vector(1.0, 0.2, 0.2);
     redSphere->material.reflectivity = 0.4;
@@ -98,14 +93,17 @@ int main()
     yellowSphere->material.isReflective = false;
     yellowSphere->material.specular = 0.3;
 */
-    bottomPlane->material.color = Vector(0.5, 0.5, 0.0);
+    bottomPlane->material.color = Vector(1, 1, 1);
     bottomPlane->material.isReflective = true;
     bottomPlane->material.reflectivity = 1;
 
-    upPlane->material.color = Vector(0.0, 0.5, 0.5);
+    upPlane->material.color = Vector(1, 1, 1);
     upPlane->material.isReflective = false;
     upPlane->material.specular = 0;
     upPlane->material.reflectivity = 0.2;
+
+    leftPlane->material.color = Vector(1, 0, 0);
+    rightPlane->material.color = Vector(0, 1, 0);
 
     scene.addRenderable(redSphere);
     scene.addRenderable(greenSphere);
@@ -113,34 +111,18 @@ int main()
 //    scene.addRenderable(yellowSphere);
     scene.addRenderable(bottomPlane);
     scene.addRenderable(upPlane);
+    scene.addRenderable(leftPlane);
+    scene.addRenderable(rightPlane);
     scene.ambientCoefficient = 0.05;
 
     AreaLight* topLight = new AreaLight();
-    topLight->position.set(10, -9, 0);
+    topLight->position.set(0, -9, 0);
     topLight->dir1.set(1, 0, 0);
     topLight->dir2.set(0, 0, 1);
     topLight->size1 = 3;
     topLight->size2 = 3;
     topLight->brightness = 0.3;
     scene.addLight(topLight);
-
-    AreaLight* topLight2 = new AreaLight();
-    topLight2->position.set(-1.5, -10, 10);
-    topLight2->dir1.set(1, 0, 0);
-    topLight2->dir2.set(0, 0, -1);
-    topLight2->size1 = 3;
-    topLight2->size2 = 3;
-    topLight2->brightness = 0.3;
-    scene.addLight(topLight2);
-
-    AreaLight* topLight3 = new AreaLight();
-    topLight3->position.set(-3, 0, 0);
-    topLight3->dir1.set(0, -1, 0);
-    topLight3->dir2.set(1, 0, 0);
-    topLight3->size1 = 6;
-    topLight3->size2 = 6;
-    topLight3->brightness = 0.3;
-    scene.addLight(topLight3);
 
     scene.render("test.bmp", NULL);
 

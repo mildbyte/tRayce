@@ -233,6 +233,18 @@ Vector Scene::calculateReflection(Intersection inter, Ray ray, int level) {
     return traceRay(reflRay, level - 1) * inter.object->material.reflectivity;
 }
 
+//Generates a random vector in the hemisphere of the normal
+Vector sampleLambertianBRDF(Vector normal) {
+    Vector result(0, 0, 0);
+    do {
+        result.setX(rand() * 2 - 1);
+        result.setY(rand() * 2 - 1);
+        result.setZ(rand() * 2 - 1);
+        result.normalize();
+    } while (normal.dot(result) < 0);
+    return result;
+}
+
 Vector Scene::traceRay(const Ray ray, int level) {
     //Traces a single ray through the scene; returns its color.
     //This is where the magic happens.
@@ -256,6 +268,28 @@ Vector Scene::traceRay(const Ray ray, int level) {
         //Gathering the photons replaces classic raytracing
         resultColor = photonMap_->gatherPhotons(inter.coords,
             inter.normal, photonExposure, photonGatherRadius, 10);
+        resultColor += calculatePhongColor(inter, ray);
+/*
+        for (int i = 0; i < 5; i++) {
+            //Sampling ray from the surface of the entity
+            Ray samplingRay;
+
+            do {
+                samplingRay.direction.setX(rand() * 2 - 1);
+                samplingRay.direction.setY(rand() * 2 - 1);
+                samplingRay.direction.setZ(rand() * 2 - 1);
+                samplingRay.direction.normalize();
+            } while (inter.normal.dot(samplingRay.direction) < 0);
+
+
+            Intersection sampleInter = renderables_.getFirstIntersection(samplingRay);
+            if (!sampleInter.happened) continue;
+            sampleInter.normal.normalize();
+
+            resultColor += photonMap_->gatherPhotons(sampleInter.coords,
+                sampleInter.normal, photonExposure, photonGatherRadius, 10);
+        }*/
+//        resultColor *= 0.05;
     } else {
         //Phong (diffuse+specular) pass
         resultColor += calculatePhongColor(inter, ray);
@@ -345,7 +379,7 @@ void Scene::populatePhotonMap() {
                 photonEnergy = combineColors(photonEnergy, 
                                              inter.object->material.color);
                 photonMap_->addPhoton(inter.coords, photonRay.direction, 
-                                      photonEnergy * (1/sqrt(currBounces)));
+                                      photonEnergy);
 
                 //New point to cast the ray from
                 photonRay.origin = inter.coords;
@@ -354,10 +388,7 @@ void Scene::populatePhotonMap() {
                                           //to save CPU cycles
 
                 //Reflect the ray
-                Vector reflDir = photonRay.direction - inter.normal 
-                    * 2.0f * photonRay.direction.dot(inter.normal);
-                reflDir.normalize();
-                photonRay.direction = reflDir;
+                photonRay.direction = sampleLambertianBRDF(inter.normal);
 
                 //Send the ray onwards
                 inter = renderables_.getFirstIntersection(photonRay);
@@ -366,6 +397,9 @@ void Scene::populatePhotonMap() {
             }
         }
     }
+    
+    photonMap_->makeTree();
+
     printf("Total primary hits: %d\n", photonsHit);
     printf("Total hits: %d\n", photonsHit + allHits);
 }
