@@ -40,6 +40,10 @@ Scene::Scene(int width, int height) {
 
     photonMapping = false;
     photonCount = 1000;
+    photonBounces = 2;
+
+    photonExposure = 50;
+    photonGatherRadius = 0.7;
 }
 
 double Scene::calculateShadingCoefficient(Light* light, Vector point, Vector toLight, double lightDist) {
@@ -248,17 +252,22 @@ Vector Scene::traceRay(const Ray ray, int level) {
     inter.normal.normalize();
     Vector resultColor(0, 0, 0);
 
+    if (photonMapping) {
+        //Gathering the photons replaces classic raytracing
+        resultColor = photonMap_->gatherPhotons(inter.coords,
+            inter.normal, photonExposure, photonGatherRadius, 10);
+    } else {
+        //Phong (diffuse+specular) pass
+        resultColor += calculatePhongColor(inter, ray);
 
-    //Phong (diffuse+specular) pass
-    resultColor += calculatePhongColor(inter, ray);
+        //Add the transmitted ray
+        if (inter.object->material.isTransparent)
+            resultColor += calculateRefraction(inter, ray, level);
 
-    //Add the transmitted ray
-    if (inter.object->material.isTransparent)
-        resultColor += calculateRefraction(inter, ray, level);
-
-    //Add the reflected ray
-    if (inter.object->material.isReflective)
-        resultColor += calculateReflection(inter, ray, level);
+        //Add the reflected ray
+        if (inter.object->material.isReflective)
+            resultColor += calculateReflection(inter, ray, level);
+    }
 
     //Store the distance (used for postprocessing)
     prevDist_ = inter.distance;
@@ -285,9 +294,11 @@ Vector Scene::tracePixel(double x, double y) {
     return traceRay(ray, traceDepth);
 }
 
+inline double min(double a, double b) {return a < b ? a : b;}
+
 Vector combineColors(Vector c1, Vector c2) {
-    return Vector(c1.getX() * c2.getX(), c1.getY() * c2.getY(),
-                  c1.getZ() * c2.getZ());
+    return Vector(min(c1.getX(), c2.getX()), min(c1.getY(), c2.getY()),
+                  min(c1.getZ(), c2.getZ()));
 }
 
 void Scene::populatePhotonMap() {
@@ -297,23 +308,29 @@ void Scene::populatePhotonMap() {
 
     //The number of photons emitted per light depends on the light's intensity
     double totalIntensity = 0;
+    
+    int photonsHit = 0;
+    int allHits = 0;
+
     for (std::list<Light*>::iterator it = lights_.begin();
         it != lights_.end(); it++) totalIntensity += ((Light*)(*it))->brightness;
 
 
     for (std::list<Light*>::iterator it = lights_.begin();
         it != lights_.end(); it++) {
-        int photonsToCast = (((Light*)(*it))->brightness/totalIntensity) * photonCount;
+        int photonsToCast = (int)((((Light*)(*it))->brightness/totalIntensity) 
+                          * (double)photonCount);
+        printf("Casting %d photons...\n", photonsToCast);
 
-        for (int i = 0; i < photonCount; i++) {
+        for (int i = 0; i < photonsToCast; i++) {
             //Make the light->scene ray
             Ray photonRay;
             photonRay.origin = ((Light*)(*it))->position;
             
             //Generate a random direction for our ray
-            photonRay.direction.setX(rand());
-            photonRay.direction.setY(rand());
-            photonRay.direction.setZ(rand());
+            photonRay.direction.setX(rand() * 2 - 1);
+            photonRay.direction.setY(rand() * 2 - 1);
+            photonRay.direction.setZ(rand() * 2 - 1);
             photonRay.direction.normalize();
             
             Vector photonEnergy(1, 1, 1);
@@ -321,6 +338,7 @@ void Scene::populatePhotonMap() {
             int currBounces = 1;
 
             Intersection inter = renderables_.getFirstIntersection(photonRay);
+            if (inter.happened) photonsHit++;
 
             while (inter.happened && currBounces < photonBounces) {
                 //Record the photon               
@@ -342,12 +360,14 @@ void Scene::populatePhotonMap() {
                 photonRay.direction = reflDir;
 
                 //Send the ray onwards
-                Intersection inter = renderables_.getFirstIntersection(photonRay);
-
+                inter = renderables_.getFirstIntersection(photonRay);
+                if (inter.happened) allHits++;
                 currBounces++;
             }
         }
     }
+    printf("Total primary hits: %d\n", photonsHit);
+    printf("Total hits: %d\n", photonsHit + allHits);
 }
 
 void Scene::render(char* filename, BitmapPixel (*postProcess)(BitmapPixel)) {
@@ -355,7 +375,12 @@ void Scene::render(char* filename, BitmapPixel (*postProcess)(BitmapPixel)) {
 
     //Populate the photon map (should really be done once per scene, not every render,
     //is here for testing).
-    if (photonMapping) populatePhotonMap();
+    if (photonMapping) {
+        printf("Populating the photon map...\n");
+        populatePhotonMap();
+    }
+
+    printf("Rendering...\n");
 
     //imagePlaneX and imagePlaneY are the unit x and y vectors in the image plane.
     Vector imagePlaneX(

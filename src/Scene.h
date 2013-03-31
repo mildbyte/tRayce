@@ -92,14 +92,11 @@ public:
 
     Vector backgroundColor;
 
-    //Do photon mapping?
-    bool photonMapping;
-    
-    //How many primary photons to launch?
-    int photonCount;
-
-    //Maximum number of photon bounces
-    int photonBounces;
+    bool photonMapping;//Do photon mapping?
+    int photonCount;   //How many primary photons to launch?
+    int photonBounces; //Maximum number of photon bounces
+    double photonGatherRadius;//Photons how far to take into account?
+    double photonExposure;
 };
 
 #endif
