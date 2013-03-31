@@ -36,7 +36,7 @@ BitmapPixel postProcess(BitmapPixel pix) {
 int main()
 {
     srand((unsigned)time(0));
-    Scene scene(32, 24);
+    Scene scene(160, 120);
 //    scene.camera.height = 15;
     scene.backgroundColor.set(0, 0, 0);
     scene.doAA = false;
@@ -49,10 +49,10 @@ int main()
     scene.camera.planeDistance = 20;
 
     scene.photonMapping = true;
-    scene.photonCount = 10000; 
-    scene.photonGatherRadius = 16;
+    scene.photonCount = 100000; 
     scene.photonBounces = 3;
-    scene.photonExposure = 1;
+    scene.photonGatherAmount = 10;
+    scene.photonGatherSamples = 256;
 
     
     Sphere *redSphere = new Sphere(5, Vector(-1, 5, 13));

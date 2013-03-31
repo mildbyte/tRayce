@@ -15,6 +15,7 @@ class PhotonMap {
 private:
     Photon* photons_;
     int currPtr_;
+    int kdTreeSize_;
 
     int* kdTree_;
     int* indices_;
@@ -43,7 +44,7 @@ public:
     ~PhotonMap();
     
     void addPhoton(Vector position, Vector direction, Vector energy);
-    Vector gatherPhotons(Vector point, Vector normal, double radius, double exposure, int noPhotons);
+    Vector gatherPhotons(Vector point, Vector normal, int noPhotons);
     void makeTree();
 };
 

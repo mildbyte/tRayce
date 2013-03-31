@@ -41,9 +41,9 @@ Scene::Scene(int width, int height) {
     photonMapping = false;
     photonCount = 1000;
     photonBounces = 2;
-
-    photonExposure = 50;
-    photonGatherRadius = 0.7;
+    
+    photonGatherAmount = 10;
+    photonGatherSamples = 10;
 }
 
 double Scene::calculateShadingCoefficient(Light* light, Vector point, Vector toLight, double lightDist) {
@@ -266,30 +266,27 @@ Vector Scene::traceRay(const Ray ray, int level) {
 
     if (photonMapping) {
         //Gathering the photons replaces classic raytracing
-        resultColor = photonMap_->gatherPhotons(inter.coords,
-            inter.normal, photonExposure, photonGatherRadius, 10);
+//        resultColor = photonMap_->gatherPhotons(inter.coords,
+//            inter.normal, photonGatherAmount);
 //        resultColor += calculatePhongColor(inter, ray);
-/*
-        for (int i = 0; i < 5; i++) {
+
+        for (int i = 0; i < photonGatherSamples; i++) {
             //Sampling ray from the surface of the entity
             Ray samplingRay;
 
-            do {
-                samplingRay.direction.setX(rand() * 2 - 1);
-                samplingRay.direction.setY(rand() * 2 - 1);
-                samplingRay.direction.setZ(rand() * 2 - 1);
-                samplingRay.direction.normalize();
-            } while (inter.normal.dot(samplingRay.direction) < 0);
+            samplingRay.origin = inter.coords;
+            samplingRay.direction = sampleLambertianBRDF(inter.normal);
 
+            samplingRay.origin += samplingRay.direction * 0.001;
 
             Intersection sampleInter = renderables_.getFirstIntersection(samplingRay);
             if (!sampleInter.happened) continue;
             sampleInter.normal.normalize();
 
             resultColor += photonMap_->gatherPhotons(sampleInter.coords,
-                sampleInter.normal, photonExposure, photonGatherRadius, 10);
-        }*/
-//        resultColor *= 0.05;
+                sampleInter.normal, photonGatherAmount);
+        }
+        resultColor /= (double)photonGatherSamples;
     } else {
         //Phong (diffuse+specular) pass
         resultColor += calculatePhongColor(inter, ray);
@@ -372,7 +369,7 @@ void Scene::populatePhotonMap() {
 
             Intersection inter = renderables_.getFirstIntersection(photonRay);
 
-            while (inter.happened && currBounces < photonBounces) {
+            while (inter.happened && currBounces <= photonBounces) {
                 allHits++;
                 //Record the photon               
                 photonEnergy = combineColors(photonEnergy, 

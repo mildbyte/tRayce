@@ -95,8 +95,8 @@ public:
     bool photonMapping;//Do photon mapping?
     int photonCount;   //How many primary photons to launch?
     int photonBounces; //Maximum number of photon bounces
-    double photonGatherRadius;//Photons how far to take into account?
-    double photonExposure;
+    int photonGatherAmount; //How many photons to use in irradiance calculations?
+    int photonGatherSamples; //How many samples for final gathering step?
 };
 
 #endif
