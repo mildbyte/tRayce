@@ -9,8 +9,6 @@
 
 //Determines which axis we are currently using to compare photons
 char currAxis;
-//The photons used in the comparator
-Photon* globalPhotons;
 //Has to be global because it is accessed from a comparator routine.
 
 inline double sqr(double a) {return a*a;}
@@ -40,17 +38,16 @@ double isWithin(Vector a, Vector b, double distsq) {
 }
 
 PhotonMap::PhotonMap(int size) {
+    printf("Allocating the space for the map (%d bytes per photon)...\n", sizeof(Photon));
     photons_ = new Photon[size];
     currPtr_ = 0;
-    neighbours_ = NULL;
-    neighbourDists_ = NULL;
 
     kdTreeVisited_ = 0;
 }
 
 PhotonMap::~PhotonMap() {
-//    delete(photons_);
-//    delete(kdTree_);
+    delete(photons_);
+    delete(kdTree_);
 }
 
 int photonComparator (const void* p1, const void* p2) {
@@ -145,12 +142,12 @@ void PhotonMap::dumpTree() {
     }
 }
 
-void PhotonMap::dumpNeighbours() {
+/*void PhotonMap::dumpNeighbours() {
     for (int i = 0; i < foundNeighbours_; i++) {
         printf("sqd = %f; ", neighbourDists_[i]);
         dumpPhoton(photons_[neighbours_[i]]);
     }
-}
+}*/
 
 void PhotonMap::makeTree() {
     printf("Making the kd-tree for %d photons...\n", currPtr_);
@@ -158,6 +155,7 @@ void PhotonMap::makeTree() {
 //    dumpList();
     kdTreeSize_ = 1;
     while (kdTreeSize_ < currPtr_ + 1) kdTreeSize_ = kdTreeSize_ << 1;
+
     printf("Size %d\n", kdTreeSize_);
 
 //    indices_ = new int[currPtr_];
@@ -175,29 +173,27 @@ void PhotonMap::makeTree() {
 //    dumpTree();
 }
 
-void PhotonMap::replaceMaxDist(int newPh, double newPhDist) {
+void PhotonMap::addNearestNeighbour(int newPh, double newPhDist) {
 //    printf("Adding %f to the list\n", newPhDist);
-    if (foundNeighbours_ < neighboursNeeded_) {
+    if (neighbours_.size() < neighboursNeeded_) {
 //        printf("List incomplete, added\n");
-        neighbours_[foundNeighbours_] = newPh;
-        neighbourDists_[foundNeighbours_] = newPhDist;
-        foundNeighbours_++;
+        Neighbour newNeighbour;
+        newNeighbour.id = newPh;
+        newNeighbour.distance = newPhDist;
+
+        neighbours_.push(newNeighbour);
         return;
     }
-
-    int maxPos = 0;
-    double maxDist = neighbourDists_[0];
-
-    for (int i = 1; i < foundNeighbours_; i++) {
-        if (neighbourDists_[i] > maxDist) {
-            maxDist = neighbourDists_[i];
-            maxPos = i;
-        }
-    }
+    
+    double maxDist = neighbours_.top().distance;
 
     if (maxDist > newPhDist) {
-        neighbours_[maxPos] = newPh;
-        neighbourDists_[maxPos] = newPhDist;
+        Neighbour newNeighbour;
+        newNeighbour.id = newPh;
+        newNeighbour.distance = newPhDist;
+
+        neighbours_.pop();
+        neighbours_.push(newNeighbour);
 //        printf("Greatest distance (%f) replaced\n", maxDist);
     }
 }
@@ -213,11 +209,13 @@ void PhotonMap::findNearestNeighbours(Vector point, int treePos) {
     if (treePos >= kdTreeSize_) return;
     if (kdTree_[treePos] == -1) return;
     
-    replaceMaxDist(kdTree_[treePos], sqDist(point, photons_[kdTree_[treePos]].position));
+    addNearestNeighbour(kdTree_[treePos], sqDist(point, photons_[kdTree_[treePos]].position));
 
     double subdivideLocation = getVectorComponent(photons_[kdTree_[treePos]].position,
                                                   photons_[kdTree_[treePos]].axis);
 
+//    printf("Median ");
+//    dumpPhoton(photons_[kdTree_[treePos]]);
     double distToMedian = 
         getVectorComponent(point, photons_[kdTree_[treePos]].axis) - subdivideLocation;
 //    printf("Signed distance: %f\n", distToMedian);
@@ -233,30 +231,18 @@ void PhotonMap::findNearestNeighbours(Vector point, int treePos) {
     
     double sqDistToMedian = sqr(distToMedian);
     
-    for (int i = 0; i < foundNeighbours_; i++) {
-        if (sqDistToMedian < neighbourDists_[i]) {
-//            printf("Have to try the second tree: %f, %f to median\n", neighbourDists_[i], sqDistToMedian);
-            if (distToMedian < 0) {
-                findNearestNeighbours(point, 2*treePos+1);
-            } else {
-                findNearestNeighbours(point, 2*treePos);
-            }
-            break;
+    if (sqDistToMedian < neighbours_.top().distance) {
+//            printf("Have to try the second tree: %f, %f to median\n", neighbours_.top().distance, sqDistToMedian);
+        if (distToMedian < 0) {
+            findNearestNeighbours(point, 2*treePos+1);
+        } else {
+            findNearestNeighbours(point, 2*treePos);
         }
     }
-    
 }
 
 void PhotonMap::nearestNeighboursWrapper(Vector point, int amount) {
-    if (neighbours_ == NULL) {
-        neighbours_ = new int[amount];
-    }
-    if (neighbourDists_ == NULL) {
-        neighbourDists_ = new double[amount];
-    }
-    
     neighboursNeeded_ = amount;
-    foundNeighbours_ = 0;
 
     findNearestNeighbours(point, 1);
 }
@@ -277,7 +263,7 @@ Vector PhotonMap::gatherPhotons(Vector point, Vector normal, int noPhotons) {
     nearestNeighboursWrapper(point, noPhotons);
 //    printf("%d\n", kdTreeVisited_);
 
-    double sqRadius = 0;
+    double sqRadius = neighbours_.top().distance;
     
 //printf("Looking for neighbours for %f, %f, %f\n\n\n", point.getX(), point.getY(), point.getZ());
 //dumpNeighbours();
@@ -303,22 +289,21 @@ Vector PhotonMap::gatherPhotons(Vector point, Vector normal, int noPhotons) {
         }
     }
 */
-    for (int i = 0; i < foundNeighbours_; i++) {
-        if (neighbourDists_[i] > sqRadius) sqRadius = neighbourDists_[i];
-    }
-
-    double factor = 1.0 / 9.424777959 / sqRadius;
-//    double factor = 1.0 / sqRadius;
-//    double factor = 1;
+    double factor = 1.0 / 9.4247778 / sqRadius;
     double radius = sqrt(sqRadius);
 
-    for (int i = 0; i < foundNeighbours_; i++) {
-        double weight = -normal.dot(photons_[neighbours_[i]].direction);
+    while (!neighbours_.empty()) { 
+        Neighbour neighbour = neighbours_.top();
+        neighbours_.pop();
+
+        double weight = -normal.dot(photons_[neighbour.id].direction);
+//    double weight = 1;
         if (weight < 0) continue;
         
-        weight *= (1 - sqrt(neighbourDists_[i]) / radius);
+        weight *= (1 - sqrt(neighbour.distance / sqRadius));
 
-        result += photons_[neighbours_[i]].energy * weight;
+        result += photons_[neighbour.id].energy * weight;
+
     }
 
     return result * factor;

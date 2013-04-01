@@ -2,6 +2,8 @@
 #define PHOTONMAP_H
 
 #include "Vector.h"
+
+#include <queue>
 //Used for photon mapping, stores information about photons on the scene
 
 struct Photon {
@@ -9,6 +11,15 @@ struct Photon {
     Vector direction;
     Vector energy;
     char axis; //Used to store in a kd tree, axis where the subdivision happened
+};
+
+//Is put into the neighbours priority queue during the kNN search
+struct Neighbour {
+    int id;         //Position in the photons_ array
+    double distance;//Distance to the point we are looking for
+    bool operator< (const Neighbour& n) const {
+        return (distance < n.distance);
+    }
 };
 
 class PhotonMap {
@@ -28,18 +39,17 @@ private:
     double getComponent(Vector a, char axis);
     char getGreatestSpreadAxis(int left, int right);
     
-    void replaceMaxDist(int newPh, double newPhDist);
+    void addNearestNeighbour(int newPh, double newPhDist);
     void findNearestNeighbours(Vector point, int treePos);
     void nearestNeighboursWrapper(Vector point, int amount);
 
     void dumpTree();
     void dumpList();
-    void dumpNeighbours();
+//    void dumpNeighbours();
 
     int neighboursNeeded_;
-    int foundNeighbours_;
-    int* neighbours_;
-    double* neighbourDists_;
+    
+    std::priority_queue<Neighbour> neighbours_;
 
 public:
     PhotonMap(int size);

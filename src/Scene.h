@@ -95,6 +95,7 @@ public:
     Vector backgroundColor;
 
     bool photonMapping;//Do photon mapping?
+    bool doFinalGather;//Shoot rays to nearby objects or use local irradiance data?
     int photonCount;   //How many primary photons to launch?
     int photonBounces; //Maximum number of photon bounces
     int photonGatherAmount; //How many photons to use in irradiance calculations?
