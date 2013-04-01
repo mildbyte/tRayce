@@ -266,10 +266,10 @@ Vector Scene::traceRay(const Ray ray, int level) {
 
     if (photonMapping) {
         //Gathering the photons replaces classic raytracing
-//        resultColor = photonMap_->gatherPhotons(inter.coords,
-//            inter.normal, photonGatherAmount);
+        resultColor = photonMap_->gatherPhotons(inter.coords,
+            inter.normal, photonGatherAmount);
 //        resultColor += calculatePhongColor(inter, ray);
-
+/*
         for (int i = 0; i < photonGatherSamples; i++) {
             //Sampling ray from the surface of the entity
             Ray samplingRay;
@@ -287,6 +287,7 @@ Vector Scene::traceRay(const Ray ray, int level) {
                 sampleInter.normal, photonGatherAmount);
         }
         resultColor /= (double)photonGatherSamples;
+        resultColor += calculatePhongColor(inter, ray);*/
     } else {
         //Phong (diffuse+specular) pass
         resultColor += calculatePhongColor(inter, ray);
@@ -313,8 +314,8 @@ Vector Scene::tracePixel(double x, double y) {
     //Uses conic projection, casts the rays from the same point.
     ray.origin = camera.position;
 
-    Vector xWorld = xPixel * (x - 0.5 * width_ + 0.5);
-    Vector yWorld = yPixel * (y - 0.5 * height_ + 0.5);
+    Vector xWorld = xPixel * (x - 0.5 * (double)width_ + 0.5);
+    Vector yWorld = yPixel * (y - 0.5 * (double)height_ + 0.5);
 
     //First move to the centre of the image plane, then in the image plane
     //to the needed point.
@@ -377,14 +378,15 @@ void Scene::populatePhotonMap() {
                 photonMap_->addPhoton(inter.coords, photonRay.direction, 
                                       photonEnergy);
 
-                //New point to cast the ray from
-                photonRay.origin = inter.coords;
-                
                 inter.normal.normalize(); //not normalized by the intersection
                                           //to save CPU cycles
 
-                //Reflect the ray
+                //Diffuse the ray
                 photonRay.direction = sampleLambertianBRDF(inter.normal);
+                
+                //New point to cast the ray from (+ avoid collision with itself)
+                photonRay.origin = inter.coords + photonRay.direction * 0.001;
+
 
                 //Send the ray onwards
                 inter = renderables_.getFirstIntersection(photonRay);
@@ -409,6 +411,8 @@ void Scene::render(char* filename, BitmapPixel (*postProcess)(BitmapPixel)) {
     }
 
     printf("Rendering...\n");
+
+    pixelsRendered_ = 0;
 
     //imagePlaneX and imagePlaneY are the unit x and y vectors in the image plane.
     Vector imagePlaneX(
@@ -476,13 +480,22 @@ void Scene::render(char* filename, BitmapPixel (*postProcess)(BitmapPixel)) {
 
             //Copy the collision data in the current row
             memcpy(prevRow_, currRow_, sizeof(Renderable*) * width_);
+
+            pixelsRendered_++;
+            if (pixelsRendered_ % 100 == 0) {
+                printf("Rendered %d pixel(s) out of %d (%f)\n", pixelsRendered_, 
+                    (width_ * height_),
+                    pixelsRendered_ / (double)(width_ * height_) * 100);
+            }
         } 
     } 
 
-    printf("Rendering complete, postprocessing...");
+    printf("Rendering complete, postprocessing...\n");
     if (postProcess) rendered_->foreach(postProcess);
 
-    printf("Saving...");
+    printf("Saving...\n");
     //Save the resulting bitmap to file
     rendered_->saveToFile(filename);
+
+    printf("Done. kd-tree visits per pixel: %f\n", photonMap_->kdTreeVisited_ / (double)(width_ * height_));
 }

@@ -36,7 +36,7 @@ BitmapPixel postProcess(BitmapPixel pix) {
 int main()
 {
     srand((unsigned)time(0));
-    Scene scene(160, 120);
+    Scene scene(320, 240);
 //    scene.camera.height = 15;
     scene.backgroundColor.set(0, 0, 0);
     scene.doAA = false;
@@ -49,18 +49,15 @@ int main()
     scene.camera.planeDistance = 20;
 
     scene.photonMapping = true;
-    scene.photonCount = 100000; 
+    scene.photonCount = 10000; 
     scene.photonBounces = 3;
-    scene.photonGatherAmount = 10;
-    scene.photonGatherSamples = 256;
+    scene.photonGatherAmount = 100;
+    scene.photonGatherSamples = 16;
 
     
     Sphere *redSphere = new Sphere(5, Vector(-1, 5, 13));
     Sphere *greenSphere = new Sphere(3, Vector(-7, 7, 8));
     Sphere *blueSphere = new Sphere(3, Vector(10, 7, 15));
-
-    scene.camera.direction = Vector(-1, 5, 13) - scene.camera.position;
-    scene.camera.direction.normalize();
 
 
 //    Box *redSphere = new Box(Vector(-6, -2, 9), Vector(6, 6, 6));
@@ -72,6 +69,7 @@ int main()
     Plane *upPlane = new Plane(Vector(0, 0, 16), Vector(0, 0, -1));
     Plane *leftPlane = new Plane(Vector(-11, 0, 0), Vector(1, 0, 0));
     Plane *rightPlane = new Plane(Vector(14, 0, 0), Vector(-1, 0, 0));
+    Plane *topPlane = new Plane(Vector(0, -10, 0), Vector(0, 1, 0));
 
     redSphere->material.color = Vector(1.0, 0.2, 0.2);
     redSphere->material.reflectivity = 0.4;
@@ -104,6 +102,7 @@ int main()
 
     leftPlane->material.color = Vector(1, 0, 0);
     rightPlane->material.color = Vector(0, 1, 0);
+    topPlane->material.color = Vector(1, 1, 1);
 
     scene.addRenderable(redSphere);
     scene.addRenderable(greenSphere);
@@ -113,15 +112,16 @@ int main()
     scene.addRenderable(upPlane);
     scene.addRenderable(leftPlane);
     scene.addRenderable(rightPlane);
+    scene.addRenderable(topPlane);
     scene.ambientCoefficient = 0.05;
 
     AreaLight* topLight = new AreaLight();
-    topLight->position.set(0, -9, 0);
+    topLight->position.set(0, -8, 0);
     topLight->dir1.set(1, 0, 0);
     topLight->dir2.set(0, 0, 1);
     topLight->size1 = 3;
     topLight->size2 = 3;
-    topLight->brightness = 0.3;
+    topLight->brightness = 1.0;
     scene.addLight(topLight);
 
     scene.render("test.bmp", NULL);

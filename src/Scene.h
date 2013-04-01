@@ -27,7 +27,7 @@ private:
     //Traces a single ray and returns the resultant color
     Vector traceRay(const Ray ray, int depth);
 
-    double width_, height_; //Horizontal and vertical resolution
+    int width_, height_; //Horizontal and vertical resolution
 
     Renderable* prevHit_; //Previously hit object, used to optimize AA (only
                           //trace several rays when encountering a new object)
@@ -58,6 +58,8 @@ private:
 
     //Throw photons at the wall and see what sticks
     void populatePhotonMap();
+
+    int pixelsRendered_;
 public:
     //Necessary to specify width and height to allocate memory
     Scene(int width, int height);

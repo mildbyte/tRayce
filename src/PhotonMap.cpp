@@ -44,6 +44,8 @@ PhotonMap::PhotonMap(int size) {
     currPtr_ = 0;
     neighbours_ = NULL;
     neighbourDists_ = NULL;
+
+    kdTreeVisited_ = 0;
 }
 
 PhotonMap::~PhotonMap() {
@@ -56,6 +58,32 @@ int photonComparator (const void* p1, const void* p2) {
     Photon *photon2 = (Photon*) p2;
     return(getVectorComponent(photon1->position, currAxis) >
            getVectorComponent(photon2->position, currAxis));
+}
+
+char PhotonMap::getGreatestSpreadAxis(int left, int right) {
+    double greatestSpread = 0;
+    char greatestSpreadAxis = 0;
+
+    double min = DINFINITY;
+    double max = 0;
+
+    for (int i = 0; i < 3; i++) {
+        min = DINFINITY;
+        max = 0;
+
+        for (int j = left; j < right; j++) {
+            double position = getVectorComponent(photons_[j].position, i);
+            if (position < min) min = position;
+            if (position > max) max = position;
+        }
+
+        if (max - min > greatestSpread) {
+            greatestSpread = max - min;
+            greatestSpreadAxis = i;
+        }
+    }
+//    printf("greatest spread for %d..%d : axis %d: %f to %f\n", left, right, greatestSpreadAxis, min, max);
+    return greatestSpreadAxis;
 }
 
 void PhotonMap::balanceTree(int left, int right, int depth, int position) {
@@ -71,7 +99,7 @@ void PhotonMap::balanceTree(int left, int right, int depth, int position) {
         return;
     }
 
-    currAxis = depth % 3; 
+    currAxis = getGreatestSpreadAxis(left, right);
     
 //    printf("entering qsort...\n");
     qsort(&(photons_[left]),
@@ -125,11 +153,11 @@ void PhotonMap::dumpNeighbours() {
 }
 
 void PhotonMap::makeTree() {
-    printf("Making the kd-tree...\n");
+    printf("Making the kd-tree for %d photons...\n", currPtr_);
 
 //    dumpList();
     kdTreeSize_ = 1;
-    while (kdTreeSize_ < currPtr_ + 1) kdTreeSize_ = kdTreeSize_ << 2;
+    while (kdTreeSize_ < currPtr_ + 1) kdTreeSize_ = kdTreeSize_ << 1;
     printf("Size %d\n", kdTreeSize_);
 
 //    indices_ = new int[currPtr_];
@@ -148,7 +176,9 @@ void PhotonMap::makeTree() {
 }
 
 void PhotonMap::replaceMaxDist(int newPh, double newPhDist) {
+//    printf("Adding %f to the list\n", newPhDist);
     if (foundNeighbours_ < neighboursNeeded_) {
+//        printf("List incomplete, added\n");
         neighbours_[foundNeighbours_] = newPh;
         neighbourDists_[foundNeighbours_] = newPhDist;
         foundNeighbours_++;
@@ -165,9 +195,10 @@ void PhotonMap::replaceMaxDist(int newPh, double newPhDist) {
         }
     }
 
-    if (neighbourDists_[maxPos] > newPhDist) {
+    if (maxDist > newPhDist) {
         neighbours_[maxPos] = newPh;
         neighbourDists_[maxPos] = newPhDist;
+//        printf("Greatest distance (%f) replaced\n", maxDist);
     }
 }
 
@@ -177,7 +208,8 @@ inline double sqDist(Vector a, Vector b) {
 }
 
 void PhotonMap::findNearestNeighbours(Vector point, int treePos) {
-//    printf("Looking for neighbours for %f, %f, %f, position %d\n", point.getX(), point.getY(), point.getZ(), treePos);
+//   printf("Looking for neighbours for %f, %f, %f, position %d\n", point.getX(), point.getY(), point.getZ(), treePos);
+    kdTreeVisited_++;
     if (treePos >= kdTreeSize_) return;
     if (kdTree_[treePos] == -1) return;
     
@@ -188,17 +220,22 @@ void PhotonMap::findNearestNeighbours(Vector point, int treePos) {
 
     double distToMedian = 
         getVectorComponent(point, photons_[kdTree_[treePos]].axis) - subdivideLocation;
+//    printf("Signed distance: %f\n", distToMedian);
     
+//    printf("Going down the first subtree...\n");
+
     if (distToMedian < 0) {
         findNearestNeighbours(point, 2*treePos);
     } else {
         findNearestNeighbours(point, 2*treePos+1);
     }
+//    printf("Came back\n");
     
     double sqDistToMedian = sqr(distToMedian);
     
     for (int i = 0; i < foundNeighbours_; i++) {
         if (sqDistToMedian < neighbourDists_[i]) {
+//            printf("Have to try the second tree: %f, %f to median\n", neighbourDists_[i], sqDistToMedian);
             if (distToMedian < 0) {
                 findNearestNeighbours(point, 2*treePos+1);
             } else {
@@ -238,6 +275,7 @@ Vector PhotonMap::gatherPhotons(Vector point, Vector normal, int noPhotons) {
 //    double radius = getDistance(point, noPhotons);
 //    sqRadius = sqr(radius);
     nearestNeighboursWrapper(point, noPhotons);
+//    printf("%d\n", kdTreeVisited_);
 
     double sqRadius = 0;
     
@@ -269,9 +307,9 @@ Vector PhotonMap::gatherPhotons(Vector point, Vector normal, int noPhotons) {
         if (neighbourDists_[i] > sqRadius) sqRadius = neighbourDists_[i];
     }
 
-//    double factor = 1.0 / 9.424777959 / sqRadius;
+    double factor = 1.0 / 9.424777959 / sqRadius;
 //    double factor = 1.0 / sqRadius;
-    double factor = 1;
+//    double factor = 1;
     double radius = sqrt(sqRadius);
 
     for (int i = 0; i < foundNeighbours_; i++) {

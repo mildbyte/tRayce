@@ -20,11 +20,13 @@ private:
     int* kdTree_;
     int* indices_;
 
+
     int countPhotonsAt(Vector point, double distsq);
     double getDistance(Vector point, int noPhotons);
 
     void balanceTree(int left, int right, int depth, int location);
     double getComponent(Vector a, char axis);
+    char getGreatestSpreadAxis(int left, int right);
     
     void replaceMaxDist(int newPh, double newPhDist);
     void findNearestNeighbours(Vector point, int treePos);
@@ -43,6 +45,8 @@ public:
     PhotonMap(int size);
     ~PhotonMap();
     
+    int kdTreeVisited_;
+
     void addPhoton(Vector position, Vector direction, Vector energy);
     Vector gatherPhotons(Vector point, Vector normal, int noPhotons);
     void makeTree();
