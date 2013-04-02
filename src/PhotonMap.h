@@ -60,6 +60,8 @@ public:
     void addPhoton(Vector position, Vector direction, Vector energy);
     Vector gatherPhotons(Vector point, Vector normal, int noPhotons);
     void makeTree();
+
+    void scalePhotonPower(double factor);
 };
 
 #endif

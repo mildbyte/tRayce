@@ -3,6 +3,9 @@
 #define VECTOR_H
 
 #include <cmath>
+#include <cstdio>
+
+const double PI = 4 * atan(1);
 
 class Vector {
 private:
@@ -45,6 +48,8 @@ public:
 
     double normalize();
     double modulus() {return sqrtf(x_ * x_ + y_ * y_ + z_ * z_);}
+
+    void print() {printf("%f, %f, %f", x_, y_, z_);}
 
     //Reinhard mapping (0..inf to 0..1)
     void reinhardMap() {

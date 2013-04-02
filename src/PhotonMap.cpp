@@ -173,6 +173,12 @@ void PhotonMap::makeTree() {
 //    dumpTree();
 }
 
+void PhotonMap::scalePhotonPower(double factor) {
+    for (int i = 0; i < currPtr_; i++) {
+        photons_[i].energy *= factor;
+    }
+}
+
 void PhotonMap::addNearestNeighbour(int newPh, double newPhDist) {
 //    printf("Adding %f to the list\n", newPhDist);
     if (neighbours_.size() < neighboursNeeded_) {
@@ -253,54 +259,35 @@ void PhotonMap::addPhoton(Vector position, Vector direction, Vector energy) {
     photons_[currPtr_++] = p;
 }
 
+double simpsonKernel(double sqx) {
+    return 3.0 / PI * sqr(1 - sqx);
+}
+
 
 //Gathers the photons in a given radius to determine the illumination of an entity at a certain point
 //and a certain normal.
 Vector PhotonMap::gatherPhotons(Vector point, Vector normal, int noPhotons) {
     Vector result(0, 0, 0);
-//    double radius = getDistance(point, noPhotons);
-//    sqRadius = sqr(radius);
     nearestNeighboursWrapper(point, noPhotons);
-//    printf("%d\n", kdTreeVisited_);
 
     double sqRadius = neighbours_.top().distance;
     
-//printf("Looking for neighbours for %f, %f, %f\n\n\n", point.getX(), point.getY(), point.getZ());
-//dumpNeighbours();
-//    printf("found %d neighbours\n", foundNeighbours_);
-/*
-    double minDist = DINFINITY;
-    int besti = 0;
-    for (int i = 0; i < currPtr_; i++) {
-        double currDist = sqDist(point, photons_[i].position);
-        if (currDist < minDist) {minDist = currDist; besti = i;}
-    }
-
-    if (minDist < neighbourDists_[0]) {
-        printf("ERROR!\n");
-        printf("Brute force result: %f; ", minDist);
-        dumpPhoton(photons_[besti]);
-
-        for (int i = 1; i < currPtr_+1; i++) {
-            if (kdTree_[i] == besti) {
-                printf("Found in the tree at %d (in the photons array at %d", i, besti);
-                break;
-            }
-        }
-    }
-*/
-    double factor = 1.0 / 9.4247778 / sqRadius;
-    double radius = sqrt(sqRadius);
+//    double factor = 1.0 / 9.4247778 / sqRadius;
+//    double factor = 3000 / 3.1415926 / sqRadius;
+    double factor = 3.0 / (PI /* neighbours_.size()*/ * sqRadius);
+//    factor *= 100000;
+//    factor = 10;
 
     while (!neighbours_.empty()) { 
         Neighbour neighbour = neighbours_.top();
         neighbours_.pop();
 
         double weight = -normal.dot(photons_[neighbour.id].direction);
-//    double weight = 1;
         if (weight < 0) continue;
+//        weight = 1;
         
-        weight *= (1 - sqrt(neighbour.distance / sqRadius));
+//        weight = (1 - sqrt(neighbour.distance / sqRadius));
+        weight = simpsonKernel(neighbour.distance / sqRadius);
 
         result += photons_[neighbour.id].energy * weight;
 

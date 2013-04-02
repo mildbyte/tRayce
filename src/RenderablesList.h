@@ -15,7 +15,7 @@ public:
     ~RenderablesList();
 
     //Gets the closest intersection to the origin
-    Intersection getFirstIntersection(Ray ray);
+    Intersection getFirstIntersection(Ray ray, double planeDistance);
 
     void addRenderable(Renderable* renderable);
 

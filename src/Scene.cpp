@@ -1,5 +1,14 @@
 #include "Scene.h"
 
+inline double min(double a, double b) {return a < b ? a : b;}
+
+Vector combineColors(Vector c1, Vector c2) {
+//    return Vector(min(c1.getX(), c2.getX()), min(c1.getY(), c2.getY()),
+//                  min(c1.getZ(), c2.getZ()));
+    return Vector(c1.getX() * c2.getX(), c1.getY() * c2.getY(),
+                  c1.getZ() * c2.getZ());
+}
+
 void Scene::addRenderable(Renderable* renderable) {
     renderables_.addRenderable(renderable);
 }
@@ -234,16 +243,55 @@ Vector Scene::calculateReflection(Intersection inter, Ray ray, int level) {
     return traceRay(reflRay, level - 1) * inter.object->material.reflectivity;
 }
 
+//Generates a random number between 0.0 and 1.0
+double drand() {
+    return rand() / (double)RAND_MAX;
+}
+
 //Generates a random vector in the hemisphere of the normal
-Vector sampleLambertianBRDF(Vector normal) {
+/*Vector sampleLambertianBRDF(Vector normal) {
     Vector result(0, 0, 0);
     do {
-        result.setX(rand() * 2 - 1);
-        result.setY(rand() * 2 - 1);
-        result.setZ(rand() * 2 - 1);
+        result.setX(drand() * 2 - 1);
+        result.setY(drand() * 2 - 1);
+        result.setZ(drand() * 2 - 1);
         result.normalize();
     } while (normal.dot(result) < 0);
+    
+//    printf("around "); normal.print(); printf(": "); result.print(); printf("\n");
+
     return result;
+}*/
+
+Vector sampleLambertianBRDF(Vector normal) {
+    double Xi1 = drand();
+    double Xi2 = drand();
+
+    double theta = acos(sqrt(1.0-Xi1));
+    double phi = 2.0 * 3.1415926535897932384626433832795 * Xi2;
+
+    double xs = sin(theta) * cos(phi);
+    double ys = cos(theta);
+    double zs = sin(theta) * sin(phi);
+
+    Vector y = normal;
+    Vector h = y;
+
+    if (abs(h.getX())<=abs(h.getY()) && abs(h.getX())<=abs(h.getZ()))
+    h.setX(1.0);
+    else if (abs(h.getY())<=abs(h.getX()) && abs(h.getY())<=abs(h.getZ()))
+    h.setY(1.0);
+    else
+    h.setZ(1.0);
+
+    Vector x = (h.cross(y));
+    Vector z = (x.cross(y));
+    x.normalize();
+    z.normalize();
+    
+    Vector direction = x * xs+ y * ys + z * zs;
+    direction.normalize();
+    return direction;
 }
 
 Vector Scene::traceRay(const Ray ray, int level) {
@@ -254,7 +302,7 @@ Vector Scene::traceRay(const Ray ray, int level) {
     if (level <= 0) return backgroundColor;
 
     //If the ray hits something, return the background color.
-    Intersection inter = renderables_.getFirstIntersection(ray);
+    Intersection inter = renderables_.getFirstIntersection(ray, camera.planeDistance);
 
     if (!inter.happened) {
         prevHit_ = NULL;
@@ -281,14 +329,15 @@ Vector Scene::traceRay(const Ray ray, int level) {
     
                 samplingRay.origin += samplingRay.direction * 0.001;
 
-                Intersection sampleInter = renderables_.getFirstIntersection(samplingRay);
+                Intersection sampleInter = renderables_.getFirstIntersection(samplingRay, 0);
                 if (!sampleInter.happened) continue;
                 sampleInter.normal.normalize();
 
                 resultColor += photonMap_->gatherPhotons(sampleInter.coords,
                     sampleInter.normal, photonGatherAmount);
             }
-            resultColor /= (double)photonGatherSamples / 3.1415926;
+            resultColor /= (double)photonGatherSamples;
+            resultColor = combineColors(inter.object->material.color, resultColor);
         }
     } else {
         //Phong (diffuse+specular) pass
@@ -328,13 +377,6 @@ Vector Scene::tracePixel(double x, double y) {
     return traceRay(ray, traceDepth);
 }
 
-inline double min(double a, double b) {return a < b ? a : b;}
-
-Vector combineColors(Vector c1, Vector c2) {
-    return Vector(min(c1.getX(), c2.getX()), min(c1.getY(), c2.getY()),
-                  min(c1.getZ(), c2.getZ()));
-}
-
 void Scene::populatePhotonMap() {
     //Construct the map
     //There will be one photon per bounce
@@ -361,24 +403,42 @@ void Scene::populatePhotonMap() {
             photonRay.origin = ((Light*)(*it))->position;
             
             //Generate a random direction for our ray
-            photonRay.direction.setX(rand() * 2 - 1);
-            photonRay.direction.setY(rand() * 2 - 1);
-            photonRay.direction.setZ(rand() * 2 - 1);
+            do {
+                photonRay.direction.setX(drand() * 2 - 1);
+                photonRay.direction.setY(drand() * 2 - 1);
+                photonRay.direction.setZ(drand() * 2 - 1);
+            } while (photonRay.direction.dot(photonRay.direction) > 1.0);
             photonRay.direction.normalize();
+
+            double brightness = ((Light*)(*it))->brightness;
             
-            Vector photonEnergy(1, 1, 1);
+            Vector photonEnergy(brightness, brightness, brightness);
 
-            int currBounces = 1;
+            int currBounces = 0;
 
-            Intersection inter = renderables_.getFirstIntersection(photonRay);
+            Intersection inter = renderables_.getFirstIntersection(photonRay, 0);
 
-            while (inter.happened && currBounces <= photonBounces) {
+            while (inter.happened && currBounces < photonBounces) {
                 allHits++;
+                currBounces++;
+                
+                double randVar = drand();
+
+                Material objMat = inter.object->material;
+
+                double avgDiffuse = (objMat.color.getX() + objMat.color.getY()+
+                                    objMat.color.getZ()) / 3.0;
+
+                if (randVar > avgDiffuse) break;
+
                 //Record the photon               
                 photonEnergy = combineColors(photonEnergy, 
                                              inter.object->material.color);
+                
+                photonEnergy *= (1.0 / avgDiffuse);
+
                 photonMap_->addPhoton(inter.coords, photonRay.direction, 
-                                      photonEnergy * (1.0/(double)currBounces));
+                                      photonEnergy);
 
                 inter.normal.normalize(); //not normalized by the intersection
                                           //to save CPU cycles
@@ -389,15 +449,16 @@ void Scene::populatePhotonMap() {
                 //New point to cast the ray from (+ avoid collision with itself)
                 photonRay.origin = inter.coords + photonRay.direction * 0.001;
 
-
                 //Send the ray onwards
-                inter = renderables_.getFirstIntersection(photonRay);
-                currBounces++;
+                inter = renderables_.getFirstIntersection(photonRay, 0);
             }
         }
     }
     
     printf("Total hits: %d\n", allHits);
+    
+    photonMap_->scalePhotonPower(1.0/photonCount);
+
     photonMap_->makeTree();
 
 }

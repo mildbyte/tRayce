@@ -22,7 +22,7 @@ bool RenderablesList::intersects(Ray ray) {
     return false;
 }
 
-Intersection RenderablesList::getFirstIntersection(Ray ray) {
+Intersection RenderablesList::getFirstIntersection(Ray ray, double planeDistance) {
     //Main bottleneck. Works with O(n), can be modified to reach O(logn)
     //Linear search to find the closest intersection
     Intersection bestInter;
@@ -34,14 +34,16 @@ Intersection RenderablesList::getFirstIntersection(Ray ray) {
     std::list<Renderable*>::iterator it = rendlist_.begin();
     while(it != rendlist_.end()) {
         currInter = (*it)->getIntersection(ray);
-        if (currInter.happened) {
+        it++;
+        if (currInter.happened) { 
+            //Ignore hits that happened before the image plane
+            if (currInter.distance < planeDistance) continue;
             if (!found || (currInter.distance < mindist)) {
                 bestInter = currInter;
                 mindist = currInter.distance;
                 found = true;
             }
         }
-        it++;
     }
 
     if (!found) bestInter.happened = false;
