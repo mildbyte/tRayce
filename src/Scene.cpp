@@ -264,6 +264,8 @@ double drand() {
 }*/
 
 Vector sampleLambertianBRDF(Vector normal) {
+    //Cosine-weighted hemisphere sampling.
+    //Adapted from http://pathtracing.wordpress.com/2011/03/03/cosine-weighted-hemisphere/
     double Xi1 = drand();
     double Xi2 = drand();
 

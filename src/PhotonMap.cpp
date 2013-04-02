@@ -275,23 +275,28 @@ Vector PhotonMap::gatherPhotons(Vector point, Vector normal, int noPhotons) {
 //    double factor = 1.0 / 9.4247778 / sqRadius;
 //    double factor = 3000 / 3.1415926 / sqRadius;
     double factor = 3.0 / (PI /* neighbours_.size()*/ * sqRadius);
-//    factor *= 100000;
+//    factor *= 10000;
 //    factor = 10;
+
+//    printf("Nearest neighbour to "); point.print(); printf(": "); dumpPhoton(photons_[neighbours_.top().id]);
 
     while (!neighbours_.empty()) { 
         Neighbour neighbour = neighbours_.top();
         neighbours_.pop();
 
-        double weight = -normal.dot(photons_[neighbour.id].direction);
-        if (weight < 0) continue;
+//        double weight = -normal.dot(photons_[neighbour.id].direction);
+//        if (weight < 0) continue;
 //        weight = 1;
         
 //        weight = (1 - sqrt(neighbour.distance / sqRadius));
-        weight = simpsonKernel(neighbour.distance / sqRadius);
+double        weight = simpsonKernel(neighbour.distance / sqRadius);
+//        double weight = 1;
+//        printf("weight: %f\n", weight);
 
         result += photons_[neighbour.id].energy * weight;
 
     }
+ //   printf("result: "); (result * factor).print(); printf("\n");
 
     return result * factor;
 }
