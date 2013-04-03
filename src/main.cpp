@@ -50,11 +50,11 @@ int main()
 
     scene.photonMapping = true;
     scene.doFinalGather = true;
-    scene.photonCount = 5000; 
-    scene.photonBounces = 3;
-    scene.photonGatherAmount = 10;
-    scene.photonGatherSamples = 10;
-    scene.irradiancePhotonFrequency = 8;
+    scene.photonCount = 200000; 
+    scene.photonBounces = 5;
+    scene.photonGatherAmount = 50;
+    scene.photonGatherSamples = 4;
+    scene.irradiancePhotonFrequency = 4;
     scene.photonGatherDotThreshold = 0.9;
 
     Sphere *redSphere = new Sphere(5, Vector(-1, 5, 13));
@@ -73,12 +73,12 @@ int main()
     Plane *topPlane = new Plane(Vector(0, -10, 0), Vector(0, 1, 0));
     Plane *backPlane = new Plane(Vector(0, 0, -20), Vector(0, 0, 1));
 
-    redSphere->material.color = Vector(.75, .25, .25);
-    greenSphere->material.color = Vector(.25, .75, .25);
-    blueSphere->material.color = Vector(.25, .25, .75);
+    redSphere->material.color = Vector(.75, .75, .75);
+    greenSphere->material.color = Vector(.75, .75, .75);
+    blueSphere->material.color = Vector(.75, .75, .75);
 
     bottomPlane->material.color = Vector(.75, .75, .75);
-    upPlane->material.color = Vector(.75, .75, .75);
+    upPlane->material.color = Vector(.25, .75, .25);
     leftPlane->material.color = Vector(.75, .25, .25);
     rightPlane->material.color = Vector(.25, .25, .75);
     topPlane->material.color = Vector(.75, .75, .75);
@@ -96,7 +96,7 @@ int main()
     scene.ambientCoefficient = 0.05;
 
     AreaLight* topLight = new AreaLight();
-    topLight->position.set(0, -9, 10);
+    topLight->position.set(13, -9, 10);
     topLight->dir1.set(1, 0, 0);
     topLight->dir2.set(0, 0, 1);
     topLight->size1 = 3;

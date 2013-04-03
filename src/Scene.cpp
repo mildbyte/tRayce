@@ -476,7 +476,7 @@ void Scene::populatePhotonMap() {
     photonMap_->makeTree();
 
     printf("Precalculating irradiance...\n");
-    photonMap_->precalculateIrradiance(irradiancePhotonFrequency, photonGatherSamples);
+    photonMap_->precalculateIrradiance(irradiancePhotonFrequency, photonGatherAmount);
 
 }
 

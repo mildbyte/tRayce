@@ -326,7 +326,7 @@ Vector PhotonMap::irradianceEstimate(Vector point, Vector normal, int noPhotons)
 //        if (weight < 0) continue;
         
 //        weight = (1 - sqrt(neighbour.distance / sqRadius));
-        double        weight = simpsonKernel(neighbour.distance / sqRadius);
+        double weight = simpsonKernel(neighbour.distance / sqRadius);
 
         result += photons_[neighbour.id].energy * weight;
 
