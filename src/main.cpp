@@ -36,7 +36,7 @@ BitmapPixel postProcess(BitmapPixel pix) {
 int main()
 {
     srand((unsigned)time(0));
-    Scene scene(320, 240);
+    Scene scene(800, 600);
 //    scene.camera.height = 15;
     scene.backgroundColor.set(0, 0, 0);
     scene.doAA = false;
@@ -49,10 +49,11 @@ int main()
     scene.camera.planeDistance = 20;
 
     scene.photonMapping = true;
-    scene.doFinalGather = true;
-    scene.photonCount = 200000; 
+//    scene.doFinalGather = true;
+    scene.visualizePhotons = true;
+    scene.photonCount = 100000;
     scene.photonBounces = 5;
-    scene.photonGatherAmount = 50;
+    scene.photonGatherAmount = 5;
     scene.photonGatherSamples = 4;
     scene.irradiancePhotonFrequency = 4;
     scene.photonGatherDotThreshold = 0.9;
@@ -73,12 +74,12 @@ int main()
     Plane *topPlane = new Plane(Vector(0, -10, 0), Vector(0, 1, 0));
     Plane *backPlane = new Plane(Vector(0, 0, -20), Vector(0, 0, 1));
 
-    redSphere->material.color = Vector(.75, .75, .75);
-    greenSphere->material.color = Vector(.75, .75, .75);
-    blueSphere->material.color = Vector(.75, .75, .75);
+    redSphere->material.color = Vector(.95, .05, .05);
+    greenSphere->material.color = Vector(.05, .05, .95);
+    blueSphere->material.color = Vector(.05, .95, .05);
 
     bottomPlane->material.color = Vector(.75, .75, .75);
-    upPlane->material.color = Vector(.25, .75, .25);
+    upPlane->material.color = Vector(.75, .75, .75);
     leftPlane->material.color = Vector(.75, .25, .25);
     rightPlane->material.color = Vector(.25, .25, .75);
     topPlane->material.color = Vector(.75, .75, .75);
@@ -96,12 +97,12 @@ int main()
     scene.ambientCoefficient = 0.05;
 
     AreaLight* topLight = new AreaLight();
-    topLight->position.set(13, -9, 10);
+    topLight->position.set(0, -9, 10);
     topLight->dir1.set(1, 0, 0);
     topLight->dir2.set(0, 0, 1);
     topLight->size1 = 3;
     topLight->size2 = 3;
-    topLight->brightness = 10000;
+    topLight->brightness = 5000;
     scene.addLight(topLight);
 
     scene.render("test.bmp", NULL);

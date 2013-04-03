@@ -75,6 +75,7 @@ public:
     void scalePhotonPower(double factor);
 
     void precalculateIrradiance(int frequency, int noPhotons);
+    Vector visualizePhoton(Vector point, double weight);
 };
 
 #endif

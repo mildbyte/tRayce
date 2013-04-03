@@ -49,6 +49,7 @@ Scene::Scene(int width, int height) {
 
     photonMapping = false;
     doFinalGather = false;
+    visualizePhotons = false;
     photonCount = 1000;
     photonBounces = 2;
     
@@ -250,9 +251,9 @@ Vector Scene::calculateReflection(Intersection inter, Ray ray, int level) {
 double drand() {
     return rand() / (double)RAND_MAX;
 }
-
+/*
 //Generates a random vector in the hemisphere of the normal
-/*Vector sampleLambertianBRDF(Vector normal) {
+Vector sampleLambertianBRDF(Vector normal, double a, double b) {
     Vector result(0, 0, 0);
     do {
         result.setX(drand() * 2 - 1);
@@ -317,7 +318,9 @@ Vector Scene::traceRay(const Ray ray, int level) {
 
     if (photonMapping) {
         //Gathering the photons replaces classic raytracing
-        if (!doFinalGather) {
+        if (visualizePhotons) {
+            resultColor = photonMap_->visualizePhoton(inter.coords, 0.01);
+        } else if (!doFinalGather) {
         resultColor = photonMap_->acceleratedIrradiance(inter.coords,
                         inter.normal, photonGatherDotThreshold);
         } else {

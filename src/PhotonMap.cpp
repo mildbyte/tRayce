@@ -226,6 +226,7 @@ void PhotonMap::findNearestNeighbours(Vector point, int treePos) {
 
 void PhotonMap::nearestNeighboursWrapper(Vector point, int amount) {
     neighboursNeeded_ = amount;
+    neighbours_ = std::priority_queue<Neighbour>();
 
     findNearestNeighbours(point, 1);
 }
@@ -246,7 +247,7 @@ void PhotonMap::precalculateIrradiance(int frequency, int noPhotons) {
     //Precompute the radiance for every frequencyth photon
     for (int i = 0; i < currPtr_; i+= frequency) {
         if (i % 1000 == 0) {
-            printf ("%d out of %d photons processed (%f\%)\n", 
+            printf ("\r%d out of %d photons processed (%f\%)\n", 
                 i, currPtr_, (double)i/currPtr_*100);
         }
         photons_[i].irradiance = irradianceEstimate(
@@ -332,4 +333,14 @@ Vector PhotonMap::irradianceEstimate(Vector point, Vector normal, int noPhotons)
 
     }
     return result * factor;
+}
+
+//Returns a pixel on the gradient from black to white depending on the distance of the closest
+//photon. The smaller the weight, the faster the falloff.
+Vector PhotonMap::visualizePhoton(Vector point, double weight) {
+    nearestNeighboursWrapper(point, 1);
+    double distance = neighbours_.top().distance;
+    double factor = weight / (weight + distance);
+    
+    return Vector(factor, factor, factor);
 }
