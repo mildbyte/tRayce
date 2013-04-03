@@ -195,7 +195,6 @@ inline double sqDist(Vector a, Vector b) {
 }
 
 void PhotonMap::findNearestNeighbours(Vector point, int treePos) {
-//   printf("Looking for neighbours for %f, %f, %f, position %d\n", point.getX(), point.getY(), point.getZ(), treePos);
     kdTreeVisited_++;
     if (treePos >= kdTreeSize_) return;
     if (kdTree_[treePos] == -1) return;
@@ -205,25 +204,18 @@ void PhotonMap::findNearestNeighbours(Vector point, int treePos) {
     double subdivideLocation = getVectorComponent(photons_[kdTree_[treePos]].position,
                                                   photons_[kdTree_[treePos]].axis);
 
-//    printf("Median ");
-//    dumpPhoton(photons_[kdTree_[treePos]]);
     double distToMedian = 
         getVectorComponent(point, photons_[kdTree_[treePos]].axis) - subdivideLocation;
-//    printf("Signed distance: %f\n", distToMedian);
     
-//    printf("Going down the first subtree...\n");
-
     if (distToMedian < 0) {
         findNearestNeighbours(point, 2*treePos);
     } else {
         findNearestNeighbours(point, 2*treePos+1);
     }
-//    printf("Came back\n");
     
     double sqDistToMedian = sqr(distToMedian);
     
     if (sqDistToMedian < neighbours_.top().distance) {
-//            printf("Have to try the second tree: %f, %f to median\n", neighbours_.top().distance, sqDistToMedian);
         if (distToMedian < 0) {
             findNearestNeighbours(point, 2*treePos+1);
         } else {
@@ -290,7 +282,7 @@ void PhotonMap::findIrradiancePhoton(Vector point, Vector normal,
     
     double sqDistToMedian = sqr(distToMedian);
     
-    if (sqDistToMedian < neighbours_.top().distance) {
+    if (sqDistToMedian < irradiancePhotonDist_) {
         if (distToMedian < 0) {
             findIrradiancePhoton(point, normal, threshold, 2*treePos);
         } else {
