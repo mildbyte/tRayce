@@ -36,10 +36,10 @@ BitmapPixel postProcess(BitmapPixel pix) {
 int main()
 {
     srand((unsigned)time(0));
-    Scene scene(1280, 800);
-    scene.camera.height = 15;
+    Scene scene(320, 240);
+//    scene.camera.height = 15;
     scene.backgroundColor.set(0, 0, 0);
-    scene.doAA = true;
+    scene.doAA = false;
     scene.msaaSamples = 4;
     scene.msaaOptimize = false;
     scene.softShadowSamples = 1;
@@ -49,12 +49,12 @@ int main()
     scene.camera.planeDistance = 20;
 
     scene.photonMapping = true;
-//    scene.doFinalGather = true;
-    scene.photonCount = 50000; 
+    scene.doFinalGather = true;
+    scene.photonCount = 5000; 
     scene.photonBounces = 3;
-    scene.photonGatherAmount = 500;
-    scene.photonGatherSamples = 4;
-    scene.irradiancePhotonFrequency = 1;
+    scene.photonGatherAmount = 10;
+    scene.photonGatherSamples = 10;
+    scene.irradiancePhotonFrequency = 8;
     scene.photonGatherDotThreshold = 0.9;
 
     Sphere *redSphere = new Sphere(5, Vector(-1, 5, 13));
@@ -84,9 +84,9 @@ int main()
     topPlane->material.color = Vector(.75, .75, .75);
     backPlane->material.color = Vector(.75, .75, .75);
 
-//    scene.addRenderable(redSphere);
-///    scene.addRenderable(greenSphere);
-//    scene.addRenderable(blueSphere);
+    scene.addRenderable(redSphere);
+    scene.addRenderable(greenSphere);
+    scene.addRenderable(blueSphere);
     scene.addRenderable(bottomPlane);
     scene.addRenderable(upPlane);
     scene.addRenderable(leftPlane);

@@ -563,7 +563,7 @@ void Scene::render(char* filename, BitmapPixel (*postProcess)(BitmapPixel)) {
 
             pixelsRendered_++;
             if (pixelsRendered_ % 100 == 0) {
-                printf("Rendered %d pixel(s) out of %d (%f)\n", pixelsRendered_, 
+                printf("Rendered %d pixel(s) out of %d (%f\%)\n", pixelsRendered_, 
                     (width_ * height_),
                     pixelsRendered_ / (double)(width_ * height_) * 100);
             }

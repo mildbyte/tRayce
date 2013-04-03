@@ -245,6 +245,10 @@ void PhotonMap::precalculateIrradiance(int frequency, int noPhotons) {
 
     //Precompute the radiance for every frequencyth photon
     for (int i = 0; i < currPtr_; i+= frequency) {
+        if (i % 1000 == 0) {
+            printf ("%d out of %d photons processed (%f\%)\n", 
+                i, currPtr_, (double)i/currPtr_*100);
+        }
         photons_[i].irradiance = irradianceEstimate(
             photons_[i].position, photons_[i].normal, noPhotons);
     }
@@ -284,11 +288,14 @@ void PhotonMap::findIrradiancePhoton(Vector point, Vector normal,
     
     if (sqDistToMedian < irradiancePhotonDist_) {
         if (distToMedian < 0) {
-            findIrradiancePhoton(point, normal, threshold, 2*treePos);
-        } else {
             findIrradiancePhoton(point, normal, threshold, 2*treePos + 1);
+        } else {
+            findIrradiancePhoton(point, normal, threshold, 2*treePos);
         }
     }
+
+//            findIrradiancePhoton(point, normal, threshold, 2*treePos);
+//            findIrradiancePhoton(point, normal, threshold, 2*treePos + 1);
 }
 
 Vector PhotonMap::acceleratedIrradiance(Vector point, Vector normal, double threshold) {
@@ -310,7 +317,7 @@ Vector PhotonMap::irradianceEstimate(Vector point, Vector normal, int noPhotons)
 
     double sqRadius = neighbours_.top().distance;
     
-    double factor = 1.0 / (PI /* neighbours_.size()*/ * sqRadius);
+    double factor = 3.0 / (PI * sqRadius);
     while (!neighbours_.empty()) { 
         Neighbour neighbour = neighbours_.top();
         neighbours_.pop();
@@ -319,8 +326,7 @@ Vector PhotonMap::irradianceEstimate(Vector point, Vector normal, int noPhotons)
 //        if (weight < 0) continue;
         
 //        weight = (1 - sqrt(neighbour.distance / sqRadius));
-//double        weight = simpsonKernel(neighbour.distance / sqRadius);
-        double weight = 1;
+        double        weight = simpsonKernel(neighbour.distance / sqRadius);
 
         result += photons_[neighbour.id].energy * weight;
 
