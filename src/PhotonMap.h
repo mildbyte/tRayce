@@ -11,6 +11,11 @@ struct Photon {
     Vector direction;
     Vector energy;
     char axis; //Used to store in a kd tree, axis where the subdivision happened
+    
+    //Precomputed irradiance estimates and the normal of the surface for final gather
+    //acceleration
+    Vector normal;
+    Vector irradiance;
 };
 
 //Is put into the neighbours priority queue during the kNN search
@@ -31,6 +36,7 @@ private:
     int* kdTree_;
     int* indices_;
 
+    int irradiancePhotonFrequency_;
 
     int countPhotonsAt(Vector point, double distsq);
     double getDistance(Vector point, int noPhotons);
@@ -42,26 +48,33 @@ private:
     void addNearestNeighbour(int newPh, double newPhDist);
     void findNearestNeighbours(Vector point, int treePos);
     void nearestNeighboursWrapper(Vector point, int amount);
+    Vector irradianceEstimate(Vector point, Vector normal, int noPhotons);
+    
+    void findIrradiancePhoton(Vector point, Vector normal, double threshold, int treePos);
 
     void dumpTree();
     void dumpList();
 //    void dumpNeighbours();
 
     int neighboursNeeded_;
-    
     std::priority_queue<Neighbour> neighbours_;
+
+    int irradiancePhotonId_;
+    double irradiancePhotonDist_;
 
 public:
     PhotonMap(int size);
     ~PhotonMap();
     
-    int kdTreeVisited_;
+    unsigned long long kdTreeVisited_;
 
-    void addPhoton(Vector position, Vector direction, Vector energy);
-    Vector gatherPhotons(Vector point, Vector normal, int noPhotons);
+    void addPhoton(Vector position, Vector direction, Vector energy, Vector normal);
     void makeTree();
+    Vector acceleratedIrradiance(Vector point, Vector normal, double threshold);
 
     void scalePhotonPower(double factor);
+
+    void precalculateIrradiance(int frequency, int noPhotons);
 };
 
 #endif

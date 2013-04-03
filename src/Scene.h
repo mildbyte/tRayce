@@ -100,6 +100,9 @@ public:
     int photonBounces; //Maximum number of photon bounces
     int photonGatherAmount; //How many photons to use in irradiance calculations?
     int photonGatherSamples; //How many samples for final gathering step?
+    int irradiancePhotonFrequency; //every nth photon becomes an irradiance photon
+    double photonGatherDotThreshold; //How close should the two normals be for an
+    //irradiance photon to be used as an estimate? (1.0 is same direction, -1.0 is opposite)
 };
 
 #endif

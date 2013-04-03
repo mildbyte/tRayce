@@ -54,6 +54,9 @@ Scene::Scene(int width, int height) {
     
     photonGatherAmount = 10;
     photonGatherSamples = 10;
+
+    photonGatherDotThreshold = 0.9;
+    irradiancePhotonFrequency = 4;
 }
 
 double Scene::calculateShadingCoefficient(Light* light, Vector point, Vector toLight, double lightDist) {
@@ -263,12 +266,9 @@ double drand() {
     return result;
 }*/
 
-Vector sampleLambertianBRDF(Vector normal) {
+Vector sampleLambertianBRDF(Vector normal, double Xi1, double Xi2) {
     //Cosine-weighted hemisphere sampling.
     //Adapted from http://pathtracing.wordpress.com/2011/03/03/cosine-weighted-hemisphere/
-    double Xi1 = drand();
-    double Xi2 = drand();
-
     double theta = acos(sqrt(1.0-Xi1));
     double phi = 2.0 * 3.1415926535897932384626433832795 * Xi2;
 
@@ -318,27 +318,39 @@ Vector Scene::traceRay(const Ray ray, int level) {
     if (photonMapping) {
         //Gathering the photons replaces classic raytracing
         if (!doFinalGather) {
-        resultColor = photonMap_->gatherPhotons(inter.coords,
-            inter.normal, photonGatherAmount);
-//        resultColor += calculatePhongColor(inter, ray);
+        resultColor = photonMap_->acceleratedIrradiance(inter.coords,
+                        inter.normal, photonGatherDotThreshold);
         } else {
-            for (int i = 0; i < photonGatherSamples; i++) {
-                //Sampling ray from the surface of the entity
-                Ray samplingRay;
+            double squareSide = 1.0 / photonGatherSamples;
+            for (int y = 0; y < photonGatherSamples; y++) {
+                double ybase = squareSide * y;
+                for (int x = 0; x < photonGatherSamples; x++) {
+                    //Jittered position in the grid
+                    double xbase = squareSide * x;
+                    
+                    double xPos = xbase + drand() * squareSide;
+                    double yPos = ybase + drand() * squareSide;
 
-                samplingRay.origin = inter.coords;
-                samplingRay.direction = sampleLambertianBRDF(inter.normal);
+//                    printf("%f; %f\n", xPos, yPos);
+
+                    //Sampling ray from the surface of the entity
+                    Ray samplingRay;
+
+                    samplingRay.origin = inter.coords;
+                    samplingRay.direction = sampleLambertianBRDF(inter.normal, xPos, yPos);
     
-                samplingRay.origin += samplingRay.direction * 0.001;
+                    samplingRay.origin += samplingRay.direction * 0.001;
 
-                Intersection sampleInter = renderables_.getFirstIntersection(samplingRay, 0);
-                if (!sampleInter.happened) continue;
-                sampleInter.normal.normalize();
+                    Intersection sampleInter = renderables_.getFirstIntersection(samplingRay, 0);
+                    if (!sampleInter.happened) continue;
+                    sampleInter.normal.normalize();
 
-                resultColor += photonMap_->gatherPhotons(sampleInter.coords,
-                    sampleInter.normal, photonGatherAmount);
+                    //Read the precomputed radiance value
+                    resultColor += photonMap_->acceleratedIrradiance(sampleInter.coords,
+                        sampleInter.normal, photonGatherDotThreshold);
+                }
             }
-            resultColor /= (double)photonGatherSamples;
+            resultColor /= (double)(photonGatherSamples * photonGatherSamples);
             resultColor = combineColors(inter.object->material.color, resultColor);
         }
     } else {
@@ -431,7 +443,7 @@ void Scene::populatePhotonMap() {
                 double avgDiffuse = (objMat.color.getX() + objMat.color.getY()+
                                     objMat.color.getZ()) / 3.0;
 
-                if (randVar > avgDiffuse) break;
+                if (randVar > avgDiffuse) break; //The photon has been absorbed
 
                 //Record the photon               
                 photonEnergy = combineColors(photonEnergy, 
@@ -440,13 +452,13 @@ void Scene::populatePhotonMap() {
                 photonEnergy *= (1.0 / avgDiffuse);
 
                 photonMap_->addPhoton(inter.coords, photonRay.direction, 
-                                      photonEnergy);
+                                      photonEnergy, inter.normal);
 
                 inter.normal.normalize(); //not normalized by the intersection
                                           //to save CPU cycles
 
                 //Diffuse the ray
-                photonRay.direction = sampleLambertianBRDF(inter.normal);
+                photonRay.direction = sampleLambertianBRDF(inter.normal, drand(), drand());
                 
                 //New point to cast the ray from (+ avoid collision with itself)
                 photonRay.origin = inter.coords + photonRay.direction * 0.001;
@@ -462,6 +474,9 @@ void Scene::populatePhotonMap() {
     photonMap_->scalePhotonPower(1.0/photonCount);
 
     photonMap_->makeTree();
+
+    printf("Precalculating irradiance...\n");
+    photonMap_->precalculateIrradiance(irradiancePhotonFrequency, photonGatherSamples);
 
 }
 
@@ -562,5 +577,5 @@ void Scene::render(char* filename, BitmapPixel (*postProcess)(BitmapPixel)) {
     //Save the resulting bitmap to file
     rendered_->saveToFile(filename);
 
-    printf("Done. kd-tree visits per pixel: %f\n", photonMap_->kdTreeVisited_ / (double)(width_ * height_));
+    printf("Done. kd-tree visits per pixel: %f\n", (double)(photonMap_->kdTreeVisited_) / (double)(width_ * height_));
 }

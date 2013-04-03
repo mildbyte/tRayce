@@ -21,22 +21,6 @@ double getVectorComponent(Vector a, char axis) {
     }
 }
 
-//Determines if two points are within a certain distance squared within each other
-//returns the squared distance if they are
-//returns the infinity if they aren't
-double isWithin(Vector a, Vector b, double distsq) {
-    double curr = sqr(a.getX() - b.getX());
-    if (curr > distsq) return DINFINITY;
-
-    curr += sqr(a.getY() - b.getY());
-    if (curr > distsq) return DINFINITY;
-    
-    curr += sqr(a.getZ() - b.getZ());
-    if (curr > distsq) return DINFINITY;
-
-    return curr;
-}
-
 PhotonMap::PhotonMap(int size) {
     printf("Allocating the space for the map (%d bytes per photon)...\n", sizeof(Photon));
     photons_ = new Photon[size];
@@ -149,6 +133,7 @@ void PhotonMap::dumpTree() {
     }
 }*/
 
+
 void PhotonMap::makeTree() {
     printf("Making the kd-tree for %d photons...\n", currPtr_);
 
@@ -253,9 +238,9 @@ void PhotonMap::nearestNeighboursWrapper(Vector point, int amount) {
     findNearestNeighbours(point, 1);
 }
 
-void PhotonMap::addPhoton(Vector position, Vector direction, Vector energy) {
+void PhotonMap::addPhoton(Vector position, Vector direction, Vector energy, Vector normal) {
     Photon p;
-    p.position = position; p.direction = direction; p.energy = energy;
+    p.position = position; p.direction = direction; p.energy = energy; p.normal = normal;
     photons_[currPtr_++] = p;
 }
 
@@ -263,40 +248,90 @@ double simpsonKernel(double sqx) {
     return 3.0 / PI * sqr(1 - sqx);
 }
 
+void PhotonMap::precalculateIrradiance(int frequency, int noPhotons) {
+    irradiancePhotonFrequency_ = frequency;
+
+    //Precompute the radiance for every frequencyth photon
+    for (int i = 0; i < currPtr_; i+= frequency) {
+        photons_[i].irradiance = irradianceEstimate(
+            photons_[i].position, photons_[i].normal, noPhotons);
+    }
+}
+
+void PhotonMap::findIrradiancePhoton(Vector point, Vector normal,
+                                     double threshold, int treePos) {
+     
+    if (treePos >= kdTreeSize_) return;
+    if (kdTree_[treePos] == -1) return;
+
+    //Set the photon as best if it's indeed an irradiance photon, its normal is close to
+    //our needed normal and it's closer to the sought point than the previous best
+    if (kdTree_[treePos] % irradiancePhotonFrequency_ == 0) {
+        if (normal.dot(photons_[kdTree_[treePos]].normal) >= threshold) {
+            double sqdistance = sqDist(point, photons_[kdTree_[treePos]].position);
+            if (sqdistance < irradiancePhotonDist_) {
+                irradiancePhotonDist_ = sqdistance;
+                irradiancePhotonId_ = kdTree_[treePos];
+            }
+        }
+    }
+    
+    double subdivideLocation = getVectorComponent(photons_[kdTree_[treePos]].position,
+                                                  photons_[kdTree_[treePos]].axis);
+
+    double distToMedian = 
+        getVectorComponent(point, photons_[kdTree_[treePos]].axis) - subdivideLocation;
+    
+    if (distToMedian < 0) {
+        findIrradiancePhoton(point, normal, threshold, 2*treePos);
+    } else {
+        findIrradiancePhoton(point, normal, threshold, 2*treePos + 1);
+    }
+    
+    double sqDistToMedian = sqr(distToMedian);
+    
+    if (sqDistToMedian < neighbours_.top().distance) {
+        if (distToMedian < 0) {
+            findIrradiancePhoton(point, normal, threshold, 2*treePos);
+        } else {
+            findIrradiancePhoton(point, normal, threshold, 2*treePos + 1);
+        }
+    }
+}
+
+Vector PhotonMap::acceleratedIrradiance(Vector point, Vector normal, double threshold) {
+    irradiancePhotonDist_ = DINFINITY;
+    irradiancePhotonId_ = -1;
+
+    findIrradiancePhoton(point, normal, threshold, 1);
+
+    if (irradiancePhotonId_ == -1) return Vector(0, 0, 0);
+
+    return photons_[irradiancePhotonId_].irradiance;
+}
 
 //Gathers the photons in a given radius to determine the illumination of an entity at a certain point
 //and a certain normal.
-Vector PhotonMap::gatherPhotons(Vector point, Vector normal, int noPhotons) {
+Vector PhotonMap::irradianceEstimate(Vector point, Vector normal, int noPhotons) {
     Vector result(0, 0, 0);
     nearestNeighboursWrapper(point, noPhotons);
 
     double sqRadius = neighbours_.top().distance;
     
-//    double factor = 1.0 / 9.4247778 / sqRadius;
-//    double factor = 3000 / 3.1415926 / sqRadius;
-    double factor = 3.0 / (PI /* neighbours_.size()*/ * sqRadius);
-//    factor *= 10000;
-//    factor = 10;
-
-//    printf("Nearest neighbour to "); point.print(); printf(": "); dumpPhoton(photons_[neighbours_.top().id]);
-
+    double factor = 1.0 / (PI /* neighbours_.size()*/ * sqRadius);
     while (!neighbours_.empty()) { 
         Neighbour neighbour = neighbours_.top();
         neighbours_.pop();
 
 //        double weight = -normal.dot(photons_[neighbour.id].direction);
 //        if (weight < 0) continue;
-//        weight = 1;
         
 //        weight = (1 - sqrt(neighbour.distance / sqRadius));
-double        weight = simpsonKernel(neighbour.distance / sqRadius);
-//        double weight = 1;
-//        printf("weight: %f\n", weight);
+//double        weight = simpsonKernel(neighbour.distance / sqRadius);
+        double weight = 1;
 
         result += photons_[neighbour.id].energy * weight;
 
     }
- //   printf("result: "); (result * factor).print(); printf("\n");
-
     return result * factor;
 }
