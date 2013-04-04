@@ -54,7 +54,6 @@ private:
 
     void dumpTree();
     void dumpList();
-//    void dumpNeighbours();
 
     int neighboursNeeded_;
     std::priority_queue<Neighbour> neighbours_;

@@ -1,10 +1,7 @@
 #include "Scene.h"
 
-inline double min(double a, double b) {return a < b ? a : b;}
-
+//Multiplies all elements of the two colors together
 Vector combineColors(Vector c1, Vector c2) {
-//    return Vector(min(c1.getX(), c2.getX()), min(c1.getY(), c2.getY()),
-//                  min(c1.getZ(), c2.getZ()));
     return Vector(c1.getX() * c2.getX(), c1.getY() * c2.getY(),
                   c1.getZ() * c2.getZ());
 }
@@ -47,6 +44,7 @@ Scene::Scene(int width, int height) {
     currRow_ = new Renderable*[width];
     memset(currRow_, NULL, width * sizeof (Renderable*));
 
+    //Some default settings
     photonMapping = false;
     doFinalGather = false;
     visualizePhotons = false;
@@ -251,21 +249,6 @@ Vector Scene::calculateReflection(Intersection inter, Ray ray, int level) {
 double drand() {
     return rand() / (double)RAND_MAX;
 }
-/*
-//Generates a random vector in the hemisphere of the normal
-Vector sampleLambertianBRDF(Vector normal, double a, double b) {
-    Vector result(0, 0, 0);
-    do {
-        result.setX(drand() * 2 - 1);
-        result.setY(drand() * 2 - 1);
-        result.setZ(drand() * 2 - 1);
-        result.normalize();
-    } while (normal.dot(result) < 0);
-    
-//    printf("around "); normal.print(); printf(": "); result.print(); printf("\n");
-
-    return result;
-}*/
 
 Vector sampleLambertianBRDF(Vector normal, double Xi1, double Xi2) {
     //Cosine-weighted hemisphere sampling.
@@ -334,14 +317,13 @@ Vector Scene::traceRay(const Ray ray, int level) {
                     double xPos = xbase + drand() * squareSide;
                     double yPos = ybase + drand() * squareSide;
 
-//                    printf("%f; %f\n", xPos, yPos);
-
                     //Sampling ray from the surface of the entity
                     Ray samplingRay;
 
                     samplingRay.origin = inter.coords;
                     samplingRay.direction = sampleLambertianBRDF(inter.normal, xPos, yPos);
-    
+                    
+                    //Shift the origin slightly to avoid collisions with itself
                     samplingRay.origin += samplingRay.direction * 0.001;
 
                     Intersection sampleInter = renderables_.getFirstIntersection(samplingRay, 0);
@@ -353,6 +335,7 @@ Vector Scene::traceRay(const Ray ray, int level) {
                         sampleInter.normal, photonGatherDotThreshold);
                 }
             }
+            //Average the samples and combine with the color of the object
             resultColor /= (double)(photonGatherSamples * photonGatherSamples);
             resultColor = combineColors(inter.object->material.color, resultColor);
         }
@@ -396,7 +379,7 @@ Vector Scene::tracePixel(double x, double y) {
 
 void Scene::populatePhotonMap() {
     //Construct the map
-    //There will be one photon per bounce
+    //There will be one photon per bounce at most
     photonMap_ = new PhotonMap(photonCount * photonBounces);
 
     //The number of photons emitted per light depends on the light's intensity
@@ -474,13 +457,13 @@ void Scene::populatePhotonMap() {
     
     printf("Total hits: %d\n", allHits);
     
+    //The energy of the light is spread evenly amongst all photons
     photonMap_->scalePhotonPower(1.0/photonCount);
 
     photonMap_->makeTree();
 
     printf("Precalculating irradiance...\n");
     photonMap_->precalculateIrradiance(irradiancePhotonFrequency, photonGatherAmount);
-
 }
 
 void Scene::render(char* filename, BitmapPixel (*postProcess)(BitmapPixel)) {

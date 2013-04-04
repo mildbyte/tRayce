@@ -34,6 +34,7 @@ PhotonMap::~PhotonMap() {
     delete(kdTree_);
 }
 
+//The comparator used to determine which photon comes earlier on some axis
 int photonComparator (const void* p1, const void* p2) {
     Photon *photon1 = (Photon*) p1;
     Photon *photon2 = (Photon*) p2;
@@ -41,6 +42,7 @@ int photonComparator (const void* p1, const void* p2) {
            getVectorComponent(photon2->position, currAxis));
 }
 
+//Returns the axis with the largest min-max photon position spread
 char PhotonMap::getGreatestSpreadAxis(int left, int right) {
     double greatestSpread = 0;
     char greatestSpreadAxis = 0;
@@ -63,43 +65,39 @@ char PhotonMap::getGreatestSpreadAxis(int left, int right) {
             greatestSpreadAxis = i;
         }
     }
-//    printf("greatest spread for %d..%d : axis %d: %f to %f\n", left, right, greatestSpreadAxis, min, max);
+
     return greatestSpreadAxis;
 }
 
+//Populates the kdTree_ array with integer pointers to photons that form a heap
+//(2n element and 2n+1st element are the children of the nth element)
 void PhotonMap::balanceTree(int left, int right, int depth, int position) {
-//    printf("left: %d, right: %d, depth: %d, position: %d\n", left, right, depth, position);
+    //This case is weird.
     if (right == left) return;
-
+    
+    //One element remaining, record it
     if (right - left == 1) {
         kdTree_[position] = left;
-//        printf("trying %d\n", left);
-//        if (indices_[left]) printf("Error! %d already used!\n", left);
-//        indices_[left] = 1;
-//        printf("reached the base case\n");
         return;
     }
-
+    
+    //Make sure we get the most out of our subdivision
     currAxis = getGreatestSpreadAxis(left, right);
     
-//    printf("entering qsort...\n");
-    qsort(&(photons_[left]),
-          right - left, sizeof(Photon), &photonComparator);
-//    printf("leaving qsort...\n");
-   
+    //Find the median of the current sector (there is a faster way, but building the
+    //tree is quite fast as it is)
+    qsort(&(photons_[left]), right - left, sizeof(Photon), &photonComparator);
     int median = (left + right) / 2;
     photons_[median].axis = currAxis;
 
+    //Record the node of the tree and balance its children
     kdTree_[position] = median;
-//    printf("trying %d\n", median);
-//    if (indices_[median]) printf("Error! %d already used!\n", median);
-
-//    indices_[median] = 1;
    
     balanceTree(left, median, depth + 1, position * 2);
     balanceTree(median + 1, right, depth + 1, position * 2 + 1);
 }
 
+//Prints a photon for debugging purposes
 void dumpPhoton(Photon p) {
  printf("photon at %f, %f, %f from %f, %f, %f with %f, %f, %f, axis ",
         p.position.getX(), p.position.getY(), p.position.getZ(),
@@ -108,9 +106,9 @@ void dumpPhoton(Photon p) {
     if (p.axis == 0) printf("X\n");
     if (p.axis == 1) printf("Y\n");
     if (p.axis == 2) printf("Z\n");
-
 }
 
+//Outputs all photons for debugging purposes
 void PhotonMap::dumpList() {
     for (int i = 0; i < currPtr_; i++) {
         printf("%d ", i);
@@ -118,6 +116,7 @@ void PhotonMap::dumpList() {
     }
 }
 
+//Outputs the photons in the way they are ordered in the kd-tree
 void PhotonMap::dumpTree() {
     for (int i = 1; i < kdTreeSize_; i++) {
         printf("%d ", i);
@@ -126,36 +125,22 @@ void PhotonMap::dumpTree() {
     }
 }
 
-/*void PhotonMap::dumpNeighbours() {
-    for (int i = 0; i < foundNeighbours_; i++) {
-        printf("sqd = %f; ", neighbourDists_[i]);
-        dumpPhoton(photons_[neighbours_[i]]);
-    }
-}*/
-
 
 void PhotonMap::makeTree() {
     printf("Making the kd-tree for %d photons...\n", currPtr_);
-
-//    dumpList();
+    
+    //Allocate the required array for the tree (next power of two greater than
+    //the number of photons)
     kdTreeSize_ = 1;
     while (kdTreeSize_ < currPtr_ + 1) kdTreeSize_ = kdTreeSize_ << 1;
-
     printf("Size %d\n", kdTreeSize_);
-
-//    indices_ = new int[currPtr_];
-//    for (int i = 0; i < currPtr_; i++) indices_[i] = 0;
-
     kdTree_ = new int[kdTreeSize_];
+
+    //-1 denotes that a node is empty (only happens in the last half of the tree, as
+    //it is balanced
     for (int i = 0; i < kdTreeSize_; i++) kdTree_[i] = -1;
+
     balanceTree(0, currPtr_, 0, 1);
-
-//    for (int i = 0; i < currPtr_; i++) if (!indices_[i])
-//            printf("Error! %d wasn't touched!\n", i);
-
-//    dumpList();
-//    printf("\n\n\n");
-//    dumpTree();
 }
 
 void PhotonMap::scalePhotonPower(double factor) {
@@ -164,10 +149,10 @@ void PhotonMap::scalePhotonPower(double factor) {
     }
 }
 
+//Adds a photon to the nearest neighbours list if it is closer than some of them
+//or there aren't enough neighbours
 void PhotonMap::addNearestNeighbour(int newPh, double newPhDist) {
-//    printf("Adding %f to the list\n", newPhDist);
     if (neighbours_.size() < neighboursNeeded_) {
-//        printf("List incomplete, added\n");
         Neighbour newNeighbour;
         newNeighbour.id = newPh;
         newNeighbour.distance = newPhDist;
@@ -176,8 +161,10 @@ void PhotonMap::addNearestNeighbour(int newPh, double newPhDist) {
         return;
     }
     
+    //What's the furthest we have?
     double maxDist = neighbours_.top().distance;
 
+    //If we can do better, remove that neighbour and add a new one
     if (maxDist > newPhDist) {
         Neighbour newNeighbour;
         newNeighbour.id = newPh;
@@ -185,28 +172,35 @@ void PhotonMap::addNearestNeighbour(int newPh, double newPhDist) {
 
         neighbours_.pop();
         neighbours_.push(newNeighbour);
-//        printf("Greatest distance (%f) replaced\n", maxDist);
     }
 }
 
+//Avoids the square root computation
 inline double sqDist(Vector a, Vector b) {
     Vector diff = b - a;
     return diff.dot(diff);
 }
 
+//Populates the neighbours_ heap with neighboursNeeded_ photons closest to the point
 void PhotonMap::findNearestNeighbours(Vector point, int treePos) {
     kdTreeVisited_++;
+
+    //Are we at an empty node?
     if (treePos >= kdTreeSize_) return;
     if (kdTree_[treePos] == -1) return;
-    
+
+    //Try and add ourselves to the heap
     addNearestNeighbour(kdTree_[treePos], sqDist(point, photons_[kdTree_[treePos]].position));
 
+    //The coordinate of the median
     double subdivideLocation = getVectorComponent(photons_[kdTree_[treePos]].position,
                                                   photons_[kdTree_[treePos]].axis);
 
+    //The signed distance to the median
     double distToMedian = 
         getVectorComponent(point, photons_[kdTree_[treePos]].axis) - subdivideLocation;
     
+    //Is the point to the left of the median?
     if (distToMedian < 0) {
         findNearestNeighbours(point, 2*treePos);
     } else {
@@ -215,6 +209,7 @@ void PhotonMap::findNearestNeighbours(Vector point, int treePos) {
     
     double sqDistToMedian = sqr(distToMedian);
     
+    //Can there be a neighbour in the other branch?
     if (sqDistToMedian < neighbours_.top().distance) {
         if (distToMedian < 0) {
             findNearestNeighbours(point, 2*treePos+1);
@@ -224,6 +219,7 @@ void PhotonMap::findNearestNeighbours(Vector point, int treePos) {
     }
 }
 
+//Initializes the variables needed by findNearestNeighbours
 void PhotonMap::nearestNeighboursWrapper(Vector point, int amount) {
     neighboursNeeded_ = amount;
     neighbours_ = std::priority_queue<Neighbour>();
@@ -237,6 +233,7 @@ void PhotonMap::addPhoton(Vector position, Vector direction, Vector energy, Vect
     photons_[currPtr_++] = p;
 }
 
+//Filters the photons based on their distance from the sought point
 double simpsonKernel(double sqx) {
     return 3.0 / PI * sqr(1 - sqx);
 }
@@ -255,6 +252,8 @@ void PhotonMap::precalculateIrradiance(int frequency, int noPhotons) {
     }
 }
 
+//Mostly copied from findNearestNeighbours, but only looks for one photon and certain
+//conditions
 void PhotonMap::findIrradiancePhoton(Vector point, Vector normal,
                                      double threshold, int treePos) {
      
@@ -294,17 +293,16 @@ void PhotonMap::findIrradiancePhoton(Vector point, Vector normal,
             findIrradiancePhoton(point, normal, threshold, 2*treePos);
         }
     }
-
-//            findIrradiancePhoton(point, normal, threshold, 2*treePos);
-//            findIrradiancePhoton(point, normal, threshold, 2*treePos + 1);
 }
 
+//Looks up the closest irradiance photon (similar to nearestNeighboursWrapper)
 Vector PhotonMap::acceleratedIrradiance(Vector point, Vector normal, double threshold) {
     irradiancePhotonDist_ = DINFINITY;
     irradiancePhotonId_ = -1;
 
     findIrradiancePhoton(point, normal, threshold, 1);
-
+    
+    //This shouldn't happen.
     if (irradiancePhotonId_ == -1) return Vector(0, 0, 0);
 
     return photons_[irradiancePhotonId_].irradiance;
@@ -322,11 +320,6 @@ Vector PhotonMap::irradianceEstimate(Vector point, Vector normal, int noPhotons)
     while (!neighbours_.empty()) { 
         Neighbour neighbour = neighbours_.top();
         neighbours_.pop();
-
-//        double weight = -normal.dot(photons_[neighbour.id].direction);
-//        if (weight < 0) continue;
-        
-//        weight = (1 - sqrt(neighbour.distance / sqRadius));
         double weight = simpsonKernel(neighbour.distance / sqRadius);
 
         result += photons_[neighbour.id].energy * weight;
