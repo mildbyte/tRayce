@@ -51,11 +51,11 @@ int main()
     scene.photonMapping = true;
     scene.doFinalGather = true;
 //    scene.visualizePhotons = true;
-    scene.photonCount = 20000;
-    scene.photonBounces = 5;
-    scene.photonGatherAmount = 100;
-    scene.photonGatherSamples = 32;
-    scene.irradiancePhotonFrequency = 4;
+    scene.photonCount = 50000;
+    scene.photonBounces = 3;
+    scene.photonGatherAmount = 500;
+    scene.photonGatherSamples = 64;
+    scene.irradiancePhotonFrequency = 1;
     scene.photonGatherDotThreshold = 0.9;
 
     Sphere *redSphere = new Sphere(5, Vector(-1, 5, 13));

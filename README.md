@@ -70,13 +70,49 @@ Some features that tRayce does support:
     photon map. Final gathering is quite slow (which is expected) and sometimes has weird
     artifacts (like white pixels that could not have appeared from anywhere).
 
+    Irradiance "caching" is now supported: instead of computing irradiance every time during
+    the final gather, the mapper now looks for the nearest irradiance photon (a photon on the
+    position of which the radiance estimate has already been performed). This considerably
+    speeds things up. It also looks like a cool Voronoi diagram when rendered directly.
+
+    I currently use Monte Carlo integration with stratified samples and a Mersenne Twister
+    RNG and finally managed to achieve an almost noiseless 320x240 image with 50000 initial
+    photons, 500 photons used for the irradiance estimate and 64x64 final gather samples.
+    The image was rendered in ~2 hours. That seems much slower than what is claimed in the
+    papers (on their rather ancient hardware)
+
+    Halton sequences, which provide a low-discrepancy sequence that sort of looks like
+    stratified random sampling, are also implemented, but their usage is commented out
+    for now since even using 512 samples per pixel results in the blob of light from the ceiling
+    sort of cloning itself around the back wall.
+
+    Photon visualisation is also supported, but that's mostly for confirming they are landing
+    in the right areas.
+
 TODO
 ----
 
-* **Implement irradiance caching/precomputation**: since irradiance values change much slower
-    than global illumination, we could cache it at certain points and interpolate during the
-    final gather step. Or make every nth photon a radiance photon and query radiance photons
-    instead.
-* **Stratify**: instead of purely random sampling during final gathering/diffuse reflections,
-    use a grid and randomly choose a direction inside the grid, which would eliminate variance.
 * **Multicore**: OpenMP?
+* **Speedups**: irradiance caching; figure out why I need so many final gather samples. Also,
+    there is a nice paper called Balancing Considered Harmful that proposes a different way of
+    organising the kd-tree to avoid unnecessary visits to the other branch. Another way is
+    proposed in the paper called It’s okay to be skinny, if your friends are fat.
+
+References
+----------
+* Photon mapping: Global Illumination using Photon Maps by Henrik Wann Jensen, 
+    http://graphics.ucsd.edu/~henrik/papers/photon_map/global_illumination_using_photon_maps_egwr96.pdf 
+    The 2000 SIGGRAPH course, "A Practical Guide to Global Illumination using Photon Maps",
+    http://graphics.stanford.edu/courses/cs348b-00/course8.pdf
+    and lecture notes on Realistic Image Synhesis: Photon Mapping by Philipp Slusallek,
+    Karol Myszkowski and Vincent Pegoraro, http://graphics.cs.uni-saarland.de/fileadmin/cguds/courses/ss10/ris/slides/RIS11PhotonMap.pdf
+* Irradiance photons: Faster Photon Map Global Illumination by Per H. Christensen,
+    http://www.seanet.com/~myandper/jgt99.pdf. Claimed "Rendering this
+    image at resolution 1024 × 1024 pixels with up to 16 samples per pixel took 5 min-
+    utes and 29 seconds. Out of this time, computing the soft indirect illumination
+    took 2 minutes and 45 seconds. There were 11,800 final gathers with a total of
+    6.5 million final gather rays." on a "233 MHz Pentium processor and 32 megabytes of memory",
+    so my implementation is really slow.
+* KD-trees: An introductory tutorial on KD-trees by Andrew W. Moore,
+    http://www.autonlab.org/autonweb/14665/version/2/part/5/data/moore-tutorial.pdf?branch=main&language=en
+* 

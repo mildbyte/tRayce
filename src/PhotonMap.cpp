@@ -330,10 +330,15 @@ Vector PhotonMap::irradianceEstimate(Vector point, Vector normal, int noPhotons)
 
 //Returns a pixel on the gradient from black to white depending on the distance of the closest
 //photon. The smaller the weight, the faster the falloff.
+//Radiance photons are highlighted in red
 Vector PhotonMap::visualizePhoton(Vector point, double weight) {
     nearestNeighboursWrapper(point, 1);
     double distance = neighbours_.top().distance;
     double factor = weight / (weight + distance);
-    
-    return Vector(factor, factor, factor);
+
+    if (neighbours_.top().id % irradiancePhotonFrequency_ == 0) {
+        return Vector(factor, 0, factor);
+    } else {
+        return Vector(factor, factor, factor);
+    }
 }
