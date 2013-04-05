@@ -115,4 +115,5 @@ References
     so my implementation is really slow.
 * KD-trees: An introductory tutorial on KD-trees by Andrew W. Moore,
     http://www.autonlab.org/autonweb/14665/version/2/part/5/data/moore-tutorial.pdf?branch=main&language=en
-* 
+* !A message on the Blender mailing list about trying to implement final gather and having the
+    same problems as me: http://lists.blender.org/pipermail/bf-committers/2009-April/023044.html
