@@ -1,9 +1,27 @@
 #include "Scene.h"
+#include <random>
+
+std::mt19937 twister;
+std::uniform_real_distribution<double> dist(0, 1);
 
 //Multiplies all elements of the two colors together
 Vector combineColors(Vector c1, Vector c2) {
     return Vector(c1.getX() * c2.getX(), c1.getY() * c2.getY(),
                   c1.getZ() * c2.getZ());
+}
+
+//Returns the indexth number of base 'base' Halton sequence; adapted from
+//http://en.wikipedia.org/wiki/Halton_sequence
+double halton(int index, int base) {
+    double result = 0.0;
+    double f = 1.0 / (double)base;
+    int i = index;
+    while (i) {
+        result += f * (i % base);
+        i /= base;
+        f /= base;
+    }
+    return result;
 }
 
 void Scene::addRenderable(Renderable* renderable) {
@@ -247,8 +265,18 @@ Vector Scene::calculateReflection(Intersection inter, Ray ray, int level) {
 
 //Generates a random number between 0.0 and 1.0
 double drand() {
-    return rand() / (double)RAND_MAX;
+    return dist(twister);
 }
+/*
+Vector sampleLambertianBRDF(Vector normal, double a, double b) {
+    Vector result;
+    do {
+        result = Vector(2*drand()-1, 2*drand()-1, 2*drand()-1);
+        if (result.normalize() > 1) continue;
+        if (result.dot(normal) < 0) continue;
+        return result;
+    } while (true);
+}*/
 
 Vector sampleLambertianBRDF(Vector normal, double Xi1, double Xi2) {
     //Cosine-weighted hemisphere sampling.
@@ -307,8 +335,18 @@ Vector Scene::traceRay(const Ray ray, int level) {
         resultColor = photonMap_->acceleratedIrradiance(inter.coords,
                         inter.normal, photonGatherDotThreshold);
         } else {
+            //Allocate the arrays with coordinates for sampling
+            double *xCoords = new double[photonGatherSamples];
+            double *yCoords = new double[photonGatherSamples];
+
+            for (int i = 0; i < photonGatherSamples; i++) {
+                xCoords[i] = halton(i, 2);
+                yCoords[i] = halton(i, 3);
+            }
+            
             double squareSide = 1.0 / photonGatherSamples;
-            for (int y = 0; y < photonGatherSamples; y++) {
+    //        for (int sampleIndex = 0; sampleIndex < photonGatherSamples; sampleIndex++) {
+           for (int y = 0; y < photonGatherSamples; y++) {
                 double ybase = squareSide * y;
                 for (int x = 0; x < photonGatherSamples; x++) {
                     //Jittered position in the grid
@@ -321,7 +359,9 @@ Vector Scene::traceRay(const Ray ray, int level) {
                     Ray samplingRay;
 
                     samplingRay.origin = inter.coords;
-                    samplingRay.direction = sampleLambertianBRDF(inter.normal, xPos, yPos);
+                    samplingRay.direction = sampleLambertianBRDF(inter.normal,
+//                        xCoords[sampleIndex], yCoords[sampleIndex]);
+                            xPos, yPos);
                     
                     //Shift the origin slightly to avoid collisions with itself
                     samplingRay.origin += samplingRay.direction * 0.001;
@@ -338,7 +378,10 @@ Vector Scene::traceRay(const Ray ray, int level) {
             //Average the samples and combine with the color of the object
             resultColor /= (double)(photonGatherSamples * photonGatherSamples);
             resultColor = combineColors(inter.object->material.color, resultColor);
-        }
+
+            delete(xCoords);
+            delete(yCoords);
+        }    
     } else {
         //Phong (diffuse+specular) pass
         resultColor += calculatePhongColor(inter, ray);

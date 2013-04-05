@@ -36,11 +36,11 @@ BitmapPixel postProcess(BitmapPixel pix) {
 int main()
 {
     srand((unsigned)time(0));
-    Scene scene(800, 600);
+    Scene scene(320, 240);
 //    scene.camera.height = 15;
     scene.backgroundColor.set(0, 0, 0);
     scene.doAA = false;
-    scene.msaaSamples = 4;
+    scene.msaaSamples = 8;
     scene.msaaOptimize = false;
     scene.softShadowSamples = 1;
     scene.traceDepth = 1;
@@ -49,12 +49,12 @@ int main()
     scene.camera.planeDistance = 20;
 
     scene.photonMapping = true;
-//    scene.doFinalGather = true;
-    scene.visualizePhotons = true;
-    scene.photonCount = 100000;
+    scene.doFinalGather = true;
+//    scene.visualizePhotons = true;
+    scene.photonCount = 20000;
     scene.photonBounces = 5;
-    scene.photonGatherAmount = 5;
-    scene.photonGatherSamples = 4;
+    scene.photonGatherAmount = 100;
+    scene.photonGatherSamples = 32;
     scene.irradiancePhotonFrequency = 4;
     scene.photonGatherDotThreshold = 0.9;
 
