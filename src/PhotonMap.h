@@ -4,8 +4,12 @@
 #include "Vector.h"
 
 #include <queue>
-//Used for photon mapping, stores information about photons on the scene
+#include <iostream>
+#include <fstream>
 
+using namespace std;
+
+//Used for photon mapping, stores information about photons on the scene
 struct Photon {
     Vector position;
     Vector direction;
@@ -34,7 +38,6 @@ private:
     int kdTreeSize_;
 
     int* kdTree_;
-    int* indices_;
 
     int irradiancePhotonFrequency_;
 
@@ -56,7 +59,7 @@ private:
     void dumpList();
 
     int neighboursNeeded_;
-    std::priority_queue<Neighbour> neighbours_;
+    priority_queue<Neighbour> neighbours_;
 
     int irradiancePhotonId_;
     double irradiancePhotonDist_;
@@ -75,6 +78,8 @@ public:
 
     void precalculateIrradiance(int frequency, int noPhotons);
     Vector visualizePhoton(Vector point, double weight);
+
+    void saveToFile(char* path);
 };
 
 #endif

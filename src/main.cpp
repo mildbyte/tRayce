@@ -51,10 +51,10 @@ int main()
     scene.photonMapping = true;
     scene.doFinalGather = true;
 //    scene.visualizePhotons = true;
-    scene.photonCount = 50000;
+    scene.photonCount = 5000;
     scene.photonBounces = 3;
-    scene.photonGatherAmount = 500;
-    scene.photonGatherSamples = 64;
+    scene.photonGatherAmount = 50;
+    scene.photonGatherSamples = 4;
     scene.irradiancePhotonFrequency = 1;
     scene.photonGatherDotThreshold = 0.9;
 
@@ -97,12 +97,12 @@ int main()
     scene.ambientCoefficient = 0.05;
 
     AreaLight* topLight = new AreaLight();
-    topLight->position.set(0, -9, 10);
+    topLight->position.set(0, -8, 8);
     topLight->dir1.set(1, 0, 0);
     topLight->dir2.set(0, 0, 1);
     topLight->size1 = 3;
     topLight->size2 = 3;
-    topLight->brightness = 5000;
+    topLight->brightness = 1000;
     scene.addLight(topLight);
 
     scene.render("test.bmp", NULL);

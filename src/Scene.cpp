@@ -606,5 +606,8 @@ void Scene::render(char* filename, BitmapPixel (*postProcess)(BitmapPixel)) {
     //Save the resulting bitmap to file
     rendered_->saveToFile(filename);
 
+    printf("Saving the photon map...\n");
+    photonMap_->saveToFile("map.dat");
+
     printf("Done. kd-tree visits per pixel: %f\n", (double)(photonMap_->kdTreeVisited_) / (double)(width_ * height_));
 }

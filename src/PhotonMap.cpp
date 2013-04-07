@@ -29,6 +29,22 @@ PhotonMap::PhotonMap(int size) {
     kdTreeVisited_ = 0;
 }
 
+//Dumps the photon map into a file for further loading
+void PhotonMap::saveToFile(char* path) {
+    ofstream file(path, ios::out | ios::binary);
+
+    //Format: number of photons in the map, then the irradiance photon frequency,
+    //then number of photons 128-byte records, then (nearest power of 2 higher than the number
+    //of photons) kd-tree entries (integers).
+    file.write((char*)&currPtr_, sizeof(int));
+    file.write((char*)&irradiancePhotonFrequency_, sizeof(int));
+
+    file.write((char*)photons_, sizeof(Photon)*currPtr_);
+    file.write((char*)kdTree_, sizeof(int)*kdTreeSize_);
+    
+    file.close();
+}
+
 PhotonMap::~PhotonMap() {
     delete(photons_);
     delete(kdTree_);
@@ -222,7 +238,7 @@ void PhotonMap::findNearestNeighbours(Vector point, int treePos) {
 //Initializes the variables needed by findNearestNeighbours
 void PhotonMap::nearestNeighboursWrapper(Vector point, int amount) {
     neighboursNeeded_ = amount;
-    neighbours_ = std::priority_queue<Neighbour>();
+    neighbours_ = priority_queue<Neighbour>();
 
     findNearestNeighbours(point, 1);
 }
