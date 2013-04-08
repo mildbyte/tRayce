@@ -75,19 +75,24 @@ Some features that tRayce does support:
     position of which the radiance estimate has already been performed). This considerably
     speeds things up. It also looks like a cool Voronoi diagram when rendered directly.
 
-    I currently use Monte Carlo integration with stratified samples and a Mersenne Twister
-    RNG and finally managed to achieve an almost noiseless 320x240 image with 50000 initial
+    Using Monte Carlo integration with stratified samples and a Mersenne Twister
+    RNG, I finally managed to achieve an almost noiseless 320x240 image with 50000 initial
     photons, 500 photons used for the irradiance estimate and 64x64 final gather samples.
     The image was rendered in ~2 hours. That seems much slower than what is claimed in the
     papers (on their rather ancient hardware)
 
     Halton sequences, which provide a low-discrepancy sequence that sort of looks like
-    stratified random sampling, are also implemented, but their usage is commented out
-    for now since even using 512 samples per pixel results in the blob of light from the ceiling
-    sort of cloning itself around the back wall.
+    stratified random sampling, are also implemented. Setting `Scene::samplingMode = HALTON`
+    enables them, with `photonGatherSamples` now being the number of elements in the
+    sequence that are used (unlike the `STRATIFIED` mode that uses the square of that number
+    of samples). With low amounts of samples, it looks quite bad, with blobs of light smeared
+    all over the objects, but with ~1000 it begins to fade away and only be noticeable on
+    close inspection.
 
     Photon visualisation is also supported, but that's mostly for confirming they are landing
     in the right areas.
+
+    Photon maps can be saved and loaded, but they are not checked for validity during load time.
 
 TODO
 ----
