@@ -66,6 +66,7 @@ private:
 
 public:
     PhotonMap(int size);
+    PhotonMap(char* path);
     ~PhotonMap();
     
     unsigned long long kdTreeVisited_;

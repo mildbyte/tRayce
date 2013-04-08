@@ -29,6 +29,27 @@ PhotonMap::PhotonMap(int size) {
     kdTreeVisited_ = 0;
 }
 
+//Load the map from file
+PhotonMap::PhotonMap(char* path) {
+    ifstream file(path, ios::in | ios::binary);
+
+    file.read((char*)&currPtr_, sizeof(int));
+    file.read((char*)&irradiancePhotonFrequency_, sizeof(int));
+    
+    //Find the size of the kd-tree
+    kdTreeSize_ = 1;
+    while (kdTreeSize_ < currPtr_ + 1) kdTreeSize_ = kdTreeSize_ << 1;
+
+    //Allocate the space for the data structures
+    photons_ = new Photon[currPtr_];
+    kdTree_ = new int[kdTreeSize_];
+    
+    file.read((char*)photons_, sizeof(Photon)*currPtr_); 
+    file.read((char*)kdTree_, sizeof(int)*kdTreeSize_);
+
+    file.close();
+}
+
 //Dumps the photon map into a file for further loading
 void PhotonMap::saveToFile(char* path) {
     ofstream file(path, ios::out | ios::binary);

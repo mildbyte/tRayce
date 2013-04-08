@@ -37,6 +37,8 @@ Scene::Scene(int width, int height) {
     width_ = width;
     height_ = height;
 
+    photonMap_ = NULL;
+
     //Set up the default camera position
     camera.position.set(0, 0, -10);
     camera.direction.set(0, 0, 1);
@@ -509,12 +511,19 @@ void Scene::populatePhotonMap() {
     photonMap_->precalculateIrradiance(irradiancePhotonFrequency, photonGatherAmount);
 }
 
+void Scene::loadMap(char* path) {
+    photonMap_ = new PhotonMap(path);
+}
+
+void Scene::saveMap(char* path) {
+    photonMap_->saveToFile(path);
+}
+
 void Scene::render(char* filename, BitmapPixel (*postProcess)(BitmapPixel)) {
     //Renders the scene to a file
 
-    //Populate the photon map (should really be done once per scene, not every render,
-    //is here for testing).
-    if (photonMapping) {
+    //Do we have the photon map yet?
+    if (photonMapping && photonMap_ == NULL) {
         printf("Populating the photon map...\n");
         populatePhotonMap();
     }
@@ -605,9 +614,6 @@ void Scene::render(char* filename, BitmapPixel (*postProcess)(BitmapPixel)) {
     printf("Saving...\n");
     //Save the resulting bitmap to file
     rendered_->saveToFile(filename);
-
-    printf("Saving the photon map...\n");
-    photonMap_->saveToFile("map.dat");
 
     printf("Done. kd-tree visits per pixel: %f\n", (double)(photonMap_->kdTreeVisited_) / (double)(width_ * height_));
 }

@@ -51,9 +51,9 @@ int main()
     scene.photonMapping = true;
     scene.doFinalGather = true;
 //    scene.visualizePhotons = true;
-    scene.photonCount = 5000;
+    scene.photonCount = 50000;
     scene.photonBounces = 3;
-    scene.photonGatherAmount = 50;
+    scene.photonGatherAmount = 500;
     scene.photonGatherSamples = 4;
     scene.irradiancePhotonFrequency = 1;
     scene.photonGatherDotThreshold = 0.9;
@@ -106,6 +106,8 @@ int main()
     scene.addLight(topLight);
 
     scene.render("test.bmp", NULL);
+
+    scene.saveMap("map.dat");
 
     return 0;
 }

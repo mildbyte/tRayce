@@ -71,6 +71,12 @@ public:
     //Render the scene to a file
     void render(char* filename, BitmapPixel (*postProcess)(BitmapPixel));
 
+    //Load the photon map from a file (generates the map from scratch otherwise)
+    void loadMap(char* path);
+
+    //Save the photon map to a file
+    void saveMap(char* path);
+
     //Data about the image plane
     Camera camera;
 
