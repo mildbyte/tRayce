@@ -54,9 +54,10 @@ int main()
     scene.photonCount = 50000;
     scene.photonBounces = 3;
     scene.photonGatherAmount = 500;
-    scene.photonGatherSamples = 4;
+    scene.photonGatherSamples = 100;
     scene.irradiancePhotonFrequency = 1;
     scene.photonGatherDotThreshold = 0.9;
+    scene.samplingMode = HALTON;
 
     Sphere *redSphere = new Sphere(5, Vector(-1, 5, 13));
     Sphere *greenSphere = new Sphere(3, Vector(-7, 7, 8));
@@ -107,7 +108,7 @@ int main()
 
     scene.render("test.bmp", NULL);
 
-    scene.saveMap("map.dat");
+    scene.loadMap("map.dat");
 
     return 0;
 }

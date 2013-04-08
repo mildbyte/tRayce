@@ -76,6 +76,8 @@ Scene::Scene(int width, int height) {
 
     photonGatherDotThreshold = 0.9;
     irradiancePhotonFrequency = 4;
+
+    samplingMode = STRATIFIED;
 }
 
 double Scene::calculateShadingCoefficient(Light* light, Vector point, Vector toLight, double lightDist) {
@@ -310,6 +312,26 @@ Vector sampleLambertianBRDF(Vector normal, double Xi1, double Xi2) {
     return direction;
 }
 
+Vector Scene::sampleMapAt(Vector coords, Vector normal, double x, double y) {
+    //Sampling ray from the surface of the entity
+    Ray samplingRay;
+
+    samplingRay.origin = coords;
+    samplingRay.direction = sampleLambertianBRDF(normal, x, y);
+                    
+    //Shift the origin slightly to avoid collisions with itself
+    samplingRay.origin += samplingRay.direction * 0.001;
+
+    Intersection sampleInter = renderables_.getFirstIntersection(samplingRay, 0);
+    if (!sampleInter.happened) return backgroundColor;
+    sampleInter.normal.normalize();
+
+    //Read the precomputed radiance value
+    return photonMap_->acceleratedIrradiance(sampleInter.coords, 
+                                             sampleInter.normal, 
+                                             photonGatherDotThreshold);
+}
+
 Vector Scene::traceRay(const Ray ray, int level) {
     //Traces a single ray through the scene; returns its color.
     //This is where the magic happens.
@@ -337,52 +359,48 @@ Vector Scene::traceRay(const Ray ray, int level) {
         resultColor = photonMap_->acceleratedIrradiance(inter.coords,
                         inter.normal, photonGatherDotThreshold);
         } else {
-            //Allocate the arrays with coordinates for sampling
-            double *xCoords = new double[photonGatherSamples];
-            double *yCoords = new double[photonGatherSamples];
+            switch (samplingMode) {
+                case STRATIFIED: {
+                    double squareSide = 1.0 / photonGatherSamples;
+                    for (int y = 0; y < photonGatherSamples; y++) {
+                        double ybase = squareSide * y;
+                        for (int x = 0; x < photonGatherSamples; x++) {
+                            //Jittered position in the grid
+                            double xbase = squareSide * x;
+                    
+                            double xPos = xbase + drand() * squareSide;
+                            double yPos = ybase + drand() * squareSide;
 
-            for (int i = 0; i < photonGatherSamples; i++) {
-                xCoords[i] = halton(i, 2);
-                yCoords[i] = halton(i, 3);
-            }
+                            resultColor += sampleMapAt(inter.coords, inter.normal, xPos, yPos);
+                        }
+                    }
+                    resultColor /= (double)(photonGatherSamples * photonGatherSamples);
+                    break;
+                }
+                case HALTON: {
+                    //Allocate the arrays with coordinates for sampling
+                    double *xCoords = new double[photonGatherSamples];
+                    double *yCoords = new double[photonGatherSamples];
+
+                    for (int i = 0; i < photonGatherSamples; i++) {
+                        xCoords[i] = halton(i, 2);
+                        yCoords[i] = halton(i, 3);
+                    }
             
-            double squareSide = 1.0 / photonGatherSamples;
-    //        for (int sampleIndex = 0; sampleIndex < photonGatherSamples; sampleIndex++) {
-           for (int y = 0; y < photonGatherSamples; y++) {
-                double ybase = squareSide * y;
-                for (int x = 0; x < photonGatherSamples; x++) {
-                    //Jittered position in the grid
-                    double xbase = squareSide * x;
-                    
-                    double xPos = xbase + drand() * squareSide;
-                    double yPos = ybase + drand() * squareSide;
+                    for (int sampleIndex = 0; sampleIndex < photonGatherSamples; sampleIndex++) {
+                        resultColor += sampleMapAt(inter.coords, inter.normal,
+                                                   xCoords[sampleIndex], yCoords[sampleIndex]);
+                    }
 
-                    //Sampling ray from the surface of the entity
-                    Ray samplingRay;
+                    resultColor /= (double)photonGatherSamples;
 
-                    samplingRay.origin = inter.coords;
-                    samplingRay.direction = sampleLambertianBRDF(inter.normal,
-//                        xCoords[sampleIndex], yCoords[sampleIndex]);
-                            xPos, yPos);
-                    
-                    //Shift the origin slightly to avoid collisions with itself
-                    samplingRay.origin += samplingRay.direction * 0.001;
-
-                    Intersection sampleInter = renderables_.getFirstIntersection(samplingRay, 0);
-                    if (!sampleInter.happened) continue;
-                    sampleInter.normal.normalize();
-
-                    //Read the precomputed radiance value
-                    resultColor += photonMap_->acceleratedIrradiance(sampleInter.coords,
-                        sampleInter.normal, photonGatherDotThreshold);
+                    delete(xCoords);
+                    delete(yCoords);
+                    break;
                 }
             }
-            //Average the samples and combine with the color of the object
-            resultColor /= (double)(photonGatherSamples * photonGatherSamples);
+            //Combine with the color of the object
             resultColor = combineColors(inter.object->material.color, resultColor);
-
-            delete(xCoords);
-            delete(yCoords);
         }    
     } else {
         //Phong (diffuse+specular) pass

@@ -12,6 +12,11 @@
 #include <cstring>
 #include <cstdlib>
 
+enum SamplingMode {
+    STRATIFIED,
+    HALTON
+};
+
 class Scene {
 private:
     //Scene objects
@@ -58,6 +63,10 @@ private:
 
     //Throw photons at the wall and see what sticks
     void populatePhotonMap();
+
+    //Gets the irradiance value at a point with a normal and two coordinages on the
+    //hemisphere of samples
+    Vector sampleMapAt(Vector coords, Vector normal, double x, double y);
 
     int pixelsRendered_;
 public:
@@ -109,6 +118,8 @@ public:
     int irradiancePhotonFrequency; //every nth photon becomes an irradiance photon
     double photonGatherDotThreshold; //How close should the two normals be for an
     //irradiance photon to be used as an estimate? (1.0 is same direction, -1.0 is opposite)
+
+    SamplingMode samplingMode; //Stratified or Halton?
 
     bool visualizePhotons; //if true, only shows the positions of photons.
 };
