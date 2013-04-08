@@ -378,24 +378,13 @@ Vector Scene::traceRay(const Ray ray, int level) {
                     break;
                 }
                 case HALTON: {
-                    //Allocate the arrays with coordinates for sampling
-                    double *xCoords = new double[photonGatherSamples];
-                    double *yCoords = new double[photonGatherSamples];
-
-                    for (int i = 0; i < photonGatherSamples; i++) {
-                        xCoords[i] = halton(i, 2);
-                        yCoords[i] = halton(i, 3);
-                    }
-            
                     for (int sampleIndex = 0; sampleIndex < photonGatherSamples; sampleIndex++) {
                         resultColor += sampleMapAt(inter.coords, inter.normal,
-                                                   xCoords[sampleIndex], yCoords[sampleIndex]);
+                                                   haltonXCoords_[sampleIndex],
+                                                   haltonYCoords_[sampleIndex]);
                     }
 
                     resultColor /= (double)photonGatherSamples;
-
-                    delete(xCoords);
-                    delete(yCoords);
                     break;
                 }
             }
@@ -546,6 +535,17 @@ void Scene::render(char* filename, BitmapPixel (*postProcess)(BitmapPixel)) {
         populatePhotonMap();
     }
 
+    //Populate the Halton sequence cache if we are using Halton sampling
+    if (samplingMode == HALTON) {
+        haltonXCoords_ = new double[photonGatherSamples];
+        haltonYCoords_ = new double[photonGatherSamples];
+
+        for (int i = 0; i < photonGatherSamples; i++) {
+            haltonXCoords_[i] = halton(i, 2);
+            haltonYCoords_[i] = halton(i, 3);
+        }
+    }
+
     printf("Rendering...\n");
 
     pixelsRendered_ = 0;
@@ -625,6 +625,12 @@ void Scene::render(char* filename, BitmapPixel (*postProcess)(BitmapPixel)) {
             }
         } 
     } 
+
+    //Dispose of the Halton cache
+    if (samplingMode == HALTON) {
+        delete (haltonXCoords_);
+        delete (haltonYCoords_);
+    }
 
     printf("Rendering complete, postprocessing...\n");
     if (postProcess) rendered_->foreach(postProcess);

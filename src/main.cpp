@@ -54,7 +54,7 @@ int main()
     scene.photonCount = 50000;
     scene.photonBounces = 3;
     scene.photonGatherAmount = 500;
-    scene.photonGatherSamples = 100;
+    scene.photonGatherSamples = 1000;
     scene.irradiancePhotonFrequency = 1;
     scene.photonGatherDotThreshold = 0.9;
     scene.samplingMode = HALTON;
@@ -107,8 +107,6 @@ int main()
     scene.addLight(topLight);
 
     scene.render("test.bmp", NULL);
-
-    scene.loadMap("map.dat");
 
     return 0;
 }

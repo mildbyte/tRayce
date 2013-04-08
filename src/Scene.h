@@ -69,6 +69,8 @@ private:
     Vector sampleMapAt(Vector coords, Vector normal, double x, double y);
 
     int pixelsRendered_;
+
+    double *haltonXCoords_, *haltonYCoords_;
 public:
     //Necessary to specify width and height to allocate memory
     Scene(int width, int height);
