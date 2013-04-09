@@ -40,6 +40,8 @@ private:
     int* kdTree_;
 
     int irradiancePhotonFrequency_;
+    
+    PhotonMap() {};
 
     int countPhotonsAt(Vector point, double distsq);
     double getDistance(Vector point, int noPhotons);
@@ -66,7 +68,8 @@ private:
 
 public:
     PhotonMap(int size);
-    PhotonMap(char* path);
+    static PhotonMap* makeFromFile(char* path);
+
     ~PhotonMap();
     
     unsigned long long kdTreeVisited_;

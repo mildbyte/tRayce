@@ -518,8 +518,15 @@ void Scene::populatePhotonMap() {
     photonMap_->precalculateIrradiance(irradiancePhotonFrequency, photonGatherAmount);
 }
 
-void Scene::loadMap(char* path) {
-    photonMap_ = new PhotonMap(path);
+bool Scene::loadMap(char* path) {
+    //Does the map file exist?
+    ifstream mapFile(path);
+    if (!mapFile) return false; 
+    mapFile.close();
+
+    photonMap_ = PhotonMap::makeFromFile(path);
+    if (photonMap_ == NULL) return false;
+    return true;
 }
 
 void Scene::saveMap(char* path) {

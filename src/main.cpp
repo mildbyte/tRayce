@@ -51,10 +51,10 @@ int main()
     scene.photonMapping = true;
     scene.doFinalGather = true;
 //    scene.visualizePhotons = true;
-    scene.photonCount = 50000;
+    scene.photonCount = 5000;
     scene.photonBounces = 3;
-    scene.photonGatherAmount = 500;
-    scene.photonGatherSamples = 1000;
+    scene.photonGatherAmount = 50;
+    scene.photonGatherSamples = 10;
     scene.irradiancePhotonFrequency = 1;
     scene.photonGatherDotThreshold = 0.9;
     scene.samplingMode = HALTON;
@@ -105,8 +105,14 @@ int main()
     topLight->size2 = 3;
     topLight->brightness = 1000;
     scene.addLight(topLight);
+    
+    //Check if the precalculated map exists and is valid
+    bool mapExists = scene.loadMap("map.dat");
 
     scene.render("test.bmp", NULL);
+
+    //Save the calculated map for future use
+    if (!mapExists) scene.saveMap("map.dat");
 
     return 0;
 }

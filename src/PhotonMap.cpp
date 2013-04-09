@@ -30,24 +30,46 @@ PhotonMap::PhotonMap(int size) {
 }
 
 //Load the map from file
-PhotonMap::PhotonMap(char* path) {
+PhotonMap* PhotonMap::makeFromFile(char* path) {
     ifstream file(path, ios::in | ios::binary);
 
-    file.read((char*)&currPtr_, sizeof(int));
-    file.read((char*)&irradiancePhotonFrequency_, sizeof(int));
-    
-    //Find the size of the kd-tree
-    kdTreeSize_ = 1;
-    while (kdTreeSize_ < currPtr_ + 1) kdTreeSize_ = kdTreeSize_ << 1;
+    int mapLength;
+    int mapPhoFreq;
 
-    //Allocate the space for the data structures
-    photons_ = new Photon[currPtr_];
-    kdTree_ = new int[kdTreeSize_];
+    file.read((char*)&mapLength, sizeof(int));
+    file.read((char*)&mapPhoFreq, sizeof(int));
+
+    //Find the size of the kd-tree
+    int mapkdTreeSize = 1;
+    while (mapkdTreeSize < mapLength + 1) mapkdTreeSize = mapkdTreeSize << 1;
+
+    //Check the file size
+    file.seekg(0, ios_base::end);
+    int requiredSize = (2 + mapkdTreeSize) * sizeof(int) + sizeof(Photon) * mapLength;
+    if (file.tellg() != requiredSize) {
+        printf("Error: invalid photon map size! The photon map will be regenerated\n");
+        return NULL;
+    }
+
+    //Allocate the space for the new photon map and populate it
+    PhotonMap* map = new PhotonMap();
+    map->currPtr_ = mapLength;
+    map->irradiancePhotonFrequency_ = mapPhoFreq;
+    map->kdTreeSize_ = mapkdTreeSize;
+
+    //Get back to the original position
+    file.seekg(2 * sizeof(int), ios_base::beg);
     
-    file.read((char*)photons_, sizeof(Photon)*currPtr_); 
-    file.read((char*)kdTree_, sizeof(int)*kdTreeSize_);
+    //Allocate the space for the data structures
+    map->photons_ = new Photon[mapLength];
+    map->kdTree_ = new int[mapkdTreeSize];
+    
+    file.read((char*)(map->photons_), sizeof(Photon)*mapLength); 
+    file.read((char*)(map->kdTree_), sizeof(int)*mapkdTreeSize);
 
     file.close();
+
+    return map;
 }
 
 //Dumps the photon map into a file for further loading
