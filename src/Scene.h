@@ -49,14 +49,19 @@ private:
     //Shading coefficient (how much a point is obscured) calculation
     double calculateShadingCoefficient(Light* light, Vector point, Vector toLight, double lightDist);
 
+    //Slightly shift the origin of the ray so that it doesn't collide with the previous object
+    Ray epsilonShift(Ray ray);
+
     //Phong (diffuse+specular) shading
     Vector calculatePhongColor(Intersection inter, Ray ray);
 
     //Transparency contribution
     Vector calculateRefraction(Intersection inter, Ray ray, int depth);
+    bool refractRay(Intersection inter, Ray& ray);
 
     //Reflection contribution
     Vector calculateReflection(Intersection inter, Ray ray, int depth);
+    Ray reflectRay(Intersection inter, Ray ray);
 
     //Convert one pixel to world coordinates and trace it
     Vector tracePixel(double x, double y);

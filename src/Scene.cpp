@@ -88,8 +88,9 @@ double Scene::calculateShadingCoefficient(Light* light, Vector point, Vector toL
             //Cast a ray from the point to the light source
             Ray pointToLight;
             pointToLight.direction = toLight;
-            pointToLight.origin = point + toLight * 0.0001;
+            pointToLight.origin = point;
 
+             pointToLight = epsilonShift(pointToLight);
 
             //If the ray intersects something closer than the light, the point
             //is fully shaded, otherwise, it's fully illuminated.
@@ -105,8 +106,9 @@ double Scene::calculateShadingCoefficient(Light* light, Vector point, Vector toL
                 //Cast a ray from the point to the light source
                 Ray pointToLight;
                 pointToLight.direction = toLight;
-                pointToLight.origin = point + toLight * 0.0001;
+                pointToLight.origin = point;
 
+                pointToLight = epsilonShift(pointToLight);
 
                 //If the ray intersects something closer than the light, the point
                 //is fully shaded, otherwise, it's fully illuminated.
@@ -142,7 +144,9 @@ double Scene::calculateShadingCoefficient(Light* light, Vector point, Vector toL
                     Ray pointToLight;
 
                     pointToLight.direction = gridPos;
-                    pointToLight.origin = point + gridPos * 0.0001;
+                    pointToLight.origin = point;
+
+                    pointToLight = epsilonShift(pointToLight);
 
                     if (!renderables_.intersectsCloser(pointToLight, distance)){
                         //If the ray reaches the light safely, increase the
@@ -216,9 +220,14 @@ Vector Scene::calculatePhongColor(Intersection inter, Ray ray) {
     return totalColor;
 }
 
-Vector Scene::calculateRefraction(Intersection inter, Ray ray, int level) {
-    //Refracts the ray and sends it further
+Ray Scene::epsilonShift(Ray ray) {
+    Ray result = ray;
+    result.origin += result.direction * 0.0001;
 
+    return result;
+}
+
+bool Scene::refractRay(Intersection inter, Ray& ray) {
     //Refraction index
     double n = 1 / inter.object->material.refrIndex;
     double c1 = inter.normal.dot(ray.direction);
@@ -235,7 +244,7 @@ Vector Scene::calculateRefraction(Intersection inter, Ray ray, int level) {
     //Bail out if the cosine of the angle squared is > 1 (total internal
     //reflection) or negative (cannot calculate the square root)
 
-    if ((c2 > 1) || (c2 < 0)) return Vector(0, 0, 0);
+    if ((c2 > 1) || (c2 < 0)) return false;
 
     c2 = sqrtf(c2);
 
@@ -243,15 +252,23 @@ Vector Scene::calculateRefraction(Intersection inter, Ray ray, int level) {
     Vector refrDir = ray.direction * n + inter.normal * (n * c1 - c2);
     refrDir.normalize();
 
-    //Form the refracted ray and trace it
-    ray.origin = inter.coords + refrDir * 0.001;
+    ray.origin = inter.coords;
     ray.direction = refrDir;
-    return traceRay(ray, level - 1) * inter.object->material.transparency;
+    
+    return true;
 }
 
-Vector Scene::calculateReflection(Intersection inter, Ray ray, int level) {
-    //Reflects the ray and traces it further
+Vector Scene::calculateRefraction(Intersection inter, Ray ray, int level) {
+    //Refracts the ray and sends it further
+    //Form the refracted ray and trace it
+    if (refractRay(inter, ray)) {
+        return traceRay(epsilonShift(ray), level - 1) * inter.object->material.transparency;
+    } else {
+        return backgroundColor;
+    }
+}
 
+Ray Scene::reflectRay(Intersection inter, Ray ray) {
     //Reflect the incident ray in the surface of the primitive
     Vector reflDir = ray.direction - inter.normal
                 * 2.0f * ray.direction.dot(inter.normal);
@@ -259,12 +276,18 @@ Vector Scene::calculateReflection(Intersection inter, Ray ray, int level) {
     reflDir.normalize();
 
     //The origin of the ray is the point of the original collision
-    Ray reflRay;
-    reflRay.origin = inter.coords + reflDir * 0.001;
-    reflRay.direction = reflDir;
+    Ray result;
 
+    result.origin = inter.coords;
+    result.direction = reflDir;
+
+    return result;
+}
+
+Vector Scene::calculateReflection(Intersection inter, Ray ray, int level) {
     //Send the reflected ray further (and decrease the tracing level)
-    return traceRay(reflRay, level - 1) * inter.object->material.reflectivity;
+    return traceRay(epsilonShift(reflectRay(inter, ray)), level - 1) 
+           * inter.object->material.reflectivity;
 }
 
 //Generates a random number between 0.0 and 1.0
@@ -320,7 +343,7 @@ Vector Scene::sampleMapAt(Vector coords, Vector normal, double x, double y) {
     samplingRay.direction = sampleLambertianBRDF(normal, x, y);
                     
     //Shift the origin slightly to avoid collisions with itself
-    samplingRay.origin += samplingRay.direction * 0.001;
+    samplingRay = epsilonShift(samplingRay);
 
     Intersection sampleInter = renderables_.getFirstIntersection(samplingRay, 0);
     if (!sampleInter.happened) return backgroundColor;
@@ -499,7 +522,8 @@ void Scene::populatePhotonMap() {
                 photonRay.direction = sampleLambertianBRDF(inter.normal, drand(), drand());
                 
                 //New point to cast the ray from (+ avoid collision with itself)
-                photonRay.origin = inter.coords + photonRay.direction * 0.001;
+                photonRay.origin = inter.coords;
+                photonRay = epsilonShift(photonRay);
 
                 //Send the ray onwards
                 inter = renderables_.getFirstIntersection(photonRay, 0);
