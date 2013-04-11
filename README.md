@@ -102,6 +102,7 @@ TODO
     there is a nice paper called Balancing Considered Harmful that proposes a different way of
     organising the kd-tree to avoid unnecessary visits to the other branch. Another way is
     proposed in the paper called It’s okay to be skinny, if your friends are fat.
+* **Refractions** turned out to be glitchy.
 
 References
 ----------
