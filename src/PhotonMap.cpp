@@ -97,8 +97,8 @@ PhotonMap::~PhotonMap() {
 int photonComparator (const void* p1, const void* p2) {
     Photon *photon1 = (Photon*) p1;
     Photon *photon2 = (Photon*) p2;
-    return(getVectorComponent(photon1->position, currAxis) >
-           getVectorComponent(photon2->position, currAxis));
+    return(getVectorComponent(photon1->position, currAxis) -
+           getVectorComponent(photon2->position, currAxis)) > 0 ? 1 : -1;
 }
 
 //Returns the axis with the largest min-max photon position spread
