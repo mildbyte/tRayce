@@ -54,13 +54,10 @@ private:
     priority_queue<Neighbour> nearestNeighboursWrapper(Vector point, int amount);
     Vector irradianceEstimate(Vector point, Vector normal, int noPhotons);
     
-    void findIrradiancePhoton(Vector point, Vector normal, double threshold, int treePos);
+    void findIrradiancePhoton(Vector point, Vector normal, double threshold, int treePos, double &bestDist, int &bestId);
 
     void dumpTree();
     void dumpList();
-
-    int irradiancePhotonId_;
-    double irradiancePhotonDist_;
 
 public:
     PhotonMap(int size);

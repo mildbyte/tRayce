@@ -310,7 +310,8 @@ void PhotonMap::precalculateIrradiance(int frequency, int noPhotons) {
 //Mostly copied from findNearestNeighbours, but only looks for one photon and certain
 //conditions
 void PhotonMap::findIrradiancePhoton(Vector point, Vector normal,
-                                     double threshold, int treePos) {
+                                     double threshold, int treePos,
+									 double &bestDist, int &bestId) {
      
     if (treePos >= kdTreeSize_) return;
     if (kdTree_[treePos] == -1) return;
@@ -320,9 +321,9 @@ void PhotonMap::findIrradiancePhoton(Vector point, Vector normal,
     if (kdTree_[treePos] % irradiancePhotonFrequency_ == 0) {
         if (normal.dot(photons_[kdTree_[treePos]].normal) >= threshold) {
             double sqdistance = sqDist(point, photons_[kdTree_[treePos]].position);
-            if (sqdistance < irradiancePhotonDist_) {
-                irradiancePhotonDist_ = sqdistance;
-                irradiancePhotonId_ = kdTree_[treePos];
+            if (sqdistance < bestDist) {
+				bestDist = sqdistance;
+                bestId = kdTree_[treePos];
             }
         }
     }
@@ -334,33 +335,33 @@ void PhotonMap::findIrradiancePhoton(Vector point, Vector normal,
         getVectorComponent(point, photons_[kdTree_[treePos]].axis) - subdivideLocation;
     
     if (distToMedian < 0) {
-        findIrradiancePhoton(point, normal, threshold, 2*treePos);
+        findIrradiancePhoton(point, normal, threshold, 2*treePos, bestDist, bestId);
     } else {
-        findIrradiancePhoton(point, normal, threshold, 2*treePos + 1);
+        findIrradiancePhoton(point, normal, threshold, 2*treePos + 1, bestDist, bestId);
     }
     
     double sqDistToMedian = sqr(distToMedian);
     
-    if (sqDistToMedian < irradiancePhotonDist_) {
+    if (sqDistToMedian < bestDist) {
         if (distToMedian < 0) {
-            findIrradiancePhoton(point, normal, threshold, 2*treePos + 1);
+            findIrradiancePhoton(point, normal, threshold, 2*treePos + 1, bestDist, bestId);
         } else {
-            findIrradiancePhoton(point, normal, threshold, 2*treePos);
+            findIrradiancePhoton(point, normal, threshold, 2*treePos, bestDist, bestId);
         }
     }
 }
 
-//Looks up the closest irradiance photon (similar to nearestNeighboursWrapper)
+//Looks up the closest irradiance photon (wrapper for findIrradiancePhoton)
 Vector PhotonMap::acceleratedIrradiance(Vector point, Vector normal, double threshold) {
-    irradiancePhotonDist_ = DINFINITY;
-    irradiancePhotonId_ = -1;
+    double irradiancePhotonDist = DINFINITY;
+    int irradiancePhotonId = -1;
 
-    findIrradiancePhoton(point, normal, threshold, 1);
+    findIrradiancePhoton(point, normal, threshold, 1, irradiancePhotonDist, irradiancePhotonId);
     
     //This shouldn't happen.
-    if (irradiancePhotonId_ == -1) return Vector(0, 0, 0);
+    if (irradiancePhotonId == -1) return Vector(0, 0, 0);
 
-    return photons_[irradiancePhotonId_].irradiance;
+    return photons_[irradiancePhotonId].irradiance;
 }
 
 //Gathers the photons in a given radius to determine the illumination of an entity at a certain point
