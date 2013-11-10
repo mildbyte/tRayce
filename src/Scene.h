@@ -11,6 +11,7 @@
 #include <list>
 #include <cstring>
 #include <cstdlib>
+#include <thread>
 
 enum SamplingMode {
     STRATIFIED,
@@ -76,6 +77,16 @@ private:
     int pixelsRendered_;
 
     double *haltonXCoords_, *haltonYCoords_;
+	
+	//Directions in the image plane
+	Vector xPixel_, yPixel_;
+	
+	std::thread *renderingThreads_;
+	int *threadStartPixels_;
+	int *threadEndPixels_;
+	
+	void threadDoWork(int threadId);
+	
 public:
     //Necessary to specify width and height to allocate memory
     Scene(int width, int height);
@@ -85,7 +96,7 @@ public:
     void addLight(Light* light);
 
     //Render the scene to a file
-    void render(char* filename, BitmapPixel (*postProcess)(BitmapPixel));
+    void render(char* filename, BitmapPixel (*postProcess)(BitmapPixel), int noThreads);
 
     //Load the photon map from a file (generates the map from scratch otherwise)
     bool loadMap(char* path);

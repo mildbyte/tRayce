@@ -440,8 +440,8 @@ Vector Scene::tracePixel(double x, double y) {
     //Uses conic projection, casts the rays from the same point.
     ray.origin = camera.position;
 
-    Vector xWorld = xPixel * (x - 0.5 * (double)width_ + 0.5);
-    Vector yWorld = yPixel * (y - 0.5 * (double)height_ + 0.5);
+    Vector xWorld = xPixel_ * (x - 0.5 * (double)width_ + 0.5);
+    Vector yWorld = yPixel_ * (y - 0.5 * (double)height_ + 0.5);
 
     //First move to the centre of the image plane, then in the image plane
     //to the needed point.
@@ -558,7 +558,74 @@ void Scene::saveMap(char* path) {
     photonMap_->saveToFile(path);
 }
 
-void Scene::render(char* filename, BitmapPixel (*postProcess)(BitmapPixel)) {
+void Scene::threadDoWork(int threadId) {
+	//A rendering task executed in a separate thread. Renders the pixels assigned to it
+	//and stores them in the bitmap.
+	
+    //The resulting color of the pixel
+    Vector resultColor;
+
+    //Renderable that has been hit previously
+    //Renderable* prevHit = NULL;
+    
+    //Each MSAA sample's contribution to the final pixel
+    double contribution = 1.0 / (msaaSamples*msaaSamples);
+	
+    for (int pixel = threadStartPixels_[threadId]; pixel < threadEndPixels_[threadId]; pixel++) {
+		int realx = pixel % width_;
+		int realy = pixel / width_;
+
+		//Trace a preemptive ray through the pixel on the image plane
+		resultColor = tracePixel(realx, realy);
+
+		currRow_[realx] = prevHit_;
+		
+		//Uses global state, MSAA optimizations disabled for now
+		if (doAA) {
+		//Runs if either no optimizations enabled or a new object is hit
+		//either in the pixel on the left or above the current pixel
+		//if (doAA && (!msaaOptimize || (prevHit_ != prevHit)
+		//			 || (prevHit_ != prevRow_[realx]))){
+			//Antialiased image
+			//Divides every pixel into an msaaSamples x msaaSamples grid
+			//Traces a ray through the centre of each square
+			//prevHit = prevHit_;
+
+			resultColor.set(0, 0, 0);
+
+			//Traverse the grid
+			for (int i = 1; i <= msaaSamples; i++) {
+				for (int j = 1; j <= msaaSamples; j++) {
+					//Trace the ray (contributes only a part of the
+					//resultant color)
+					resultColor += tracePixel(
+						realx + 1.0/(msaaSamples + 1.0) * (i + 0.5) - 0.5,
+						realy + 1.0/(msaaSamples + 1.0) * (j + 0.5) - 0.5)
+						* contribution;
+				}
+			}
+			//Mark the antialiased pixels (for debugging purposes)
+			//resultColor.set(1, 1, 1);
+		}
+
+		//Set the result color (either AA'd or w/o AA)
+		//TODO: prevDist_ is global state, remove
+		rendered_->setPixel(realx, realy, resultColor, prevDist_);
+		
+		//Changes global state: bad for threading. MSAA optimizations disabled for now
+		////Copy the collision data in the current row
+		//memcpy(prevRow_, currRow_, sizeof(Renderable*) * width_);
+
+		pixelsRendered_++;
+		if (pixelsRendered_ % 100 == 0) {
+			printf("Rendered %d pixel(s) out of %d (%f\%)\n", pixelsRendered_, 
+				(width_ * height_),
+				pixelsRendered_ / (double)(width_ * height_) * 100);
+		}
+    } 
+}
+
+void Scene::render(char* filename, BitmapPixel (*postProcess)(BitmapPixel), int noThreads) {
     //Renders the scene to a file
 
     //Do we have the photon map yet?
@@ -598,65 +665,30 @@ void Scene::render(char* filename, BitmapPixel (*postProcess)(BitmapPixel)) {
     imagePlaneY.normalize();
 
     //xPixel and yPixel: one pixel in the image plane
-    xPixel = imagePlaneX * (camera.width / (double)width_);
-    yPixel = imagePlaneY * (camera.height / (double)height_);
-
-    //The resulting color of the pixel
-    Vector resultColor;
-
-    //Renderable that has been hit previously
-    Renderable* prevHit = NULL;
-    
-    //Each MSAA sample's contribution to the final pixel
-    double contribution = 1.0 / (msaaSamples*msaaSamples);
-
-    for (int realy = 0; realy < height_; realy++) {
-        for (int realx = 0; realx < width_; realx++) {
-            //Trace a preemptive ray through the pixel on the image plane
-            resultColor = tracePixel(realx, realy);
-
-            currRow_[realx] = prevHit_;
-
-            //Runs if either no optimizations enabled or a new object is hit
-            //either in the pixel on the left or above the current pixel
-            if (doAA && (!msaaOptimize || (prevHit_ != prevHit)
-                         || (prevHit_ != prevRow_[realx]))){
-                //Antialiased image
-                //Divides every pixel into an msaaSamples x msaaSamples grid
-                //Traces a ray through the centre of each square
-                prevHit = prevHit_;
-
-                resultColor.set(0, 0, 0);
-
-                //Traverse the grid
-                for (int i = 1; i <= msaaSamples; i++) {
-                    for (int j = 1; j <= msaaSamples; j++) {
-                        //Trace the ray (contributes only a part of the
-                        //resultant color)
-                        resultColor += tracePixel(
-                            realx + 1.0/(msaaSamples + 1.0) * (i + 0.5) - 0.5,
-                            realy + 1.0/(msaaSamples + 1.0) * (j + 0.5) - 0.5)
-                            * contribution;
-                    }
-                }
-                //Mark the antialiased pixels (for debugging purposes)
-                //resultColor.set(1, 1, 1);
-            }
-
-            //Set the result color (either AA'd or w/o AA)
-            rendered_->setPixel(realx, realy, resultColor, prevDist_);
-
-            //Copy the collision data in the current row
-            memcpy(prevRow_, currRow_, sizeof(Renderable*) * width_);
-
-            pixelsRendered_++;
-            if (pixelsRendered_ % 100 == 0) {
-                printf("Rendered %d pixel(s) out of %d (%f\%)\n", pixelsRendered_, 
-                    (width_ * height_),
-                    pixelsRendered_ / (double)(width_ * height_) * 100);
-            }
-        } 
-    } 
+    xPixel_ = imagePlaneX * (camera.width / (double)width_);
+    yPixel_ = imagePlaneY * (camera.height / (double)height_);
+	
+	//Set up the information for threads
+	renderingThreads_ = new std::thread[noThreads];
+	threadStartPixels_ = new int[noThreads];
+	threadEndPixels_ = new int[noThreads];
+	
+	//Pieces of picture each thread must render
+	int noPixels = height_ * width_;
+	for (int i = 0; i < noThreads - 1; i++) {
+		threadStartPixels_[i] = noPixels / noThreads * i;
+		threadEndPixels_[i] = noPixels / noThreads * (i + 1);
+	}
+	threadStartPixels_[noThreads-1] = threadEndPixels_[noThreads-2];
+	threadEndPixels_[noThreads-1] = noPixels;
+	
+	for (int i = 0; i < noThreads; i++) {
+		renderingThreads_[i] = std::thread(&Scene::threadDoWork, this, i);
+	}
+	
+	for (int i = 0; i < noThreads; i++) {
+		renderingThreads_[i].join();
+	}
 
     //Dispose of the Halton cache
     if (samplingMode == HALTON) {

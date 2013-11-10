@@ -36,7 +36,7 @@ BitmapPixel postProcess(BitmapPixel pix) {
 int main()
 {
     srand((unsigned)time(0));
-    Scene scene(640, 480);
+    Scene scene(320, 240);
 //    scene.camera.height = 15;
     scene.backgroundColor.set(0, 0, 0);
     scene.doAA = false;
@@ -50,11 +50,11 @@ int main()
 
     scene.photonMapping = true;
     scene.doFinalGather = true;
-    scene.visualizePhotons = true;
-    scene.photonCount = 500000;
+    //scene.visualizePhotons = true;
+    scene.photonCount = 100000;
     scene.photonBounces = 3;
     scene.photonGatherAmount = 128;
-    scene.photonGatherSamples = 4;
+    scene.photonGatherSamples = 16;
     scene.irradiancePhotonFrequency = 16;
     scene.photonGatherDotThreshold = 0.9;
     scene.samplingMode = STRATIFIED;
@@ -103,13 +103,13 @@ int main()
     topLight->dir2.set(0, 0, 1);
     topLight->size1 = 3;
     topLight->size2 = 3;
-    topLight->brightness = 1000;
+    topLight->brightness = 10000;
     scene.addLight(topLight);
     
     //Check if the precalculated map exists and is valid
     bool mapExists = scene.loadMap("map.dat");
 
-    scene.render("test.bmp", NULL);
+    scene.render("test.bmp", NULL, 8);
 
     //Save the calculated map for future use
     if (!mapExists) scene.saveMap("map.dat");
