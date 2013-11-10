@@ -49,19 +49,15 @@ private:
     void balanceTree(int left, int right, int depth, int location);
     double getComponent(Vector a, char axis);
     char getGreatestSpreadAxis(int left, int right);
-    
-    void addNearestNeighbour(int newPh, double newPhDist);
-    void findNearestNeighbours(Vector point, int treePos);
-    void nearestNeighboursWrapper(Vector point, int amount);
+
+    void findNearestNeighbours(Vector point, int treePos, int amount, priority_queue<Neighbour> &neighbours);
+    priority_queue<Neighbour> nearestNeighboursWrapper(Vector point, int amount);
     Vector irradianceEstimate(Vector point, Vector normal, int noPhotons);
     
     void findIrradiancePhoton(Vector point, Vector normal, double threshold, int treePos);
 
     void dumpTree();
     void dumpList();
-
-    int neighboursNeeded_;
-    priority_queue<Neighbour> neighbours_;
 
     int irradiancePhotonId_;
     double irradiancePhotonDist_;

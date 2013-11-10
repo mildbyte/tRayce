@@ -208,40 +208,14 @@ void PhotonMap::scalePhotonPower(double factor) {
     }
 }
 
-//Adds a photon to the nearest neighbours list if it is closer than some of them
-//or there aren't enough neighbours
-void PhotonMap::addNearestNeighbour(int newPh, double newPhDist) {
-    if (neighbours_.size() < neighboursNeeded_) {
-        Neighbour newNeighbour;
-        newNeighbour.id = newPh;
-        newNeighbour.distance = newPhDist;
-
-        neighbours_.push(newNeighbour);
-        return;
-    }
-    
-    //What's the furthest we have?
-    double maxDist = neighbours_.top().distance;
-
-    //If we can do better, remove that neighbour and add a new one
-    if (maxDist > newPhDist) {
-        Neighbour newNeighbour;
-        newNeighbour.id = newPh;
-        newNeighbour.distance = newPhDist;
-
-        neighbours_.pop();
-        neighbours_.push(newNeighbour);
-    }
-}
-
 //Avoids the square root computation
 inline double sqDist(Vector a, Vector b) {
     Vector diff = b - a;
     return diff.dot(diff);
 }
 
-//Populates the neighbours_ heap with neighboursNeeded_ photons closest to the point
-void PhotonMap::findNearestNeighbours(Vector point, int treePos) {
+//Populates the neighbours heap with amount photons closest to the point
+void PhotonMap::findNearestNeighbours(Vector point, int treePos, int amount, priority_queue<Neighbour> &neighbours) {
     kdTreeVisited_++;
 
     //Are we at an empty node?
@@ -249,7 +223,28 @@ void PhotonMap::findNearestNeighbours(Vector point, int treePos) {
     if (kdTree_[treePos] == -1) return;
 
     //Try and add ourselves to the heap
-    addNearestNeighbour(kdTree_[treePos], sqDist(point, photons_[kdTree_[treePos]].position));
+	int newPh = kdTree_[treePos];
+	double newPhDist = sqDist(point, photons_[kdTree_[treePos]].position);
+    if (neighbours.size() < amount) {
+        Neighbour newNeighbour;
+        newNeighbour.id = newPh;
+        newNeighbour.distance = newPhDist;
+
+        neighbours.push(newNeighbour);
+    } else {
+		//What's the furthest we have?
+		double maxDist = neighbours.top().distance;
+
+		//If we can do better, remove that neighbour and add a new one
+		if (maxDist > newPhDist) {
+			Neighbour newNeighbour;
+			newNeighbour.id = newPh;
+			newNeighbour.distance = newPhDist;
+
+			neighbours.pop();
+			neighbours.push(newNeighbour);
+		}
+	}
 
     //The coordinate of the median
     double subdivideLocation = getVectorComponent(photons_[kdTree_[treePos]].position,
@@ -261,29 +256,30 @@ void PhotonMap::findNearestNeighbours(Vector point, int treePos) {
     
     //Is the point to the left of the median?
     if (distToMedian < 0) {
-        findNearestNeighbours(point, 2*treePos);
+        findNearestNeighbours(point, 2*treePos, amount, neighbours);
     } else {
-        findNearestNeighbours(point, 2*treePos+1);
+        findNearestNeighbours(point, 2*treePos+1, amount, neighbours);
     }
     
     double sqDistToMedian = sqr(distToMedian);
     
     //Can there be a neighbour in the other branch?
-    if (sqDistToMedian < neighbours_.top().distance) {
+    if (sqDistToMedian < neighbours.top().distance) {
         if (distToMedian < 0) {
-            findNearestNeighbours(point, 2*treePos+1);
+            findNearestNeighbours(point, 2*treePos+1, amount, neighbours);
         } else {
-            findNearestNeighbours(point, 2*treePos);
+            findNearestNeighbours(point, 2*treePos, amount, neighbours);
         }
     }
 }
 
-//Initializes the variables needed by findNearestNeighbours
-void PhotonMap::nearestNeighboursWrapper(Vector point, int amount) {
-    neighboursNeeded_ = amount;
-    neighbours_ = priority_queue<Neighbour>();
+//Performs the correct call to findNearestNeighbours
+priority_queue<Neighbour> PhotonMap::nearestNeighboursWrapper(Vector point, int amount) {
+    priority_queue<Neighbour> result = priority_queue<Neighbour>();
 
-    findNearestNeighbours(point, 1);
+    findNearestNeighbours(point, 1, amount, result);
+	
+	return result;
 }
 
 void PhotonMap::addPhoton(Vector position, Vector direction, Vector energy, Vector normal) {
@@ -371,14 +367,14 @@ Vector PhotonMap::acceleratedIrradiance(Vector point, Vector normal, double thre
 //and a certain normal.
 Vector PhotonMap::irradianceEstimate(Vector point, Vector normal, int noPhotons) {
     Vector result(0, 0, 0);
-    nearestNeighboursWrapper(point, noPhotons);
+    priority_queue<Neighbour> neighbours = nearestNeighboursWrapper(point, noPhotons);
 
-    double sqRadius = neighbours_.top().distance;
+    double sqRadius = neighbours.top().distance;
     
     double factor = 3.0 / (PI * sqRadius);
-    while (!neighbours_.empty()) { 
-        Neighbour neighbour = neighbours_.top();
-        neighbours_.pop();
+    while (!neighbours.empty()) { 
+        Neighbour neighbour = neighbours.top();
+        neighbours.pop();
         double weight = simpsonKernel(neighbour.distance / sqRadius);
 
         result += photons_[neighbour.id].energy * weight;
@@ -391,11 +387,11 @@ Vector PhotonMap::irradianceEstimate(Vector point, Vector normal, int noPhotons)
 //photon. The smaller the weight, the faster the falloff.
 //Radiance photons are highlighted in red
 Vector PhotonMap::visualizePhoton(Vector point, double weight) {
-    nearestNeighboursWrapper(point, 1);
-    double distance = neighbours_.top().distance;
+    priority_queue<Neighbour> neighbours = nearestNeighboursWrapper(point, 1);
+    double distance = neighbours.top().distance;
     double factor = weight / (weight + distance);
 
-    if (neighbours_.top().id % irradiancePhotonFrequency_ == 0) {
+    if (neighbours.top().id % irradiancePhotonFrequency_ == 0) {
         return Vector(factor, 0, factor);
     } else {
         return Vector(factor, factor, factor);

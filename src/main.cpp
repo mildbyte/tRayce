@@ -36,7 +36,7 @@ BitmapPixel postProcess(BitmapPixel pix) {
 int main()
 {
     srand((unsigned)time(0));
-    Scene scene(320, 240);
+    Scene scene(640, 480);
 //    scene.camera.height = 15;
     scene.backgroundColor.set(0, 0, 0);
     scene.doAA = false;
@@ -50,14 +50,14 @@ int main()
 
     scene.photonMapping = true;
     scene.doFinalGather = true;
-//    scene.visualizePhotons = true;
-    scene.photonCount = 5000;
+    scene.visualizePhotons = true;
+    scene.photonCount = 500000;
     scene.photonBounces = 3;
-    scene.photonGatherAmount = 50;
-    scene.photonGatherSamples = 10;
-    scene.irradiancePhotonFrequency = 1;
+    scene.photonGatherAmount = 128;
+    scene.photonGatherSamples = 4;
+    scene.irradiancePhotonFrequency = 16;
     scene.photonGatherDotThreshold = 0.9;
-    scene.samplingMode = HALTON;
+    scene.samplingMode = STRATIFIED;
 
     Sphere *redSphere = new Sphere(5, Vector(-1, 5, 13));
     Sphere *greenSphere = new Sphere(3, Vector(-7, 7, 8));
