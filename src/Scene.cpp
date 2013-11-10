@@ -509,14 +509,15 @@ void Scene::populatePhotonMap() {
                 //Record the photon               
                 photonEnergy = combineColors(photonEnergy, 
                                              inter.object->material.color);
+											 
+                inter.normal.normalize(); //not normalized by the intersection
+                                          //to save CPU cycles
                 
                 photonEnergy *= (1.0 / avgDiffuse);
 
                 photonMap_->addPhoton(inter.coords, photonRay.direction, 
                                       photonEnergy, inter.normal);
 
-                inter.normal.normalize(); //not normalized by the intersection
-                                          //to save CPU cycles
 
                 //Diffuse the ray
                 photonRay.direction = sampleLambertianBRDF(inter.normal, drand(), drand());
