@@ -46,7 +46,9 @@ PhotonMap* PhotonMap::makeFromFile(char* path) {
     //Check the file size
     file.seekg(0, ios_base::end);
     int requiredSize = (2 + mapkdTreeSize) * sizeof(int) + sizeof(Photon) * mapLength;
-    if (file.tellg() != requiredSize) {
+
+	int length = file.tellg();
+    if (length != requiredSize) {
         printf("Error: invalid photon map size! The photon map will be regenerated\n");
         return NULL;
     }
@@ -372,12 +374,15 @@ Vector PhotonMap::irradianceEstimate(Vector point, Vector normal, int noPhotons)
 
     double sqRadius = neighbours.top().distance;
     
-    double factor = 3.0 / (PI * sqRadius);
+    double factor = 1.0 / (sqRadius);
     while (!neighbours.empty()) { 
         Neighbour neighbour = neighbours.top();
         neighbours.pop();
-        double weight = simpsonKernel(neighbour.distance / sqRadius);
-
+		
+		double dot = normal.dot(-photons_[neighbour.id].direction);
+		if (dot < 0.0) continue;
+        double weight = simpsonKernel(neighbour.distance / sqRadius) * dot;
+		
         result += photons_[neighbour.id].energy * weight;
 
     }
@@ -391,7 +396,7 @@ Vector PhotonMap::visualizePhoton(Vector point, double weight) {
     priority_queue<Neighbour> neighbours = nearestNeighboursWrapper(point, 1);
     double distance = neighbours.top().distance;
     double factor = weight / (weight + distance);
-
+	
     if (neighbours.top().id % irradiancePhotonFrequency_ == 0) {
         return Vector(factor, 0, factor);
     } else {

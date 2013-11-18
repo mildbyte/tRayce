@@ -52,7 +52,6 @@ private:
 
     void findNearestNeighbours(Vector point, int treePos, int amount, priority_queue<Neighbour> &neighbours);
     priority_queue<Neighbour> nearestNeighboursWrapper(Vector point, int amount);
-    Vector irradianceEstimate(Vector point, Vector normal, int noPhotons);
     
     void findIrradiancePhoton(Vector point, Vector normal, double threshold, int treePos, double &bestDist, int &bestId);
 
@@ -70,6 +69,7 @@ public:
     void addPhoton(Vector position, Vector direction, Vector energy, Vector normal);
     void makeTree();
     Vector acceleratedIrradiance(Vector point, Vector normal, double threshold);
+    Vector irradianceEstimate(Vector point, Vector normal, int noPhotons);
 
     void scalePhotonPower(double factor);
 

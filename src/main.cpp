@@ -33,35 +33,42 @@ BitmapPixel postProcess(BitmapPixel pix) {
     return pix;
 }
 
+BitmapPixel amplify(BitmapPixel pix) {
+	BitmapPixel result;
+	result.color.set(pix.color.getX() * 100, pix.color.getY() * 100, pix.color.getZ() * 100);
+	return result;
+}
+
 int main()
 {
     srand((unsigned)time(0));
-    Scene scene(320, 240);
-//    scene.camera.height = 15;
+    Scene scene(800, 600);
+    //scene.camera.width = 32;
+    scene.camera.position.setX(1.5);
     scene.backgroundColor.set(0, 0, 0);
-    scene.doAA = false;
-    scene.msaaSamples = 8;
+    //scene.doAA = true;
+    scene.msaaSamples = 2;
     scene.msaaOptimize = false;
     scene.softShadowSamples = 1;
     scene.traceDepth = 1;
-    scene.camera.position.setY(0);
-    scene.camera.position.setZ(-20);
-    scene.camera.planeDistance = 20;
+    scene.camera.position.setZ(-30);
+    scene.camera.planeDistance = 30;
 
     scene.photonMapping = true;
-    scene.doFinalGather = true;
+    //scene.doFinalGather = true;
     //scene.visualizePhotons = true;
-    scene.photonCount = 100000;
-    scene.photonBounces = 3;
-    scene.photonGatherAmount = 128;
-    scene.photonGatherSamples = 16;
-    scene.irradiancePhotonFrequency = 16;
+    scene.photonCount = 50000;
+    scene.photonBounces = 5;
+    scene.photonGatherAmount = 100;
+    scene.photonGatherSamples = 4;
+    scene.irradiancePhotonFrequency = 4;
     scene.photonGatherDotThreshold = 0.9;
     scene.samplingMode = STRATIFIED;
 
     Sphere *redSphere = new Sphere(5, Vector(-1, 5, 13));
     Sphere *greenSphere = new Sphere(3, Vector(-7, 7, 8));
     Sphere *blueSphere = new Sphere(3, Vector(10, 7, 15));
+	Sphere *lampSphere = new Sphere(100, Vector(1.5, -109.9, 8));
 
 //    Box *redSphere = new Box(Vector(-6, -2, 9), Vector(6, 6, 6));
 //    Box *greenSphere = new Box(Vector(1, -2, 8), Vector(6, 6, 6));
@@ -69,7 +76,7 @@ int main()
 //    Box *yellowSphere = new Box(Vector(0.5, 4, 7), Vector(6, 6, 6));
 
     Plane *bottomPlane = new Plane(Vector(0, 10, 0), Vector(0, -1, 0));
-    Plane *upPlane = new Plane(Vector(0, 0, 16), Vector(0, 0, -1));
+    Plane *upPlane = new Plane(Vector(0, 0, 18), Vector(0, 0, -1));
     Plane *leftPlane = new Plane(Vector(-11, 0, 0), Vector(1, 0, 0));
     Plane *rightPlane = new Plane(Vector(14, 0, 0), Vector(-1, 0, 0));
     Plane *topPlane = new Plane(Vector(0, -10, 0), Vector(0, 1, 0));
@@ -78,6 +85,7 @@ int main()
     redSphere->material.color = Vector(.95, .05, .05);
     greenSphere->material.color = Vector(.05, .05, .95);
     blueSphere->material.color = Vector(.05, .95, .05);
+	lampSphere->material.color = Vector(10, 10, 10);
 
     bottomPlane->material.color = Vector(.75, .75, .75);
     upPlane->material.color = Vector(.75, .75, .75);
@@ -89,21 +97,22 @@ int main()
     scene.addRenderable(redSphere);
     scene.addRenderable(greenSphere);
     scene.addRenderable(blueSphere);
+	scene.addRenderable(lampSphere);
     scene.addRenderable(bottomPlane);
     scene.addRenderable(upPlane);
     scene.addRenderable(leftPlane);
     scene.addRenderable(rightPlane);
     scene.addRenderable(topPlane);
     scene.addRenderable(backPlane);
-    scene.ambientCoefficient = 0.05;
+    scene.ambientCoefficient = 0;
 
     AreaLight* topLight = new AreaLight();
-    topLight->position.set(0, -8, 8);
+    topLight->position.set(1.5, -8, 8);
     topLight->dir1.set(1, 0, 0);
     topLight->dir2.set(0, 0, 1);
     topLight->size1 = 3;
     topLight->size2 = 3;
-    topLight->brightness = 10000;
+    topLight->brightness = 20000;
     scene.addLight(topLight);
     
     //Check if the precalculated map exists and is valid

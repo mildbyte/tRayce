@@ -341,7 +341,9 @@ Vector Scene::sampleMapAt(Vector coords, Vector normal, double x, double y) {
 
     samplingRay.origin = coords;
     samplingRay.direction = sampleLambertianBRDF(normal, x, y);
-                    
+    
+    double dot = normal.dot(samplingRay.direction);
+    
     //Shift the origin slightly to avoid collisions with itself
     samplingRay = epsilonShift(samplingRay);
 
@@ -352,7 +354,7 @@ Vector Scene::sampleMapAt(Vector coords, Vector normal, double x, double y) {
     //Read the precomputed radiance value
     return photonMap_->acceleratedIrradiance(sampleInter.coords, 
                                              sampleInter.normal, 
-                                             photonGatherDotThreshold);
+                                             photonGatherDotThreshold) * dot;
 }
 
 Vector Scene::traceRay(const Ray ray, int level) {
@@ -391,7 +393,7 @@ Vector Scene::traceRay(const Ray ray, int level) {
                             //Jittered position in the grid
                             double xbase = squareSide * x;
                     
-                            double xPos = xbase + drand() * squareSide;
+                            double xPos = xbase + sqrt(drand()) * squareSide;
                             double yPos = ybase + drand() * squareSide;
 
                             resultColor += sampleMapAt(inter.coords, inter.normal, xPos, yPos);
@@ -494,7 +496,6 @@ void Scene::populatePhotonMap() {
             Intersection inter = renderables_.getFirstIntersection(photonRay, 0);
 
             while (inter.happened && currBounces < photonBounces) {
-                allHits++;
                 currBounces++;
                 
                 double randVar = drand();
@@ -505,22 +506,23 @@ void Scene::populatePhotonMap() {
                                     objMat.color.getZ()) / 3.0;
 
                 if (randVar > avgDiffuse) break; //The photon has been absorbed
-
-                //Record the photon               
-                photonEnergy = combineColors(photonEnergy, 
-                                             inter.object->material.color);
-											 
+                allHits++;
+                
+                //Record the photon							 
                 inter.normal.normalize(); //not normalized by the intersection
                                           //to save CPU cycles
                 
                 photonEnergy *= (1.0 / avgDiffuse);
 
+                photonEnergy = combineColors(photonEnergy, 
+                                             inter.object->material.color);
+				
                 photonMap_->addPhoton(inter.coords, photonRay.direction, 
                                       photonEnergy, inter.normal);
 
 
                 //Diffuse the ray
-                photonRay.direction = sampleLambertianBRDF(inter.normal, drand(), drand());
+                photonRay.direction = sampleLambertianBRDF(inter.normal, sqrt(drand()), drand());
                 
                 //New point to cast the ray from (+ avoid collision with itself)
                 photonRay.origin = inter.coords;
@@ -535,7 +537,7 @@ void Scene::populatePhotonMap() {
     printf("Total hits: %d\n", allHits);
     
     //The energy of the light is spread evenly amongst all photons
-    photonMap_->scalePhotonPower(1.0/photonCount);
+    photonMap_->scalePhotonPower(1.0/allHits);
 
     photonMap_->makeTree();
 
@@ -617,7 +619,7 @@ void Scene::threadDoWork(int threadId) {
 		//memcpy(prevRow_, currRow_, sizeof(Renderable*) * width_);
 
 		pixelsRendered_++;
-		if (pixelsRendered_ % 100 == 0) {
+		if (pixelsRendered_ % 1000 == 0) {
 			printf("Rendered %d pixel(s) out of %d (%f\%)\n", pixelsRendered_, 
 				(width_ * height_),
 				pixelsRendered_ / (double)(width_ * height_) * 100);
@@ -675,21 +677,28 @@ void Scene::render(char* filename, BitmapPixel (*postProcess)(BitmapPixel), int 
 	
 	//Pieces of picture each thread must render
 	int noPixels = height_ * width_;
-	for (int i = 0; i < noThreads - 1; i++) {
-		threadStartPixels_[i] = noPixels / noThreads * i;
-		threadEndPixels_[i] = noPixels / noThreads * (i + 1);
+	if (noThreads == 1) {
+		threadStartPixels_[0] = 0;
+		threadEndPixels_[0] = noPixels;
+	} else {
+		for (int i = 0; i < noThreads - 1; i++) {
+			threadStartPixels_[i] = noPixels / noThreads * i;
+			threadEndPixels_[i] = noPixels / noThreads * (i + 1);
+		}
+		threadStartPixels_[noThreads-1] = threadEndPixels_[noThreads-2];
+		threadEndPixels_[noThreads-1] = noPixels;
 	}
-	threadStartPixels_[noThreads-1] = threadEndPixels_[noThreads-2];
-	threadEndPixels_[noThreads-1] = noPixels;
 	
-	for (int i = 0; i < noThreads; i++) {
+	for (int i = 1; i < noThreads; i++) {
 		renderingThreads_[i] = std::thread(&Scene::threadDoWork, this, i);
 	}
 	
-	for (int i = 0; i < noThreads; i++) {
+	threadDoWork(0);
+	
+	for (int i = 1; i < noThreads; i++) {
 		renderingThreads_[i].join();
 	}
-
+    
     //Dispose of the Halton cache
     if (samplingMode == HALTON) {
         delete (haltonXCoords_);
