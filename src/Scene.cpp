@@ -65,7 +65,6 @@ Scene::Scene(int width, int height) {
     memset(currRow_, NULL, width * sizeof (Renderable*));
 
     //Some default settings
-    photonMapping = false;
     doFinalGather = false;
     visualizePhotons = false;
     photonCount = 1000;
@@ -76,8 +75,12 @@ Scene::Scene(int width, int height) {
 
     photonGatherDotThreshold = 0.9;
     irradiancePhotonFrequency = 4;
+    
+    pathTracingMaxDepth = 5;
+    pathTracingSamplesPerPixel = 100;
 
     samplingMode = STRATIFIED;
+    renderingMode = RAYTRACING;
 }
 
 double Scene::calculateShadingCoefficient(Light* light, Vector point, Vector toLight, double lightDist) {
@@ -295,7 +298,7 @@ double drand() {
     return dist(twister);
 }
 /*
-Vector sampleLambertianBRDF(Vector normal, double a, double b) {
+Vector sampleHemisphere(Vector normal, double a, double b) {
     Vector result;
     do {
         result = Vector(2*drand()-1, 2*drand()-1, 2*drand()-1);
@@ -305,7 +308,19 @@ Vector sampleLambertianBRDF(Vector normal, double a, double b) {
     } while (true);
 }*/
 
-Vector sampleLambertianBRDF(Vector normal, double Xi1, double Xi2) {
+Vector sampleHemisphere2(Vector normal) {
+    while (true) {
+        Vector direction(2*drand()-1, 2*drand()-1, 2*drand()-1);
+        
+        double dot = normal.dot(direction);
+        if (dot >= 0.0 && dot <= 1.0) {
+            direction.normalize();
+            return direction;
+        }
+    }
+}
+
+Vector sampleHemisphere(Vector normal, double Xi1, double Xi2) {
     //Cosine-weighted hemisphere sampling.
     //Adapted from http://pathtracing.wordpress.com/2011/03/03/cosine-weighted-hemisphere/
     double theta = acos(sqrt(1.0-Xi1));
@@ -340,7 +355,7 @@ Vector Scene::sampleMapAt(Vector coords, Vector normal, double x, double y) {
     Ray samplingRay;
 
     samplingRay.origin = coords;
-    samplingRay.direction = sampleLambertianBRDF(normal, x, y);
+    samplingRay.direction = sampleHemisphere(normal, x, y);
     
     double dot = normal.dot(samplingRay.direction);
     
@@ -357,10 +372,41 @@ Vector Scene::sampleMapAt(Vector coords, Vector normal, double x, double y) {
                                              photonGatherDotThreshold) * dot;
 }
 
+Vector Scene::pathTrace(const Ray ray, int depth) {
+    //If the maximum tracing depth has been reached, return
+    if (depth <= 0) return backgroundColor;
+    
+    Intersection inter;
+    
+    //If we are casting a ray from the eye into the scene, cull collisions behind the image plane
+    if (depth == pathTracingMaxDepth) {
+        inter = renderables_.getFirstIntersection(ray, camera.planeDistance);
+    } else {
+        inter = renderables_.getFirstIntersection(ray, 0);
+    }
+
+    if (!inter.happened) {
+        return backgroundColor;
+    }
+
+    inter.normal.normalize();
+    
+    Ray nextRay;
+    nextRay.origin = inter.coords;
+    nextRay.direction = sampleHemisphere2(inter.normal);
+    
+    nextRay = epsilonShift(nextRay);
+    
+    Vector brdf = inter.object->material.color * (2.0 * nextRay.direction.dot(inter.normal));
+    Vector reflected = pathTrace(nextRay, depth - 1);
+    
+    return inter.object->material.emittance + combineColors(brdf, reflected);
+}
+
 Vector Scene::traceRay(const Ray ray, int level) {
     //Traces a single ray through the scene; returns its color.
     //This is where the magic happens.
-
+    
     //If the maximum tracing depth has been reached, return
     if (level <= 0) return backgroundColor;
 
@@ -372,61 +418,64 @@ Vector Scene::traceRay(const Ray ray, int level) {
         return backgroundColor;
     }
 
-    //Calculate the resultant color of the pixel
     inter.normal.normalize();
+    
     Vector resultColor(0, 0, 0);
+    
+    switch (renderingMode) {
+        case RAYTRACING:
+             //Phong (diffuse+specular) pass
+            resultColor += calculatePhongColor(inter, ray);
 
-    if (photonMapping) {
-        //Gathering the photons replaces classic raytracing
-        if (visualizePhotons) {
-            resultColor = photonMap_->visualizePhoton(inter.coords, 0.01);
-        } else if (!doFinalGather) {
-        resultColor = photonMap_->acceleratedIrradiance(inter.coords,
-                        inter.normal, photonGatherDotThreshold);
-        } else {
-            switch (samplingMode) {
-                case STRATIFIED: {
-                    double squareSide = 1.0 / photonGatherSamples;
-                    for (int y = 0; y < photonGatherSamples; y++) {
-                        double ybase = squareSide * y;
-                        for (int x = 0; x < photonGatherSamples; x++) {
-                            //Jittered position in the grid
-                            double xbase = squareSide * x;
-                    
-                            double xPos = xbase + sqrt(drand()) * squareSide;
-                            double yPos = ybase + drand() * squareSide;
+            //Add the transmitted ray
+            if (inter.object->material.isTransparent)
+                resultColor += calculateRefraction(inter, ray, level);
 
-                            resultColor += sampleMapAt(inter.coords, inter.normal, xPos, yPos);
+            //Add the reflected ray
+            if (inter.object->material.isReflective)
+                resultColor += calculateReflection(inter, ray, level);
+        break;
+        case PHOTONMAPPING:
+            //Gathering the photons replaces classic raytracing
+            if (visualizePhotons) {
+                resultColor = photonMap_->visualizePhoton(inter.coords, 0.01);
+            } else if (!doFinalGather) {
+            resultColor = photonMap_->acceleratedIrradiance(inter.coords,
+                            inter.normal, photonGatherDotThreshold);
+            } else {
+                switch (samplingMode) {
+                    case STRATIFIED: {
+                        double squareSide = 1.0 / photonGatherSamples;
+                        for (int y = 0; y < photonGatherSamples; y++) {
+                            double ybase = squareSide * y;
+                            for (int x = 0; x < photonGatherSamples; x++) {
+                                //Jittered position in the grid
+                                double xbase = squareSide * x;
+                        
+                                double xPos = xbase + sqrt(drand()) * squareSide;
+                                double yPos = ybase + drand() * squareSide;
+
+                                resultColor += sampleMapAt(inter.coords, inter.normal, xPos, yPos);
+                            }
                         }
+                        resultColor /= (double)(photonGatherSamples * photonGatherSamples);
+                        break;
                     }
-                    resultColor /= (double)(photonGatherSamples * photonGatherSamples);
-                    break;
-                }
-                case HALTON: {
-                    for (int sampleIndex = 0; sampleIndex < photonGatherSamples; sampleIndex++) {
-                        resultColor += sampleMapAt(inter.coords, inter.normal,
-                                                   haltonXCoords_[sampleIndex],
-                                                   haltonYCoords_[sampleIndex]);
-                    }
+                    case HALTON: {
+                        for (int sampleIndex = 0; sampleIndex < photonGatherSamples; sampleIndex++) {
+                            resultColor += sampleMapAt(inter.coords, inter.normal,
+                                                       haltonXCoords_[sampleIndex],
+                                                       haltonYCoords_[sampleIndex]);
+                        }
 
-                    resultColor /= (double)photonGatherSamples;
-                    break;
+                        resultColor /= (double)photonGatherSamples;
+                        break;
+                    }
                 }
+                //Combine with the color of the object
+                resultColor = combineColors(inter.object->material.color, resultColor);
             }
-            //Combine with the color of the object
-            resultColor = combineColors(inter.object->material.color, resultColor);
-        }    
-    } else {
-        //Phong (diffuse+specular) pass
-        resultColor += calculatePhongColor(inter, ray);
-
-        //Add the transmitted ray
-        if (inter.object->material.isTransparent)
-            resultColor += calculateRefraction(inter, ray, level);
-
-        //Add the reflected ray
-        if (inter.object->material.isReflective)
-            resultColor += calculateReflection(inter, ray, level);
+        break;       
     }
 
     //Store the distance (used for postprocessing)
@@ -450,8 +499,17 @@ Vector Scene::tracePixel(double x, double y) {
     ray.direction = (camera.direction * camera.planeDistance)
                   + xWorld + yWorld;
     ray.direction.normalize();
-
-    return traceRay(ray, traceDepth);
+    
+    if (renderingMode == PATHTRACING) {
+        Vector resultColor(0, 0, 0);
+        for (int i = 0; i < pathTracingSamplesPerPixel; i++) {
+            resultColor += pathTrace(ray, pathTracingMaxDepth);
+        }
+        resultColor /= (double)pathTracingSamplesPerPixel;
+        return resultColor;
+    } else {
+        return traceRay(ray, traceDepth);
+    }
 }
 
 void Scene::populatePhotonMap() {
@@ -522,7 +580,7 @@ void Scene::populatePhotonMap() {
 
 
                 //Diffuse the ray
-                photonRay.direction = sampleLambertianBRDF(inter.normal, sqrt(drand()), drand());
+                photonRay.direction = sampleHemisphere(inter.normal, sqrt(drand()), drand());
                 
                 //New point to cast the ray from (+ avoid collision with itself)
                 photonRay.origin = inter.coords;
@@ -631,7 +689,7 @@ void Scene::render(char* filename, BitmapPixel (*postProcess)(BitmapPixel), int 
     //Renders the scene to a file
 
     //Do we have the photon map yet?
-    if (photonMapping && photonMap_ == NULL) {
+    if (renderingMode == PHOTONMAPPING && photonMap_ == NULL) {
         printf("Populating the photon map...\n");
         populatePhotonMap();
     }

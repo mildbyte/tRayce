@@ -18,6 +18,12 @@ enum SamplingMode {
     HALTON
 };
 
+enum RenderingMode {
+    RAYTRACING,
+    PHOTONMAPPING,
+    PATHTRACING
+};
+
 class Scene {
 private:
     //Scene objects
@@ -66,6 +72,9 @@ private:
 
     //Convert one pixel to world coordinates and trace it
     Vector tracePixel(double x, double y);
+    
+    //Path tracing
+    Vector pathTrace(const Ray ray, int depth);
 
     //Throw photons at the wall and see what sticks
     void populatePhotonMap();
@@ -127,7 +136,6 @@ public:
 
     Vector backgroundColor;
 
-    bool photonMapping;//Do photon mapping?
     bool doFinalGather;//Shoot rays to nearby objects or use local irradiance data?
     int photonCount;   //How many primary photons to launch?
     int photonBounces; //Maximum number of photon bounces
@@ -136,8 +144,12 @@ public:
     int irradiancePhotonFrequency; //every nth photon becomes an irradiance photon
     double photonGatherDotThreshold; //How close should the two normals be for an
     //irradiance photon to be used as an estimate? (1.0 is same direction, -1.0 is opposite)
+    
+    int pathTracingSamplesPerPixel;
+    int pathTracingMaxDepth;
 
     SamplingMode samplingMode; //Stratified or Halton?
+    RenderingMode renderingMode; //Raytracing, path tracing or photon mapping
 
     bool visualizePhotons; //if true, only shows the positions of photons.
 };

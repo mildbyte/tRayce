@@ -14,9 +14,11 @@ struct Material {
     bool isTransparent;
     double reflectivity;
     bool isReflective;
+    Vector emittance;
 
     Material() {
         color.set(0, 0, 0);
+        emittance.set(0, 0, 0);
         diffuse = 1;
         specular = 1;
         specularExp = 20;

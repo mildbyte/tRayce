@@ -42,7 +42,7 @@ BitmapPixel amplify(BitmapPixel pix) {
 int main()
 {
     srand((unsigned)time(0));
-    Scene scene(800, 600);
+    Scene scene(320, 240);
     //scene.camera.width = 32;
     scene.camera.position.setX(1.5);
     scene.backgroundColor.set(0, 0, 0);
@@ -54,7 +54,10 @@ int main()
     scene.camera.position.setZ(-30);
     scene.camera.planeDistance = 30;
 
-    scene.photonMapping = true;
+    scene.renderingMode = PATHTRACING;
+    scene.pathTracingSamplesPerPixel = 10000;
+    scene.pathTracingMaxDepth = 5;
+    
     //scene.doFinalGather = true;
     //scene.visualizePhotons = true;
     scene.photonCount = 50000;
@@ -68,7 +71,7 @@ int main()
     Sphere *redSphere = new Sphere(5, Vector(-1, 5, 13));
     Sphere *greenSphere = new Sphere(3, Vector(-7, 7, 8));
     Sphere *blueSphere = new Sphere(3, Vector(10, 7, 15));
-	Sphere *lampSphere = new Sphere(100, Vector(1.5, -109.9, 8));
+	Sphere *lampSphere = new Sphere(100, Vector(1.5, -109.8, 8));
 
 //    Box *redSphere = new Box(Vector(-6, -2, 9), Vector(6, 6, 6));
 //    Box *greenSphere = new Box(Vector(1, -2, 8), Vector(6, 6, 6));
@@ -80,24 +83,39 @@ int main()
     Plane *leftPlane = new Plane(Vector(-11, 0, 0), Vector(1, 0, 0));
     Plane *rightPlane = new Plane(Vector(14, 0, 0), Vector(-1, 0, 0));
     Plane *topPlane = new Plane(Vector(0, -10, 0), Vector(0, 1, 0));
-    Plane *backPlane = new Plane(Vector(0, 0, -20), Vector(0, 0, 1));
+    Plane *backPlane = new Plane(Vector(0, 0, -5), Vector(0, 0, 1));
 
-    redSphere->material.color = Vector(.95, .05, .05);
-    greenSphere->material.color = Vector(.05, .05, .95);
-    blueSphere->material.color = Vector(.05, .95, .05);
+    //blueSphere->material.color = Vector(.95, .05, .05);
+    redSphere->material.color = Vector(.75,.75,.75);
+    //redSphere->material.emittance.set(5,7,5);
+    //greenSphere->material.color = Vector(.05, .05, .95);
+    greenSphere->material.color = Vector(.75,.75,.75);
+    //greenSphere->material.emittance.set(1,0.5,0.5);
+    //redSphere->material.color = Vector(.05, .95, .05);
+    blueSphere->material.color = Vector(.75,.75,.75);
+    //blueSphere->material.emittance.set(1,10,1);
 	lampSphere->material.color = Vector(10, 10, 10);
+    lampSphere->material.emittance = Vector(20,20,20);
 
-    bottomPlane->material.color = Vector(.75, .75, .75);
-    upPlane->material.color = Vector(.75, .75, .75);
+    bottomPlane->material.color = Vector(.95, .95, .95);
+    //bottomPlane->material.emittance.set(0.1,0.1,0.1);
+    upPlane->material.color = Vector(.25, .75, .25);
+    upPlane->material.emittance.set(0.2,1.5,0.2);
     leftPlane->material.color = Vector(.75, .25, .25);
+    //leftPlane->material.color = Vector(.75, .75, .75);
+    leftPlane->material.emittance.set(1.5,0.2,0.2);
     rightPlane->material.color = Vector(.25, .25, .75);
+    //rightPlane->material.color = Vector(.75, .75, .75);
+    rightPlane->material.emittance.set(0.2,0.2,1.5);
     topPlane->material.color = Vector(.75, .75, .75);
+    topPlane->material.emittance.set(0.2,1.0,1.0);
     backPlane->material.color = Vector(.75, .75, .75);
+    //backPlane->material.emittance.set(0.5,0.5,0.5);
 
     scene.addRenderable(redSphere);
     scene.addRenderable(greenSphere);
     scene.addRenderable(blueSphere);
-	scene.addRenderable(lampSphere);
+	//scene.addRenderable(lampSphere);
     scene.addRenderable(bottomPlane);
     scene.addRenderable(upPlane);
     scene.addRenderable(leftPlane);
