@@ -193,7 +193,7 @@ Vector Scene::calculatePhongColor(Intersection inter, Ray ray) {
 
         //If the hit happened from the inside of the object, adjust the dot
         //product (so that we e.g. can light a sphere from the inside
-        if (inter.fromTheInside) shade = -shade;
+        if (ray.direction.dot(inter.normal) > 0) shade = -shade;
         //Negative shading values (if the material is facing away
         //from the light) are clamped to zero
         if (shade < 0) shade = 0;
@@ -235,12 +235,14 @@ bool Scene::refractRay(Intersection inter, Ray& ray) {
     double n = 1 / inter.object->material.refrIndex;
     double c1 = inter.normal.dot(ray.direction);
 
-    //If the ray hit the primitive from the inside, reverse the refraction index.
-    if (inter.fromTheInside) n = 1/n;
-
-    //If negative, the ray hit the primitive from the outside
-    //However, we still need to make the cosine positive
-    if (c1 < 0) c1 = -c1;
+    //Make c1 positive. If it was positive, the ray hit the sphere from the inside
+    //and so the normal must be inverted.
+    if (c1 < 0) {
+        c1 = -c1;
+    } else {
+        inter.normal = -inter.normal;
+        n = 1/n;
+    }
 
     double c2 = 1 - n * n * (1 - c1 * c1);
 
@@ -391,16 +393,28 @@ Vector Scene::pathTrace(const Ray ray, int depth) {
 
     inter.normal.normalize();
     
-    Ray nextRay;
-    nextRay.origin = inter.coords;
-    nextRay.direction = sampleHemisphere2(inter.normal);
-    
-    nextRay = epsilonShift(nextRay);
-    
-    Vector brdf = inter.object->material.color * (2.0 * nextRay.direction.dot(inter.normal));
-    Vector reflected = pathTrace(nextRay, depth - 1);
-    
-    return inter.object->material.emittance + combineColors(brdf, reflected);
+    if (inter.object->material.isTransparent) {
+
+        Vector refracted;
+        Ray nextRay = ray;
+        
+        if (!refractRay(inter, nextRay)) {
+            nextRay = reflectRay(inter, nextRay);
+        }
+
+        return inter.object->material.emittance + pathTrace(epsilonShift(nextRay), depth - 1);
+    } else {    
+        Ray nextRay;
+        nextRay.origin = inter.coords;
+        nextRay.direction = sampleHemisphere2(inter.normal);
+        
+        nextRay = epsilonShift(nextRay);
+        
+        Vector brdf = inter.object->material.color * (2.0 * nextRay.direction.dot(inter.normal));
+        Vector reflected = pathTrace(nextRay, depth - 1);
+        
+        return inter.object->material.emittance + combineColors(brdf, reflected);
+    }
 }
 
 Vector Scene::traceRay(const Ray ray, int level) {

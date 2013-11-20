@@ -13,7 +13,6 @@ struct Intersection {
     Vector normal;
     double distance;
     Renderable* object;
-    bool fromTheInside;
 };
 
 #endif

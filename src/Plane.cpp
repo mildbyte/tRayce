@@ -36,10 +36,6 @@ Intersection Plane::getIntersection(Ray ray) {
     result.coords = ray.origin + ray.direction * result.distance;
     result.normal = normal_;
     result.object = this;
-    
-    if (result.normal.dot(ray.direction) > 0) {
-        result.fromTheInside = true;
-    } else result.fromTheInside = false;
 
     return result;
 }

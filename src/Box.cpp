@@ -88,7 +88,5 @@ Intersection Box::getIntersection(Ray ray) {
         case 5: result.normal = Vector(0, 0, 1); break;
     }
 
-    result.fromTheInside = false;
-
     return result;
 }

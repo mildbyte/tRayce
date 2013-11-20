@@ -57,11 +57,6 @@ Intersection Sphere::getIntersection(Ray ray) {
     result.coords = Vector(ray.origin + ray.direction * t);
     result.normal = Vector(result.coords - position_);
 
-    //The normal should not coincide with the view direction, if it does, the
-    //hit happened from the inside
-    if (result.normal.dot(ray.direction) > 0) {
-        result.fromTheInside = true;
-    } else result.fromTheInside = false;
     result.object = this;
     result.distance = t;
 
