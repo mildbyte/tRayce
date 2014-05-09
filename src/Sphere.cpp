@@ -71,5 +71,10 @@ Vector Sphere::sampleSurface() {
             return pos;
         }
     }
-    
+}
+
+Vector Sphere::getNormalAt(Vector position) {
+    Vector normal = position - position_;
+    normal.normalize();
+    return normal;
 }

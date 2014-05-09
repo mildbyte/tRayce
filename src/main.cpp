@@ -56,27 +56,27 @@ int main()
     scene.camera.position.setZ(-10);
     scene.camera.planeDistance = 10;
 
-    scene.renderingMode = PATHTRACING;
+    scene.renderingMode = PHOTONMAPPING;
     scene.pathTracingSamplesPerPixel = 10;
     scene.pathTracingMaxDepth = 5;
     
     scene.doFinalGather = true;
     //scene.visualizePhotons = true;
-    scene.photonCount = 50000;
-    scene.photonBounces = 5;
-    scene.photonGatherAmount = 256;
-    scene.photonGatherSamples = 4;
+    scene.photonCount = 8192;
+    scene.photonBounces = 1;
+    scene.photonGatherAmount = 32;
+    scene.photonGatherSamples = 16;
     scene.irradiancePhotonFrequency = 4;
     scene.photonGatherDotThreshold = 0.9;
     scene.samplingMode = STRATIFIED;
     
     Sphere *sphere1 = new Sphere(1000, Vector(0, 1000, 0));
-    sphere1->material.color = Vector(0.5, 1.0, 0.5);
+    sphere1->material.color = Vector(0.4, 0.5, 0.4);
     Sphere *sphere2 = new Sphere(1000, Vector(0, 0, 1020));
-    sphere2->material.color = Vector(1, 1, 1);
+    sphere2->material.color = Vector(0.8, 0.7, 0.7);
     Sphere *sphere3 = new Sphere(5, Vector(0, -5, 10));
     sphere3->material.color = Vector(1, 1, 1);
-    sphere3->material.emittance = Vector(20, 10, 10);
+    sphere3->material.emittance = Vector(5000, 5000, 5000);
     
     scene.addRenderable(sphere1);
     scene.addRenderable(sphere2);

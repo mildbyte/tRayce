@@ -480,6 +480,18 @@ Vector Scene::traceRay(const Ray ray, int level) {
                 }
                 //Combine with the color of the object
                 resultColor = combineColors(inter.object->material.color, resultColor);
+                
+                //Add the raytraced color (direct illumination)
+                             //Phong (diffuse+specular) pass
+                resultColor += calculatePhongColor(inter, ray);
+
+                //Add the transmitted ray
+                if (inter.object->material.isTransparent)
+                    resultColor += calculateRefraction(inter, ray, level);
+
+                //Add the reflected ray
+                if (inter.object->material.isReflective)
+                    resultColor += calculateReflection(inter, ray, level);
             }
         break;       
     }
@@ -552,15 +564,10 @@ void Scene::populatePhotonMap() {
             //Make the light->scene ray
             Ray photonRay;
             //photonRay.origin = ((Light*)(*it))->position;
-            photonRay.origin = ((Renderable*)(*it))->sampleSurface();
             
-            //Generate a random direction for our ray
-            do {
-                photonRay.direction.setX(drand() * 2 - 1);
-                photonRay.direction.setY(drand() * 2 - 1);
-                photonRay.direction.setZ(drand() * 2 - 1);
-            } while (photonRay.direction.dot(photonRay.direction) > 1.0);
-            photonRay.direction.normalize();
+            photonRay.origin = ((Renderable*)(*it))->sampleSurface();
+            photonRay.direction = sampleHemisphere(((Renderable*)(*it))->getNormalAt(photonRay.origin), drand(), drand());
+            photonRay = epsilonShift(photonRay);
 
             //double brightness = ((Light*)(*it))->brightness;
             
@@ -597,7 +604,7 @@ void Scene::populatePhotonMap() {
 
 
                 //Diffuse the ray
-                photonRay.direction = sampleHemisphere(inter.normal, sqrt(drand()), drand());
+                photonRay.direction = sampleHemisphere(inter.normal, drand(), drand());
                 
                 //New point to cast the ray from (+ avoid collision with itself)
                 photonRay.origin = inter.coords;
