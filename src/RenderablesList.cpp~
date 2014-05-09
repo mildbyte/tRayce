@@ -18,7 +18,7 @@ std::list<Renderable*>::iterator RenderablesList::begin() {
 }
 
 std::list<Renderable*>::iterator RenderablesList::end() {
-    return rendlist_.end();
+    return rendlist_.begin();
 }
 
 bool RenderablesList::intersects(Ray ray) {

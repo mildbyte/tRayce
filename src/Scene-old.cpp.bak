@@ -1,5 +1,8 @@
 #include "Scene.h"
 
+std::uniform_real_distribution<double> dist(0, 1);
+std::mt19937 twister;
+
 //Multiplies all elements of the two colors together
 Vector combineColors(Vector c1, Vector c2) {
     return Vector(c1.getX() * c2.getX(), c1.getY() * c2.getY(),
@@ -61,6 +64,7 @@ Scene::Scene(int width, int height) {
     memset(currRow_, NULL, width * sizeof (Renderable*));
 
     //Some default settings
+    photonMapping = false;
     doFinalGather = false;
     visualizePhotons = false;
     photonCount = 1000;
@@ -71,12 +75,8 @@ Scene::Scene(int width, int height) {
 
     photonGatherDotThreshold = 0.9;
     irradiancePhotonFrequency = 4;
-    
-    pathTracingMaxDepth = 5;
-    pathTracingSamplesPerPixel = 100;
 
     samplingMode = STRATIFIED;
-    renderingMode = RAYTRACING;
 }
 
 double Scene::calculateShadingCoefficient(Light* light, Vector point, Vector toLight, double lightDist) {
@@ -189,7 +189,7 @@ Vector Scene::calculatePhongColor(Intersection inter, Ray ray) {
 
         //If the hit happened from the inside of the object, adjust the dot
         //product (so that we e.g. can light a sphere from the inside
-        if (ray.direction.dot(inter.normal) > 0) shade = -shade;
+        if (inter.fromTheInside) shade = -shade;
         //Negative shading values (if the material is facing away
         //from the light) are clamped to zero
         if (shade < 0) shade = 0;
@@ -231,14 +231,12 @@ bool Scene::refractRay(Intersection inter, Ray& ray) {
     double n = 1 / inter.object->material.refrIndex;
     double c1 = inter.normal.dot(ray.direction);
 
-    //Make c1 positive. If it was positive, the ray hit the sphere from the inside
-    //and so the normal must be inverted.
-    if (c1 < 0) {
-        c1 = -c1;
-    } else {
-        inter.normal = -inter.normal;
-        n = 1/n;
-    }
+    //If the ray hit the primitive from the inside, reverse the refraction index.
+    if (inter.fromTheInside) n = 1/n;
+
+    //If negative, the ray hit the primitive from the outside
+    //However, we still need to make the cosine positive
+    if (c1 < 0) c1 = -c1;
 
     double c2 = 1 - n * n * (1 - c1 * c1);
 
@@ -259,11 +257,11 @@ bool Scene::refractRay(Intersection inter, Ray& ray) {
     return true;
 }
 
-Vector Scene::calculateRefraction(Intersection inter, Ray ray, int level) {
+Vector Scene::calculateRefraction(Intersection inter, Ray ray, int level, int threadId) {
     //Refracts the ray and sends it further
     //Form the refracted ray and trace it
     if (refractRay(inter, ray)) {
-        return traceRay(epsilonShift(ray), level - 1) * inter.object->material.transparency;
+        return traceRay(epsilonShift(ray), level - 1, threadId) * inter.object->material.transparency;
     } else {
         return backgroundColor;
     }
@@ -285,14 +283,22 @@ Ray Scene::reflectRay(Intersection inter, Ray ray) {
     return result;
 }
 
-Vector Scene::calculateReflection(Intersection inter, Ray ray, int level) {
+Vector Scene::calculateReflection(Intersection inter, Ray ray, int level, int threadId) {
     //Send the reflected ray further (and decrease the tracing level)
-    return traceRay(epsilonShift(reflectRay(inter, ray)), level - 1) 
+    return traceRay(epsilonShift(reflectRay(inter, ray)), level - 1, threadId) 
            * inter.object->material.reflectivity;
 }
 
+//Generates a random number between 0.0 and 1.0
+double Scene::drand(int threadId) {
+    return dist(randomEngines_[threadId]);
+}
+
+double Scene::drand() {
+	return dist(twister);
+}
 /*
-Vector sampleHemisphere(Vector normal, double a, double b) {
+Vector sampleLambertianBRDF(Vector normal, double a, double b) {
     Vector result;
     do {
         result = Vector(2*drand()-1, 2*drand()-1, 2*drand()-1);
@@ -302,19 +308,7 @@ Vector sampleHemisphere(Vector normal, double a, double b) {
     } while (true);
 }*/
 
-Vector sampleHemisphere2(Vector normal) {
-    while (true) {
-        Vector direction(2*drand()-1, 2*drand()-1, 2*drand()-1);
-        
-        double dot = normal.dot(direction);
-        if (dot >= 0.0 && dot <= 1.0) {
-            direction.normalize();
-            return direction;
-        }
-    }
-}
-
-Vector sampleHemisphere(Vector normal, double Xi1, double Xi2) {
+Vector sampleLambertianBRDF(Vector normal, double Xi1, double Xi2) {
     //Cosine-weighted hemisphere sampling.
     //Adapted from http://pathtracing.wordpress.com/2011/03/03/cosine-weighted-hemisphere/
     double theta = acos(sqrt(1.0-Xi1));
@@ -349,10 +343,10 @@ Vector Scene::sampleMapAt(Vector coords, Vector normal, double x, double y) {
     Ray samplingRay;
 
     samplingRay.origin = coords;
-    samplingRay.direction = sampleHemisphere(normal, x, y);
-    
-    double dot = normal.dot(samplingRay.direction);
-    
+    samplingRay.direction = sampleLambertianBRDF(normal, x, y);
+	
+	double dot = normal.dot(samplingRay.direction);
+                    
     //Shift the origin slightly to avoid collisions with itself
     samplingRay = epsilonShift(samplingRay);
 
@@ -364,55 +358,14 @@ Vector Scene::sampleMapAt(Vector coords, Vector normal, double x, double y) {
     return photonMap_->acceleratedIrradiance(sampleInter.coords, 
                                              sampleInter.normal, 
                                              photonGatherDotThreshold) * dot;
+	
+	//return photonMap_->irradianceEstimate(sampleInter.coords, sampleInter.normal, photonGatherAmount);
 }
 
-Vector Scene::pathTrace(const Ray ray, int depth) {
-    //If the maximum tracing depth has been reached, return
-    if (depth <= 0) return backgroundColor;
-    
-    Intersection inter;
-    
-    //If we are casting a ray from the eye into the scene, cull collisions behind the image plane
-    if (depth == pathTracingMaxDepth) {
-        inter = renderables_.getFirstIntersection(ray, camera.planeDistance);
-    } else {
-        inter = renderables_.getFirstIntersection(ray, 0);
-    }
-
-    if (!inter.happened) {
-        return backgroundColor;
-    }
-
-    inter.normal.normalize();
-    
-    if (inter.object->material.isTransparent) {
-
-        Vector refracted;
-        Ray nextRay = ray;
-        
-        if (!refractRay(inter, nextRay)) {
-            nextRay = reflectRay(inter, nextRay);
-        }
-
-        return inter.object->material.emittance + pathTrace(epsilonShift(nextRay), depth - 1);
-    } else {    
-        Ray nextRay;
-        nextRay.origin = inter.coords;
-        nextRay.direction = sampleHemisphere2(inter.normal);
-        
-        nextRay = epsilonShift(nextRay);
-        
-        Vector brdf = inter.object->material.color * (2.0 * nextRay.direction.dot(inter.normal));
-        Vector reflected = pathTrace(nextRay, depth - 1);
-        
-        return inter.object->material.emittance + combineColors(brdf, reflected);
-    }
-}
-
-Vector Scene::traceRay(const Ray ray, int level) {
+Vector Scene::traceRay(const Ray ray, int level, int threadId) {
     //Traces a single ray through the scene; returns its color.
     //This is where the magic happens.
-    
+
     //If the maximum tracing depth has been reached, return
     if (level <= 0) return backgroundColor;
 
@@ -424,66 +377,67 @@ Vector Scene::traceRay(const Ray ray, int level) {
         return backgroundColor;
     }
 
+    //Calculate the resultant color of the pixel
     inter.normal.normalize();
-    
     Vector resultColor(0, 0, 0);
-    
-    switch (renderingMode) {
-        case RAYTRACING:
-             //Phong (diffuse+specular) pass
-            resultColor += calculatePhongColor(inter, ray);
 
-            //Add the transmitted ray
-            if (inter.object->material.isTransparent)
-                resultColor += calculateRefraction(inter, ray, level);
-
-            //Add the reflected ray
-            if (inter.object->material.isReflective)
-                resultColor += calculateReflection(inter, ray, level);
-        break;
-        case PHOTONMAPPING:
-            //Gathering the photons replaces classic raytracing
-            if (visualizePhotons) {
-                resultColor = photonMap_->visualizePhoton(inter.coords, 0.01);
-            } else if (!doFinalGather) {
-            resultColor = photonMap_->acceleratedIrradiance(inter.coords,
-                            inter.normal, photonGatherDotThreshold);
-            } else {
-                switch (samplingMode) {
-                    case STRATIFIED: {
-                        double squareSide = 1.0 / photonGatherSamples;
-                        for (int y = 0; y < photonGatherSamples; y++) {
-                            double ybase = squareSide * y;
-                            for (int x = 0; x < photonGatherSamples; x++) {
-                                //Jittered position in the grid
-                                double xbase = squareSide * x;
-                        
-                                double xPos = xbase + sqrt(drand()) * squareSide;
-                                double yPos = ybase + drand() * squareSide;
-
-                                resultColor += sampleMapAt(inter.coords, inter.normal, xPos, yPos);
-                            }
+    if (photonMapping) {
+        //Gathering the photons replaces classic raytracing
+        if (visualizePhotons) {
+            resultColor = photonMap_->visualizePhoton(inter.coords, 0.99);
+        } else if (!doFinalGather) {
+        resultColor = photonMap_->acceleratedIrradiance(inter.coords,
+            inter.normal, photonGatherDotThreshold);
+        } else {
+            switch (samplingMode) {
+                case STRATIFIED: {
+                    double squareSide = 1.0 / photonGatherSamples;
+                    for (int y = 0; y < photonGatherSamples; y++) {
+                        double ybase = squareSide * y;
+                        for (int x = 0; x < photonGatherSamples; x++) {
+                            //Jittered position in the grid
+                            double xbase = squareSide * x;
+                    
+                            //double xPos = xbase + drand(threadId) * squareSide;
+                            //double yPos = ybase + drand(threadId) * squareSide;
+							
+							double xPos = sqrt(drand(threadId));
+							double yPos = drand(threadId);
+							
+                            resultColor += sampleMapAt(inter.coords, inter.normal, xPos, yPos);
                         }
-                        resultColor /= (double)(photonGatherSamples * photonGatherSamples);
-                        break;
                     }
-                    case HALTON: {
-                        for (int sampleIndex = 0; sampleIndex < photonGatherSamples; sampleIndex++) {
-                            resultColor += sampleMapAt(inter.coords, inter.normal,
-                                                       haltonXCoords_[sampleIndex],
-                                                       haltonYCoords_[sampleIndex]);
-                        }
-
-                        resultColor /= (double)photonGatherSamples;
-                        break;
-                    }
+                    resultColor /= (double)(photonGatherSamples * photonGatherSamples);
+                    break;
                 }
-                //Combine with the color of the object
-                resultColor = combineColors(inter.object->material.color, resultColor);
-            }
-        break;       
-    }
+                case HALTON: {
+                    for (int sampleIndex = 0; sampleIndex < photonGatherSamples; sampleIndex++) {
+                        resultColor += sampleMapAt(inter.coords, inter.normal,
+                                                   haltonXCoords_[sampleIndex],
+                                                   haltonYCoords_[sampleIndex]);
+                    }
 
+                    resultColor /= (double)photonGatherSamples;
+                    break;
+                }
+            }
+        }
+		resultColor = combineColors(resultColor * 1000, inter.object->material.color);
+		//resultColor = combineColors(resultColor * 500, inter.object->material.color) + calculatePhongColor(inter, ray);
+		//resultColor = resultColor * 1000 + calculatePhongColor(inter, ray);
+	} else {
+			
+		//Phong (diffuse+specular) pass
+		resultColor += calculatePhongColor(inter, ray);
+
+		//Add the transmitted ray
+		if (inter.object->material.isTransparent)
+			resultColor += calculateRefraction(inter, ray, level, threadId);
+
+		//Add the reflected ray
+		if (inter.object->material.isReflective)
+			resultColor += calculateReflection(inter, ray, level, threadId);
+	}
     //Store the distance (used for postprocessing)
     prevDist_ = inter.distance;
     prevHit_ = inter.object;
@@ -491,7 +445,7 @@ Vector Scene::traceRay(const Ray ray, int level) {
 }
 
 //Converts screen to image coordinates and traces them.
-Vector Scene::tracePixel(double x, double y) {
+Vector Scene::tracePixel(double x, double y, int threadId) {
     Ray ray;
 
     //Uses conic projection, casts the rays from the same point.
@@ -505,17 +459,8 @@ Vector Scene::tracePixel(double x, double y) {
     ray.direction = (camera.direction * camera.planeDistance)
                   + xWorld + yWorld;
     ray.direction.normalize();
-    
-    if (renderingMode == PATHTRACING) {
-        Vector resultColor(0, 0, 0);
-        for (int i = 0; i < pathTracingSamplesPerPixel; i++) {
-            resultColor += pathTrace(ray, pathTracingMaxDepth);
-        }
-        resultColor /= (double)pathTracingSamplesPerPixel;
-        return resultColor;
-    } else {
-        return traceRay(ray, traceDepth);
-    }
+
+    return traceRay(ray, traceDepth, threadId);
 }
 
 void Scene::populatePhotonMap() {
@@ -528,31 +473,20 @@ void Scene::populatePhotonMap() {
     
     int allHits = 0;
 
-    //for (std::list<Light*>::iterator it = lights_.begin();
-    //    it != lights_.end(); it++) totalIntensity += ((Light*)(*it))->brightness;
-    
-    for (std::list<Renderable*>::iterator it = renderables_.begin();
-        it != renderables_.end(); it++) totalIntensity += ((Renderable*)(*it))->material.emittance.modulus();
+    for (std::list<Light*>::iterator it = lights_.begin();
+        it != lights_.end(); it++) totalIntensity += ((Light*)(*it))->brightness;
 
 
-//    for (std::list<Light*>::iterator it = lights_.begin();
-//        it != lights_.end(); it++) {
-//        int photonsToCast = (int)((((Light*)(*it))->brightness/totalIntensity) 
-//                          * (double)photonCount);
-
-    for (std::list<Renderable*>::iterator it = renderables_.begin();
-        it != renderables_.end(); it++) {
-        
-        int photonsToCast = (int)((((Renderable*)(*it))->material.emittance.modulus()/totalIntensity)
+    for (std::list<Light*>::iterator it = lights_.begin();
+        it != lights_.end(); it++) {
+        int photonsToCast = (int)((((Light*)(*it))->brightness/totalIntensity) 
                           * (double)photonCount);
-        
         printf("Casting %d photons...\n", photonsToCast);
 
         for (int i = 0; i < photonsToCast; i++) {
             //Make the light->scene ray
             Ray photonRay;
-            //photonRay.origin = ((Light*)(*it))->position;
-            photonRay.origin = ((Renderable*)(*it))->sampleSurface();
+            photonRay.origin = ((Light*)(*it))->position;
             
             //Generate a random direction for our ray
             do {
@@ -562,9 +496,9 @@ void Scene::populatePhotonMap() {
             } while (photonRay.direction.dot(photonRay.direction) > 1.0);
             photonRay.direction.normalize();
 
-            //double brightness = ((Light*)(*it))->brightness;
+            double brightness = ((Light*)(*it))->brightness;
             
-            Vector photonEnergy(((Renderable*)(*it))->material.emittance);
+            Vector photonEnergy(brightness, brightness, brightness);
 
             int currBounces = 0;
 
@@ -581,23 +515,21 @@ void Scene::populatePhotonMap() {
                                     objMat.color.getZ()) / 3.0;
 
                 if (randVar > avgDiffuse) break; //The photon has been absorbed
-                allHits++;
-                
-                //Record the photon							 
-                inter.normal.normalize(); //not normalized by the intersection
-                                          //to save CPU cycles
-                
-                photonEnergy *= (1.0 / avgDiffuse);
+				allHits++;
 
-                photonEnergy = combineColors(photonEnergy, 
-                                             inter.object->material.color);
+                //Record the photon    
+				inter.normal.normalize(); //not normalized by the intersection
+                                          //to save CPU cycles
+				photonEnergy *= (1.0 / avgDiffuse);
 				
+				photonEnergy = combineColors(photonEnergy, 
+                                             inter.object->material.color);
+
                 photonMap_->addPhoton(inter.coords, photonRay.direction, 
                                       photonEnergy, inter.normal);
-
-
+				
                 //Diffuse the ray
-                photonRay.direction = sampleHemisphere(inter.normal, sqrt(drand()), drand());
+                photonRay.direction = sampleLambertianBRDF(inter.normal, sqrt(drand()), drand());
                 
                 //New point to cast the ray from (+ avoid collision with itself)
                 photonRay.origin = inter.coords;
@@ -616,7 +548,7 @@ void Scene::populatePhotonMap() {
 
     photonMap_->makeTree();
 
-    printf("Precalculating irradiance...\n");
+    //printf("Precalculating irradiance...\n");
     photonMap_->precalculateIrradiance(irradiancePhotonFrequency, photonGatherAmount);
 }
 
@@ -653,7 +585,7 @@ void Scene::threadDoWork(int threadId) {
 		int realy = pixel / width_;
 
 		//Trace a preemptive ray through the pixel on the image plane
-		resultColor = tracePixel(realx, realy);
+		resultColor = tracePixel(realx, realy, threadId);
 
 		currRow_[realx] = prevHit_;
 		
@@ -677,7 +609,8 @@ void Scene::threadDoWork(int threadId) {
 					//resultant color)
 					resultColor += tracePixel(
 						realx + 1.0/(msaaSamples + 1.0) * (i + 0.5) - 0.5,
-						realy + 1.0/(msaaSamples + 1.0) * (j + 0.5) - 0.5)
+						realy + 1.0/(msaaSamples + 1.0) * (j + 0.5) - 0.5,
+						threadId)
 						* contribution;
 				}
 			}
@@ -692,13 +625,13 @@ void Scene::threadDoWork(int threadId) {
 		//Changes global state: bad for threading. MSAA optimizations disabled for now
 		////Copy the collision data in the current row
 		//memcpy(prevRow_, currRow_, sizeof(Renderable*) * width_);
-
+/*
 		pixelsRendered_++;
 		if (pixelsRendered_ % 1000 == 0) {
-			printf("Rendered %d pixel(s) out of %d (%f\%)\n", pixelsRendered_, 
+			printf("T%d: Rendered %d pixel(s) out of %d (%f\%)\n", threadId, pixelsRendered_, 
 				(width_ * height_),
 				pixelsRendered_ / (double)(width_ * height_) * 100);
-		}
+		}*/
     } 
 }
 
@@ -706,7 +639,7 @@ void Scene::render(char* filename, BitmapPixel (*postProcess)(BitmapPixel), int 
     //Renders the scene to a file
 
     //Do we have the photon map yet?
-    if (renderingMode == PHOTONMAPPING && photonMap_ == NULL) {
+    if (photonMapping && photonMap_ == NULL) {
         printf("Populating the photon map...\n");
         populatePhotonMap();
     }
@@ -750,8 +683,14 @@ void Scene::render(char* filename, BitmapPixel (*postProcess)(BitmapPixel), int 
 	threadStartPixels_ = new int[noThreads];
 	threadEndPixels_ = new int[noThreads];
 	
+	randomEngines_ = new std::mt19937[noThreads];
+	for (int i = 0; i < noThreads; i++) {
+		randomEngines_[i] = std::mt19937();
+	}
+	
 	//Pieces of picture each thread must render
 	int noPixels = height_ * width_;
+
 	if (noThreads == 1) {
 		threadStartPixels_[0] = 0;
 		threadEndPixels_[0] = noPixels;
@@ -773,7 +712,7 @@ void Scene::render(char* filename, BitmapPixel (*postProcess)(BitmapPixel), int 
 	for (int i = 1; i < noThreads; i++) {
 		renderingThreads_[i].join();
 	}
-    
+
     //Dispose of the Halton cache
     if (samplingMode == HALTON) {
         delete (haltonXCoords_);
@@ -788,4 +727,9 @@ void Scene::render(char* filename, BitmapPixel (*postProcess)(BitmapPixel), int 
     rendered_->saveToFile(filename);
 
     printf("Done. kd-tree visits per pixel: %f\n", (double)(photonMap_->kdTreeVisited_) / (double)(width_ * height_));
+/*	
+	delete(renderingThreads_);
+	delete(threadStartPixels_);
+	delete(threadEndPixels_);
+	delete(randomEngines_);*/
 }

@@ -13,9 +13,6 @@ private:
 public:
     RenderablesList();
     ~RenderablesList();
-    
-    std::list<Renderable*>::iterator begin();
-    std::list<Renderable*>::iterator end();
 
     //Gets the closest intersection to the origin
     Intersection getFirstIntersection(Ray ray, double planeDistance);

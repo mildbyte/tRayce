@@ -1,7 +1,7 @@
 CC := g++
 SRCDIR := src
 BUILDDIR := build
-CFLAGS := -Wall -Wextra -pedantic -march=native -mtune=native -O3 -std=c++11
+CFLAGS := -Wall -Wextra -Wl,--no-as-needed -pedantic -march=native -mtune=native -O3 -std=c++11 -pthread
 TARGET := tRayce
  
 SRCEXT := cpp

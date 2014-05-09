@@ -15,7 +15,7 @@ public:
 
     virtual bool intersects(Ray ray) = 0;
     virtual Intersection getIntersection(Ray ray) = 0;
-    virtual Vector sampleSurface() = 0;
+    virtual Ray sampleSurface() = 0;
 };
 
 #endif

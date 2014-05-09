@@ -5,7 +5,6 @@
 #include "Renderable.h"
 #include "Vector.h"
 #include "Ray.h"
-#include "Random.h"
 #include <cstdlib>
 
 class Sphere: public Renderable {
