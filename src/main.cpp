@@ -57,7 +57,7 @@ int main()
     scene.camera.planeDistance = 10;
 
     scene.renderingMode = PATHTRACING;
-    scene.pathTracingSamplesPerPixel = 1000;
+    scene.pathTracingSamplesPerPixel = 10;
     scene.pathTracingMaxDepth = 5;
     
     scene.doFinalGather = true;
@@ -76,7 +76,7 @@ int main()
     sphere2->material.color = Vector(1, 1, 1);
     Sphere *sphere3 = new Sphere(5, Vector(0, -5, 10));
     sphere3->material.color = Vector(1, 1, 1);
-    sphere3->material.emittance = Vector(20000, 10000, 10000);
+    sphere3->material.emittance = Vector(20, 10, 10);
     
     scene.addRenderable(sphere1);
     scene.addRenderable(sphere2);
