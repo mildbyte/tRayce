@@ -215,6 +215,9 @@ Vector Scene::calculatePhongColor(Intersection inter, Ray ray) {
         ((shade * ((PointLight*)(*it))->brightness * inter.object->material.diffuse) *
          (1 - ambientCoefficient) + ambientCoefficient);
     }
+             
+    //Add the object's emittance
+    totalColor += inter.object->material.emittance;
 
     return totalColor;
 }

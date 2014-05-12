@@ -295,6 +295,11 @@ double simpsonKernel(double sqx) {
     return 3.0 / PI * sqr(1 - sqx);
 }
 
+//distfrac = photon distance / sphere radius
+double coneFilter(double distfrac) {
+    return 1 - 2/3*distfrac;
+}
+
 void PhotonMap::precalculateIrradiance(int frequency, int noPhotons) {
     irradiancePhotonFrequency_ = frequency;
 
@@ -373,20 +378,19 @@ Vector PhotonMap::irradianceEstimate(Vector point, Vector normal, int noPhotons)
     priority_queue<Neighbour> neighbours = nearestNeighboursWrapper(point, noPhotons);
 
     double sqRadius = neighbours.top().distance;
-    
-    double factor = 1.0 / (sqRadius);
     while (!neighbours.empty()) { 
         Neighbour neighbour = neighbours.top();
         neighbours.pop();
 		
 		double dot = normal.dot(-photons_[neighbour.id].direction);
 		if (dot < 0.0) continue;
-        double weight = simpsonKernel(neighbour.distance / sqRadius) * dot;
-		
+        //double weight = simpsonKernel(neighbour.distance / sqRadius) * dot;
+        double weight = coneFilter(sqrt(neighbour.distance / sqRadius)) * dot;
         result += photons_[neighbour.id].energy * weight;
 
     }
-    return result * factor;
+    //return result * factor;
+    return result * (3 / PI / sqRadius);
 }
 
 //Returns a pixel on the gradient from black to white depending on the distance of the closest
