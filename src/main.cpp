@@ -61,20 +61,20 @@ int main()
     scene.pathTracingMaxDepth = 5;
     
     scene.doFinalGather = true;
-    //scene.visualizePhotons = true;
-    scene.photonCount = 65536;
+    scene.visualizePhotons = true;
+    scene.photonCount = 8192;
     scene.photonBounces = 1;
-    scene.photonGatherAmount = 64;
-    scene.photonGatherSamples = 16;
+    scene.photonGatherAmount = 16;
+    scene.photonGatherSamples = 8;
     scene.irradiancePhotonFrequency = 4;
-    scene.photonGatherDotThreshold = 0.9;
+    scene.photonGatherDotThreshold = 0.1;
     scene.samplingMode = STRATIFIED;
     
     Sphere *sphere1 = new Sphere(1000, Vector(0, 1000, 0));
     sphere1->material.color = Vector(0.5, 0.8, 0.5);
     Sphere *sphere2 = new Sphere(1000, Vector(0, 0, 1020));
     sphere2->material.color = Vector(0.8, 0.5, 0.5);
-    Sphere *sphere3 = new Sphere(5, Vector(0, -5, 10));
+    Sphere *sphere3 = new Sphere(5, Vector(0, -7, 10));
     sphere3->material.color = Vector(1, 1, 1);
     sphere3->material.emittance = Vector(5000, 5000, 5000);
     

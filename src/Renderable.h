@@ -17,6 +17,9 @@ public:
     virtual Intersection getIntersection(Ray ray) = 0;
     virtual Vector sampleSurface() = 0;
     virtual Vector getNormalAt(Vector position) = 0;
+    
+    //Surface area for scaling in pathtracing
+    virtual double getSurfaceArea() = 0;
 };
 
 #endif

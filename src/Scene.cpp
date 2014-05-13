@@ -397,7 +397,8 @@ Vector Scene::pathTrace(const Ray ray, int depth) {
             nextRay = reflectRay(inter, nextRay);
         }
 
-        return inter.object->material.emittance + pathTrace(epsilonShift(nextRay), depth - 1);
+        return inter.object->material.emittance * (1.0 / inter.object->getSurfaceArea())
+            + pathTrace(epsilonShift(nextRay), depth - 1);
     } else {    
         Ray nextRay;
         nextRay.origin = inter.coords;
@@ -483,18 +484,6 @@ Vector Scene::traceRay(const Ray ray, int level) {
                 }
                 //Combine with the color of the object
                 resultColor = combineColors(inter.object->material.color, resultColor);
-                
-                //Add the raytraced color (direct illumination)
-                             //Phong (diffuse+specular) pass
-                resultColor += calculatePhongColor(inter, ray);
-
-                //Add the transmitted ray
-                if (inter.object->material.isTransparent)
-                    resultColor += calculateRefraction(inter, ray, level);
-
-                //Add the reflected ray
-                if (inter.object->material.isReflective)
-                    resultColor += calculateReflection(inter, ray, level);
             }
         break;       
     }
@@ -535,8 +524,8 @@ Vector Scene::tracePixel(double x, double y) {
 
 void Scene::populatePhotonMap() {
     //Construct the map
-    //There will be one photon per bounce at most
-    photonMap_ = new PhotonMap(photonCount * photonBounces);
+    //There will be one photon per bounce at most (+ photonCount initial photons)
+    photonMap_ = new PhotonMap(photonCount * (photonBounces + 1));
 
     //The number of photons emitted per light depends on the light's intensity
     double totalIntensity = 0;
@@ -569,12 +558,17 @@ void Scene::populatePhotonMap() {
             //photonRay.origin = ((Light*)(*it))->position;
             
             photonRay.origin = ((Renderable*)(*it))->sampleSurface();
-            photonRay.direction = sampleHemisphere(((Renderable*)(*it))->getNormalAt(photonRay.origin), drand(), drand());
+            Vector normal = ((Renderable*)(*it))->getNormalAt(photonRay.origin);
+            photonRay.direction = sampleHemisphere(normal, drand(), drand());
             photonRay = epsilonShift(photonRay);
 
             //double brightness = ((Light*)(*it))->brightness;
             
             Vector photonEnergy(((Renderable*)(*it))->material.emittance);
+            
+            //Add the initial photon to the map as well
+            photonMap_->addPhoton(photonRay.origin, photonRay.direction,
+                                  photonEnergy, normal);
 
             int currBounces = 0;
 
