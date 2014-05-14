@@ -484,6 +484,8 @@ Vector Scene::traceRay(const Ray ray, int level) {
                 }
                 //Combine with the color of the object
                 resultColor = combineColors(inter.object->material.color, resultColor);
+                
+                resultColor += inter.object->material.emittance;
             }
         break;       
     }
@@ -567,7 +569,15 @@ void Scene::populatePhotonMap() {
             Vector photonEnergy(((Renderable*)(*it))->material.emittance);
             
             //Add the initial photon to the map as well
-            photonMap_->addPhoton(photonRay.origin, photonRay.direction,
+            //Negative direction since it's treated as having been incoming before bouncing
+            //in the actual direction
+            
+            Vector reflDir = photonRay.direction - normal
+                * 2.0f * photonRay.direction.dot(normal);
+
+            reflDir.normalize();
+            
+            photonMap_->addPhoton(photonRay.origin, reflDir,
                                   photonEnergy, normal);
 
             int currBounces = 0;

@@ -39,3 +39,16 @@ Intersection Plane::getIntersection(Ray ray) {
 
     return result;
 }
+
+Vector Plane::sampleSurface() {
+    return point_;
+    // sampling the plane as a light emitter for the purposes of photon mapping is problematic
+}
+
+Vector Plane::getNormalAt(Vector position) {
+    return normal_;
+}
+    
+double Plane::getSurfaceArea() {
+    return 1.0; // Treat the plane as a point light
+}

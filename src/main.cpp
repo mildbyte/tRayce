@@ -52,7 +52,6 @@ int main()
     scene.msaaOptimize = false;
     scene.softShadowSamples = 1;
     scene.traceDepth = 1;
-    scene.camera.position.setY(-7);
     scene.camera.position.setZ(-10);
     scene.camera.planeDistance = 10;
 
@@ -61,16 +60,16 @@ int main()
     scene.pathTracingMaxDepth = 5;
     
     scene.doFinalGather = true;
-    scene.visualizePhotons = true;
+    //scene.visualizePhotons = true;
     scene.photonCount = 8192;
     scene.photonBounces = 1;
-    scene.photonGatherAmount = 16;
-    scene.photonGatherSamples = 8;
+    scene.photonGatherAmount = 32;
+    scene.photonGatherSamples = 4;
     scene.irradiancePhotonFrequency = 4;
-    scene.photonGatherDotThreshold = 0.1;
+    scene.photonGatherDotThreshold = 0.9;
     scene.samplingMode = STRATIFIED;
     
-    Sphere *sphere1 = new Sphere(1000, Vector(0, 1000, 0));
+/*    Sphere *sphere1 = new Sphere(1000, Vector(0, 1000, 0));
     sphere1->material.color = Vector(0.5, 0.8, 0.5);
     Sphere *sphere2 = new Sphere(1000, Vector(0, 0, 1020));
     sphere2->material.color = Vector(0.8, 0.5, 0.5);
@@ -81,13 +80,11 @@ int main()
     scene.addRenderable(sphere1);
     scene.addRenderable(sphere2);
     scene.addRenderable(sphere3);
-    
- /*
+  */  
+
 
     Sphere *redSphere = new Sphere(5, Vector(-1, 5, 13));
-    Sphere *greenSphere = new Sphere(3, Vector(-7, 5, 8));
     Sphere *blueSphere = new Sphere(3, Vector(10, 7, 15));
-	Sphere *lampSphere = new Sphere(100, Vector(1.5, -109.8, 8));
 
 //    Box *redSphere = new Box(Vector(-6, -2, 9), Vector(6, 6, 6));
 //    Box *greenSphere = new Box(Vector(1, -2, 8), Vector(6, 6, 6));
@@ -101,39 +98,22 @@ int main()
     Plane *topPlane = new Plane(Vector(0, -10, 0), Vector(0, 1, 0));
     Plane *backPlane = new Plane(Vector(0, 0, -5), Vector(0, 0, 1));
 
-    //blueSphere->material.color = Vector(.95, .05, .05);
-    redSphere->material.color = Vector(.75,.75,.75);
-    //redSphere->material.emittance.set(5,7,5);
-    //greenSphere->material.color = Vector(.05, .05, .95);
-    greenSphere->material.color = Vector(.75,.75,.75);
-    greenSphere->material.isTransparent = true;
-    greenSphere->material.refrIndex = 1.50;
-    //greenSphere->material.emittance.set(1,0.5,0.5);
-    //redSphere->material.color = Vector(.05, .95, .05);
-    blueSphere->material.color = Vector(.75,.75,.75);
-    //blueSphere->material.emittance.set(1,10,1);
-	lampSphere->material.color = Vector(10, 10, 10);
-    lampSphere->material.emittance = Vector(20,20,20);
+    blueSphere->material.color = Vector(.35,.35,.75);
+    blueSphere->material.emittance.set(1000,1000,1000);
+    
+    redSphere->material.color = Vector(.75,.35,.35);
+    redSphere->material.emittance = Vector(0, 0, 0);
 
     bottomPlane->material.color = Vector(.95, .95, .95);
-    //bottomPlane->material.emittance.set(0.1,0.1,0.1);
     upPlane->material.color = Vector(.25, .75, .25);
-    //upPlane->material.emittance.set(0.2,1.5,0.2);
     leftPlane->material.color = Vector(.75, .25, .25);
-    //leftPlane->material.color = Vector(.75, .75, .75);
-    //leftPlane->material.emittance.set(1.5,0.2,0.2);
     rightPlane->material.color = Vector(.25, .25, .75);
-    //rightPlane->material.color = Vector(.75, .75, .75);
-    //rightPlane->material.emittance.set(0.2,0.2,1.5);
     topPlane->material.color = Vector(.75, .75, .75);
-    //topPlane->material.emittance.set(0.2,1.0,1.0);
     backPlane->material.color = Vector(.75, .75, .75);
-    //backPlane->material.emittance.set(0.5,0.5,0.5);
+
 
     scene.addRenderable(redSphere);
-    scene.addRenderable(greenSphere);
     scene.addRenderable(blueSphere);
-	scene.addRenderable(lampSphere);
     scene.addRenderable(bottomPlane);
     scene.addRenderable(upPlane);
     scene.addRenderable(leftPlane);
@@ -141,7 +121,7 @@ int main()
     scene.addRenderable(topPlane);
     scene.addRenderable(backPlane);
     scene.ambientCoefficient = 0;
-
+/*
     AreaLight* topLight = new AreaLight();
     topLight->position.set(1.5, -8, 8);
     topLight->dir1.set(1, 0, 0);
