@@ -61,10 +61,10 @@ int main()
     
     scene.doFinalGather = true;
     //scene.visualizePhotons = true;
-    scene.photonCount = 8192;
-    scene.photonBounces = 1;
+    scene.photonCount = 32768;
+    scene.photonBounces = 2;
     scene.photonGatherAmount = 32;
-    scene.photonGatherSamples = 4;
+    scene.photonGatherSamples = 8;
     scene.irradiancePhotonFrequency = 4;
     scene.photonGatherDotThreshold = 0.9;
     scene.samplingMode = STRATIFIED;
@@ -84,7 +84,7 @@ int main()
 
 
     Sphere *redSphere = new Sphere(5, Vector(-1, 5, 13));
-    Sphere *blueSphere = new Sphere(3, Vector(10, 7, 15));
+    Sphere *blueSphere = new Sphere(3, Vector(10, 0, 15));
 
 //    Box *redSphere = new Box(Vector(-6, -2, 9), Vector(6, 6, 6));
 //    Box *greenSphere = new Box(Vector(1, -2, 8), Vector(6, 6, 6));
@@ -99,7 +99,7 @@ int main()
     Plane *backPlane = new Plane(Vector(0, 0, -5), Vector(0, 0, 1));
 
     blueSphere->material.color = Vector(.35,.35,.75);
-    blueSphere->material.emittance.set(1000,1000,1000);
+    blueSphere->material.emittance.set(2000,2000,3000);
     
     redSphere->material.color = Vector(.75,.35,.35);
     redSphere->material.emittance = Vector(0, 0, 0);

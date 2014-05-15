@@ -649,7 +649,7 @@ void Scene::saveMap(char* path) {
     photonMap_->saveToFile(path);
 }
 
-void Scene::threadDoWork(int threadId) {
+void Scene::threadDoWork(int threadId, int noThreads) {
 	//A rendering task executed in a separate thread. Renders the pixels assigned to it
 	//and stores them in the bitmap.
 	
@@ -661,8 +661,7 @@ void Scene::threadDoWork(int threadId) {
     
     //Each MSAA sample's contribution to the final pixel
     double contribution = 1.0 / (msaaSamples*msaaSamples);
-	
-    for (int pixel = threadStartPixels_[threadId]; pixel < threadEndPixels_[threadId]; pixel++) {
+    for (int pixel = threadId; pixel < width_ * height_; pixel += noThreads) {    
 		int realx = pixel % width_;
 		int realy = pixel / width_;
 
@@ -761,28 +760,13 @@ void Scene::render(char* filename, BitmapPixel (*postProcess)(BitmapPixel), int 
 	
 	//Set up the information for threads
 	renderingThreads_ = new std::thread[noThreads];
-	threadStartPixels_ = new int[noThreads];
-	threadEndPixels_ = new int[noThreads];
 	
-	//Pieces of picture each thread must render
-	int noPixels = height_ * width_;
-	if (noThreads == 1) {
-		threadStartPixels_[0] = 0;
-		threadEndPixels_[0] = noPixels;
-	} else {
-		for (int i = 0; i < noThreads - 1; i++) {
-			threadStartPixels_[i] = noPixels / noThreads * i;
-			threadEndPixels_[i] = noPixels / noThreads * (i + 1);
-		}
-		threadStartPixels_[noThreads-1] = threadEndPixels_[noThreads-2];
-		threadEndPixels_[noThreads-1] = noPixels;
-	}
-	
+	//Start up the threads
 	for (int i = 1; i < noThreads; i++) {
-		renderingThreads_[i] = std::thread(&Scene::threadDoWork, this, i);
+		renderingThreads_[i] = std::thread(&Scene::threadDoWork, this, i, noThreads);
 	}
 	
-	threadDoWork(0);
+	threadDoWork(0, noThreads);
 	
 	for (int i = 1; i < noThreads; i++) {
 		renderingThreads_[i].join();

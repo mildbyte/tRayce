@@ -92,10 +92,8 @@ private:
 	Vector xPixel_, yPixel_;
 	
 	std::thread *renderingThreads_;
-	int *threadStartPixels_;
-	int *threadEndPixels_;
 	
-	void threadDoWork(int threadId);
+	void threadDoWork(int threadId, int noThreads);
 	
 public:
     //Necessary to specify width and height to allocate memory
