@@ -61,10 +61,10 @@ int main()
     
     scene.doFinalGather = true;
     //scene.visualizePhotons = true;
-    scene.photonCount = 32768;
-    scene.photonBounces = 2;
+    scene.photonCount = 65536;
+    scene.photonBounces = 5;
     scene.photonGatherAmount = 32;
-    scene.photonGatherSamples = 8;
+    scene.photonGatherSamples = 16;
     scene.irradiancePhotonFrequency = 4;
     scene.photonGatherDotThreshold = 0.9;
     scene.samplingMode = STRATIFIED;
@@ -81,7 +81,13 @@ int main()
     scene.addRenderable(sphere2);
     scene.addRenderable(sphere3);
   */  
-
+    
+    // Problem with this scene: when we do a final gather in the corner
+    // shaded by the big sphere, most rays hit the sphere. We then look up
+    // an irradiance photon with a similar normal, but the closest one we find
+    // is one on the emitting sphere. Hence we do light the corner that's supposed
+    // to be shaded. Temporary solution: more photons so that at least some get
+    // to the corner. Better solution?
 
     Sphere *redSphere = new Sphere(5, Vector(-1, 5, 13));
     Sphere *blueSphere = new Sphere(3, Vector(10, 0, 15));
@@ -99,7 +105,7 @@ int main()
     Plane *backPlane = new Plane(Vector(0, 0, -5), Vector(0, 0, 1));
 
     blueSphere->material.color = Vector(.35,.35,.75);
-    blueSphere->material.emittance.set(2000,2000,3000);
+    blueSphere->material.emittance.set(2000,2000,4000);
     
     redSphere->material.color = Vector(.75,.35,.35);
     redSphere->material.emittance = Vector(0, 0, 0);
