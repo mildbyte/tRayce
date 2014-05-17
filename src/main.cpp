@@ -64,9 +64,10 @@ int main()
     scene.photonCount = 65536;
     scene.photonBounces = 5;
     scene.photonGatherAmount = 32;
-    scene.photonGatherSamples = 16;
+    scene.photonGatherSamples = 4;
     scene.irradiancePhotonFrequency = 4;
     scene.photonGatherDotThreshold = 0.9;
+    scene.doIrradianceCaching = true;
     scene.samplingMode = STRATIFIED;
     
 /*    Sphere *sphere1 = new Sphere(1000, Vector(0, 1000, 0));

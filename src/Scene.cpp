@@ -71,6 +71,7 @@ Scene::Scene(int width, int height) {
 
     photonGatherDotThreshold = 0.9;
     irradiancePhotonFrequency = 4;
+    doIrradianceCaching = true;
     
     pathTracingMaxDepth = 5;
     pathTracingSamplesPerPixel = 100;
@@ -363,10 +364,15 @@ Vector Scene::sampleMapAt(Vector coords, Vector normal, double x, double y) {
     if (!sampleInter.happened) return backgroundColor;
     sampleInter.normal.normalize();
 
-    //Read the precomputed radiance value
-    return photonMap_->acceleratedIrradiance(sampleInter.coords, 
-                                             sampleInter.normal, 
-                                             photonGatherDotThreshold) * dot;
+    if (doIrradianceCaching) 
+        //Read the precomputed radiance value
+        return photonMap_->acceleratedIrradiance(sampleInter.coords, 
+                                                 sampleInter.normal, 
+                                                 photonGatherDotThreshold) * dot;
+    else
+        return photonMap_->irradianceEstimate(sampleInter.coords,
+                                               sampleInter.normal,
+                                               photonGatherAmount);
 }
 
 Vector Scene::pathTrace(const Ray ray, int depth) {
@@ -450,8 +456,13 @@ Vector Scene::traceRay(const Ray ray, int level) {
             if (visualizePhotons) {
                 resultColor = photonMap_->visualizePhoton(inter.coords, 0.01);
             } else if (!doFinalGather) {
-            resultColor = photonMap_->acceleratedIrradiance(inter.coords,
-                            inter.normal, photonGatherDotThreshold);
+                if (doIrradianceCaching)
+                    resultColor = photonMap_->acceleratedIrradiance(inter.coords,
+                                    inter.normal, photonGatherDotThreshold);
+                else
+                    resultColor = photonMap_->irradianceEstimate(inter.coords,
+                                                                 inter.normal,
+                                                                 photonGatherAmount);
             } else {
                 switch (samplingMode) {
                     case STRATIFIED: {
@@ -629,9 +640,11 @@ void Scene::populatePhotonMap() {
     photonMap_->scalePhotonPower(1.0/allHits);
 
     photonMap_->makeTree();
-
-    printf("Precalculating irradiance...\n");
-    photonMap_->precalculateIrradiance(irradiancePhotonFrequency, photonGatherAmount);
+    
+    if (doIrradianceCaching) {
+        printf("Precalculating irradiance...\n");
+        photonMap_->precalculateIrradiance(irradiancePhotonFrequency, photonGatherAmount);
+    }
 }
 
 bool Scene::loadMap(char* path) {

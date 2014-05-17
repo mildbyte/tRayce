@@ -13,3 +13,16 @@
 
 #Temporary files
 *.~
+*.cpp~
+
+#Images
+*.bmp
+*.png
+*.jpg
+
+#Output files
+*.out
+*.exe
+
+#Photon maps
+*.dat
