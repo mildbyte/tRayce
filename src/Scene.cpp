@@ -75,6 +75,7 @@ Scene::Scene(int width, int height) {
     
     pathTracingMaxDepth = 5;
     pathTracingSamplesPerPixel = 100;
+    pathTracingVarianceCull = 1.0;
 
     samplingMode = STRATIFIED;
     renderingMode = RAYTRACING;
@@ -524,12 +525,32 @@ Vector Scene::tracePixel(double x, double y) {
     ray.direction.normalize();
     
     if (renderingMode == PATHTRACING) {
-        Vector resultColor(0, 0, 0);
-        for (int i = 0; i < pathTracingSamplesPerPixel; i++) {
-            resultColor += pathTrace(ray, pathTracingMaxDepth);
+        //Variance calculated using an online algorithm due to Knuth
+        
+        Vector S(0, 0, 0);
+        Vector M = pathTrace(ray, pathTracingMaxDepth);
+        
+        int startCull = 32;
+        for (int i = 2; i <= pathTracingSamplesPerPixel; i++) {
+            Vector sample = pathTrace(ray, pathTracingMaxDepth);
+            Vector newM = M + (sample - M) * (1.0 / i);
+            S += combineColors((sample - M), (sample - newM)); //per-element multiplication
+            M = newM;
+            
+            
+            if (i > startCull) {
+                Vector variance = S * (1.0 / (i - 1));
+            
+                variance.reinhardMap();
+                
+                //TODO reinhard mapping is wrong, we should scale the variance according to the actual mean's
+                //normalization factor
+                double avg = (variance.getX() + variance.getY() + variance.getZ()) / 3.0;
+                if (avg < pathTracingVarianceCull) return M;
+            }
         }
-        resultColor /= (double)pathTracingSamplesPerPixel;
-        return resultColor;
+        
+        return M;
     } else {
         return traceRay(ray, traceDepth);
     }
