@@ -16,15 +16,15 @@ public:
     Vector(double x, double y, float z) {x_ = x; y_ = y; z_ = z;}
 
     //Getters
-    double getX() {return x_;}
-    double getY() {return y_;}
-    double getZ() {return z_;}
+    inline double getX() {return x_;}
+    inline double getY() {return y_;}
+    inline double getZ() {return z_;}
 
     //Setters
-    void setX(double x) {x_ = x;}
-    void setY(double y) {y_ = y;}
-    void setZ(double z) {z_ = z;}
-    void set(double x, double y, float z) {x_ = x; y_ = y; z_ = z;}
+    inline void setX(double x) {x_ = x;}
+    inline void setY(double y) {y_ = y;}
+    inline void setZ(double z) {z_ = z;}
+    inline void set(double x, double y, double z) {x_ = x; y_ = y; z_ = z;}
 
     //Algebra
     Vector& operator=(const Vector& rhs) {x_ = rhs.x_; y_ = rhs.y_; z_ = rhs.z_; return *this;}
