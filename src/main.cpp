@@ -56,7 +56,7 @@ int main()
     scene.camera.planeDistance = 10;
 
     scene.renderingMode = PHOTONMAPPING;
-    scene.pathTracingSamplesPerPixel = 10;
+    scene.pathTracingSamplesPerPixel = 128;
     scene.pathTracingMaxDepth = 5;
     
     scene.doFinalGather = true;
@@ -64,7 +64,7 @@ int main()
     scene.photonCount = 65536;
     scene.photonBounces = 5;
     scene.photonGatherAmount = 32;
-    scene.photonGatherSamples = 4;
+    scene.photonGatherSamples = 16;
     scene.irradiancePhotonFrequency = 4;
     scene.photonGatherDotThreshold = 0.9;
     scene.doIrradianceCaching = true;
@@ -106,7 +106,7 @@ int main()
     Plane *backPlane = new Plane(Vector(0, 0, -5), Vector(0, 0, 1));
 
     blueSphere->material.color = Vector(.35,.35,.75);
-    blueSphere->material.emittance.set(2000,2000,4000);
+    blueSphere->material.emittance.set(20,20,40);
     
     redSphere->material.color = Vector(.75,.35,.35);
     redSphere->material.emittance = Vector(0, 0, 0);

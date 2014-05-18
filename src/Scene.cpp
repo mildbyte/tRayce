@@ -403,7 +403,7 @@ Vector Scene::pathTrace(const Ray ray, int depth) {
             nextRay = reflectRay(inter, nextRay);
         }
 
-        return inter.object->material.emittance * (1.0 / inter.object->getSurfaceArea())
+        return inter.object->material.emittance
             + pathTrace(epsilonShift(nextRay), depth - 1);
     } else {    
         Ray nextRay;
@@ -538,7 +538,7 @@ Vector Scene::tracePixel(double x, double y) {
 void Scene::populatePhotonMap() {
     //Construct the map
     //There will be one photon per bounce at most (+ photonCount initial photons)
-    photonMap_ = new PhotonMap(photonCount * (photonBounces + 1));
+    photonMap_ = new PhotonMap(photonCount * photonBounces);
 
     //The number of photons emitted per light depends on the light's intensity
     double totalIntensity = 0;
@@ -578,11 +578,12 @@ void Scene::populatePhotonMap() {
             //double brightness = ((Light*)(*it))->brightness;
             
             Vector photonEnergy(((Renderable*)(*it))->material.emittance);
+            photonEnergy *= ((Renderable*)(*it))->getSurfaceArea();
             
             //Add the initial photon to the map as well
             //Negative direction since it's treated as having been incoming before bouncing
             //in the actual direction
-            
+            /*
             Vector reflDir = photonRay.direction - normal
                 * 2.0f * photonRay.direction.dot(normal);
 
@@ -590,7 +591,7 @@ void Scene::populatePhotonMap() {
             
             photonMap_->addPhoton(photonRay.origin, reflDir,
                                   photonEnergy, normal);
-
+            */
             int currBounces = 0;
 
             Intersection inter = renderables_.getFirstIntersection(photonRay, 0);
