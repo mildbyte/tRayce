@@ -75,6 +75,7 @@ Scene::Scene(int width, int height) {
     
     pathTracingMaxDepth = 5;
     pathTracingSamplesPerPixel = 100;
+    pathTracingMinBeforeCull = 0;
     pathTracingVarianceCull = 1.0;
 
     samplingMode = STRATIFIED;
@@ -530,23 +531,22 @@ Vector Scene::tracePixel(double x, double y) {
         Vector S(0, 0, 0);
         Vector M = pathTrace(ray, pathTracingMaxDepth);
         
-        int startCull = 32;
         for (int i = 2; i <= pathTracingSamplesPerPixel; i++) {
             Vector sample = pathTrace(ray, pathTracingMaxDepth);
             Vector newM = M + (sample - M) * (1.0 / i);
             S += combineColors((sample - M), (sample - newM)); //per-element multiplication
             M = newM;
             
-            
-            if (i > startCull) {
+            if (i > pathTracingMinBeforeCull) {
                 Vector variance = S * (1.0 / (i - 1));
-            
-                variance.reinhardMap();
                 
-                //TODO reinhard mapping is wrong, we should scale the variance according to the actual mean's
-                //normalization factor
-                double avg = (variance.getX() + variance.getY() + variance.getZ()) / 3.0;
-                if (avg < pathTracingVarianceCull) return M;
+                // (X / (1 + X)) / X = ScaledVar / Var
+                // ScaledVar = Var / (1 + X)
+                double avg = (sqrt(variance.getX()) / (M.getX() + 1.0)
+                           + sqrt(variance.getY()) / (M.getY() + 1.0)
+                           + sqrt(variance.getZ()) / (M.getZ() + 1.0)) / 3.0;
+                           
+                if (avg < sqrt(pathTracingVarianceCull)) return M;
             }
         }
         

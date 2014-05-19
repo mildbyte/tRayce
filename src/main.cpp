@@ -56,9 +56,10 @@ int main()
     scene.camera.planeDistance = 10;
 
     scene.renderingMode = PATHTRACING;
-    scene.pathTracingSamplesPerPixel = 1024;
+    scene.pathTracingSamplesPerPixel = 65536;
     scene.pathTracingMaxDepth = 5;
-    scene.pathTracingVarianceCull = 0.999;
+    scene.pathTracingVarianceCull = 1.0;
+    scene.pathTracingMinBeforeCull = 128;
     
     scene.doFinalGather = true;
     //scene.visualizePhotons = true;
