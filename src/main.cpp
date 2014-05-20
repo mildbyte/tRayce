@@ -58,8 +58,8 @@ int main()
     scene.renderingMode = PATHTRACING;
     scene.pathTracingSamplesPerPixel = 65536;
     scene.pathTracingMaxDepth = 5;
-    scene.pathTracingVarianceCull = 1.0;
-    scene.pathTracingMinBeforeCull = 128;
+    scene.pathTracingVarianceCull = 10;
+    scene.pathTracingMinBeforeCull = 1;
     
     scene.doFinalGather = true;
     //scene.visualizePhotons = true;

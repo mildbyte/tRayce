@@ -533,20 +533,24 @@ Vector Scene::tracePixel(double x, double y) {
         
         for (int i = 2; i <= pathTracingSamplesPerPixel; i++) {
             Vector sample = pathTrace(ray, pathTracingMaxDepth);
+            //sample.print();
+            //printf("\n");
             Vector newM = M + (sample - M) * (1.0 / i);
             S += combineColors((sample - M), (sample - newM)); //per-element multiplication
             M = newM;
+            //variance.print();
+            //printf("\n");
             
             if (i > pathTracingMinBeforeCull) {
                 Vector variance = S * (1.0 / (i - 1));
-                
+            
                 // (X / (1 + X)) / X = ScaledVar / Var
                 // ScaledVar = Var / (1 + X)
-                double avg = (sqrt(variance.getX()) / (M.getX() + 1.0)
-                           + sqrt(variance.getY()) / (M.getY() + 1.0)
-                           + sqrt(variance.getZ()) / (M.getZ() + 1.0)) / 3.0;
+                double avg = (variance.getX() / (M.getX() + 1.0)
+                           + variance.getY() / (M.getY() + 1.0)
+                           + variance.getZ() / (M.getZ() + 1.0)) / 3.0;
                            
-                if (avg < sqrt(pathTracingVarianceCull)) return M;
+                if (avg < pathTracingVarianceCull) return M;
             }
         }
         
@@ -694,6 +698,8 @@ void Scene::threadDoWork(int threadId, int noThreads) {
     //Renderable that has been hit previously
     //Renderable* prevHit = NULL;
     
+    int onePercent = width_ * height_ / 100;
+    
     //Each MSAA sample's contribution to the final pixel
     double contribution = 1.0 / (msaaSamples*msaaSamples);
     for (int pixel = threadId; pixel < width_ * height_; pixel += noThreads) {    
@@ -742,10 +748,11 @@ void Scene::threadDoWork(int threadId, int noThreads) {
 		//memcpy(prevRow_, currRow_, sizeof(Renderable*) * width_);
 
 		pixelsRendered_++;
-		if (pixelsRendered_ % 1000 == 0) {
-			printf("Rendered %d pixel(s) out of %d (%f\%)\n", pixelsRendered_, 
+		if (pixelsRendered_ % onePercent == 0) {
+			printf("Rendered %d pixel(s) out of %d (%f\%)\r", pixelsRendered_, 
 				(width_ * height_),
 				pixelsRendered_ / (double)(width_ * height_) * 100);
+            fflush(stdout);
 		}
     } 
 }
@@ -813,7 +820,7 @@ void Scene::render(char* filename, BitmapPixel (*postProcess)(BitmapPixel), int 
         delete (haltonYCoords_);
     }
 
-    printf("Rendering complete, postprocessing...\n");
+    printf("\nRendering complete, postprocessing...\n");
     if (postProcess) rendered_->foreach(postProcess);
 
     printf("Saving...\n");
