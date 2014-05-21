@@ -46,20 +46,19 @@ int main()
     //scene.camera.width = 32;
     scene.camera.width = 16;
     scene.camera.height = 12;
+    scene.camera.position.setX(1.5);
     scene.backgroundColor.set(0, 0, 0);
     //scene.doAA = true;
     scene.msaaSamples = 2;
     scene.msaaOptimize = false;
     scene.softShadowSamples = 1;
     scene.traceDepth = 1;
-    scene.camera.position.setZ(-10);
-    scene.camera.planeDistance = 10;
+    scene.camera.position.setZ(-20);
+    scene.camera.planeDistance = 15;
 
     scene.renderingMode = PATHTRACING;
-    scene.pathTracingSamplesPerPixel = 65536;
+    scene.pathTracingSamplesPerPixel = 24; //spp squared is actually cast
     scene.pathTracingMaxDepth = 5;
-    scene.pathTracingVarianceCull = 10;
-    scene.pathTracingMinBeforeCull = 1;
     
     scene.doFinalGather = true;
     //scene.visualizePhotons = true;
@@ -93,7 +92,7 @@ int main()
     // to the corner. Better solution?
 
     Sphere *redSphere = new Sphere(5, Vector(-1, 5, 13));
-    Sphere *blueSphere = new Sphere(3, Vector(10, 0, 15));
+    Sphere *blueSphere = new Sphere(20, Vector(1.5, -29, 6.5));
 
 //    Box *redSphere = new Box(Vector(-6, -2, 9), Vector(6, 6, 6));
 //    Box *greenSphere = new Box(Vector(1, -2, 8), Vector(6, 6, 6));
@@ -105,20 +104,20 @@ int main()
     Plane *leftPlane = new Plane(Vector(-11, 0, 0), Vector(1, 0, 0));
     Plane *rightPlane = new Plane(Vector(14, 0, 0), Vector(-1, 0, 0));
     Plane *topPlane = new Plane(Vector(0, -10, 0), Vector(0, 1, 0));
-    Plane *backPlane = new Plane(Vector(0, 0, -5), Vector(0, 0, 1));
+    Plane *backPlane = new Plane(Vector(0, 0, -10), Vector(0, 0, 1));
 
-    blueSphere->material.color = Vector(.35,.35,.75);
-    blueSphere->material.emittance.set(20,20,40);
+    blueSphere->material.color = Vector(.35,.35,.95);
+    blueSphere->material.emittance.set(10,10,10);
     
-    redSphere->material.color = Vector(.75,.35,.35);
+    redSphere->material.color = Vector(.95,.35,.35);
     redSphere->material.emittance = Vector(0, 0, 0);
 
     bottomPlane->material.color = Vector(.95, .95, .95);
-    upPlane->material.color = Vector(.25, .75, .25);
-    leftPlane->material.color = Vector(.75, .25, .25);
-    rightPlane->material.color = Vector(.25, .25, .75);
-    topPlane->material.color = Vector(.75, .75, .75);
-    backPlane->material.color = Vector(.75, .75, .75);
+    upPlane->material.color = Vector(.25, .95, .25);
+    leftPlane->material.color = Vector(.95, .25, .25);
+    rightPlane->material.color = Vector(.25, .25, .95);
+    topPlane->material.color = Vector(.95, .95, .95);
+    backPlane->material.color = Vector(.95, .95, .95);
 
 
     scene.addRenderable(redSphere);

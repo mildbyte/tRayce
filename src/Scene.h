@@ -147,11 +147,6 @@ public:
     
     int pathTracingSamplesPerPixel;
     int pathTracingMaxDepth;
-    
-    //If the intensity variance of the pixel drops below the cull value before exceeding the max
-    //sample size, stop the sampling
-    double pathTracingVarianceCull;
-    int pathTracingMinBeforeCull;
 
     SamplingMode samplingMode; //Stratified or Halton?
     RenderingMode renderingMode; //Raytracing, path tracing or photon mapping

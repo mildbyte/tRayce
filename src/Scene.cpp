@@ -74,9 +74,7 @@ Scene::Scene(int width, int height) {
     doIrradianceCaching = true;
     
     pathTracingMaxDepth = 5;
-    pathTracingSamplesPerPixel = 100;
-    pathTracingMinBeforeCull = 0;
-    pathTracingVarianceCull = 1.0;
+    pathTracingSamplesPerPixel = 10;
 
     samplingMode = STRATIFIED;
     renderingMode = RAYTRACING;
@@ -397,27 +395,63 @@ Vector Scene::pathTrace(const Ray ray, int depth) {
     inter.normal.normalize();
     
     if (inter.object->material.isTransparent) {
-
         Vector refracted;
         Ray nextRay = ray;
         
         if (!refractRay(inter, nextRay)) {
             nextRay = reflectRay(inter, nextRay);
         }
-
-        return inter.object->material.emittance
-            + pathTrace(epsilonShift(nextRay), depth - 1);
-    } else {    
+        
+        if (depth == pathTracingMaxDepth) {
+            Vector result(0, 0, 0);
+            int square = pathTracingSamplesPerPixel * pathTracingSamplesPerPixel;
+            for (int i = 0; i < square; i++) {
+                result += inter.object->material.emittance
+                    + pathTrace(epsilonShift(nextRay), depth - 1);
+            }
+            result /= (double)square;
+            return result;
+        } else
+            return inter.object->material.emittance
+                + pathTrace(epsilonShift(nextRay), depth - 1);
+    } else {
         Ray nextRay;
         nextRay.origin = inter.coords;
-        nextRay.direction = sampleHemisphere2(inter.normal);
-        
-        nextRay = epsilonShift(nextRay);
-        
-        Vector brdf = inter.object->material.color * (2.0 * nextRay.direction.dot(inter.normal));
-        Vector reflected = pathTrace(nextRay, depth - 1);
-        
-        return inter.object->material.emittance + combineColors(brdf, reflected);
+        if (depth == pathTracingMaxDepth) {
+            Vector result(0, 0, 0);
+            // Perform stratified sampling at the first collision
+            double squareSide = 1.0 / pathTracingSamplesPerPixel;
+            for (int y = 0; y < pathTracingSamplesPerPixel; y++) {
+                double ybase = squareSide * y;
+                for (int x = 0; x < pathTracingSamplesPerPixel; x++) {
+                    //Jittered position in the grid
+                    double xbase = squareSide * x;
+            
+                    double xPos = xbase + drand() * squareSide;
+                    double yPos = ybase + drand() * squareSide;
+                    
+                    nextRay.direction = sampleHemisphere(inter.normal, xPos, yPos);
+                    nextRay = epsilonShift(nextRay);
+                    
+                    Vector brdf = inter.object->material.color * (2.0 * nextRay.direction.dot(inter.normal));
+                    Vector reflected = pathTrace(nextRay, depth - 1);
+
+                    result += inter.object->material.emittance + combineColors(brdf, reflected);
+                }
+            }
+            result /= (double)(pathTracingSamplesPerPixel * pathTracingSamplesPerPixel);
+            return result;
+        } else {
+            // We are further down the ray tree, perform normal sampling
+            nextRay.direction = sampleHemisphere2(inter.normal);
+            
+            nextRay = epsilonShift(nextRay);
+            
+            Vector brdf = inter.object->material.color * (2.0 * nextRay.direction.dot(inter.normal));
+            Vector reflected = pathTrace(nextRay, depth - 1);
+            
+            return inter.object->material.emittance + combineColors(brdf, reflected);
+        }
     }
 }
 
@@ -475,7 +509,7 @@ Vector Scene::traceRay(const Ray ray, int level) {
                                 //Jittered position in the grid
                                 double xbase = squareSide * x;
                         
-                                double xPos = xbase + sqrt(drand()) * squareSide;
+                                double xPos = xbase + drand() * squareSide;
                                 double yPos = ybase + drand() * squareSide;
 
                                 resultColor += sampleMapAt(inter.coords, inter.normal, xPos, yPos);
@@ -526,35 +560,7 @@ Vector Scene::tracePixel(double x, double y) {
     ray.direction.normalize();
     
     if (renderingMode == PATHTRACING) {
-        //Variance calculated using an online algorithm due to Knuth
-        
-        Vector S(0, 0, 0);
-        Vector M = pathTrace(ray, pathTracingMaxDepth);
-        
-        for (int i = 2; i <= pathTracingSamplesPerPixel; i++) {
-            Vector sample = pathTrace(ray, pathTracingMaxDepth);
-            //sample.print();
-            //printf("\n");
-            Vector newM = M + (sample - M) * (1.0 / i);
-            S += combineColors((sample - M), (sample - newM)); //per-element multiplication
-            M = newM;
-            //variance.print();
-            //printf("\n");
-            
-            if (i > pathTracingMinBeforeCull) {
-                Vector variance = S * (1.0 / (i - 1));
-            
-                // (X / (1 + X)) / X = ScaledVar / Var
-                // ScaledVar = Var / (1 + X)
-                double avg = (variance.getX() / (M.getX() + 1.0)
-                           + variance.getY() / (M.getY() + 1.0)
-                           + variance.getZ() / (M.getZ() + 1.0)) / 3.0;
-                           
-                if (avg < pathTracingVarianceCull) return M;
-            }
-        }
-        
-        return M;
+        return pathTrace(ray, pathTracingMaxDepth);
     } else {
         return traceRay(ray, traceDepth);
     }
