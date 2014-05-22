@@ -394,7 +394,24 @@ Vector Scene::pathTrace(const Ray ray, int depth) {
 
     inter.normal.normalize();
     
-    if (inter.object->material.isTransparent) {
+    //TODO: weighted Russian roulette for refraction/reflection/diffuse
+    if (inter.object->material.isReflective) {
+        Vector reflected;
+        Ray nextRay = reflectRay(inter, ray);
+        if (depth == pathTracingMaxDepth) {
+            Vector result(0, 0, 0);
+            int square = pathTracingSamplesPerPixel * pathTracingSamplesPerPixel;
+            for (int i = 0; i < square; i++) {
+                result += inter.object->material.emittance 
+                    + pathTrace(epsilonShift(nextRay), depth - 1) * inter.object->material.reflectivity;
+            }
+            result /= (double)square;
+            return result;
+        } else
+            return inter.object->material.emittance 
+                + pathTrace(epsilonShift(nextRay), depth - 1) * inter.object->material.reflectivity;
+    }
+    else if (inter.object->material.isTransparent) {
         Vector refracted;
         Ray nextRay = ray;
         

@@ -57,7 +57,7 @@ int main()
     scene.camera.planeDistance = 15;
 
     scene.renderingMode = PATHTRACING;
-    scene.pathTracingSamplesPerPixel = 24; //spp squared is actually cast
+    scene.pathTracingSamplesPerPixel = 32; //spp squared is actually cast
     scene.pathTracingMaxDepth = 5;
     
     scene.doFinalGather = true;
@@ -93,6 +93,7 @@ int main()
 
     Sphere *redSphere = new Sphere(5, Vector(-1, 5, 13));
     Sphere *blueSphere = new Sphere(20, Vector(1.5, -29, 6.5));
+    Sphere *greenSphere = new Sphere(3, Vector(3, 7, 6));
 
 //    Box *redSphere = new Box(Vector(-6, -2, 9), Vector(6, 6, 6));
 //    Box *greenSphere = new Box(Vector(1, -2, 8), Vector(6, 6, 6));
@@ -109,8 +110,12 @@ int main()
     blueSphere->material.color = Vector(.35,.35,.95);
     blueSphere->material.emittance.set(10,10,10);
     
+    greenSphere->material.color.set(.35,.95,.35);
+    
     redSphere->material.color = Vector(.95,.35,.35);
     redSphere->material.emittance = Vector(0, 0, 0);
+    redSphere->material.reflectivity = 1.0;
+    redSphere->material.isReflective = true;
 
     bottomPlane->material.color = Vector(.95, .95, .95);
     upPlane->material.color = Vector(.25, .95, .25);
@@ -122,6 +127,7 @@ int main()
 
     scene.addRenderable(redSphere);
     scene.addRenderable(blueSphere);
+    scene.addRenderable(greenSphere);
     scene.addRenderable(bottomPlane);
     scene.addRenderable(upPlane);
     scene.addRenderable(leftPlane);
