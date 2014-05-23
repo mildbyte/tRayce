@@ -393,81 +393,100 @@ Vector Scene::pathTrace(const Ray ray, int depth) {
     }
 
     inter.normal.normalize();
+
+    double nonDiffuse = 0.0;
+    int totalSamples = pathTracingSamplesPerPixel * pathTracingSamplesPerPixel;
     
-    //TODO: weighted Russian roulette for refraction/reflection/diffuse
+    int reflectionSamples = 0;
+    int refractionSamples = 0;
+    int diffuseSamples = 0;
+    
     if (inter.object->material.isReflective) {
-        Vector reflected;
-        Ray nextRay = reflectRay(inter, ray);
-        if (depth == pathTracingMaxDepth) {
-            Vector result(0, 0, 0);
-            int square = pathTracingSamplesPerPixel * pathTracingSamplesPerPixel;
-            for (int i = 0; i < square; i++) {
-                result += inter.object->material.emittance 
-                    + pathTrace(epsilonShift(nextRay), depth - 1) * inter.object->material.reflectivity;
-            }
-            result /= (double)square;
-            return result;
-        } else
-            return inter.object->material.emittance 
-                + pathTrace(epsilonShift(nextRay), depth - 1) * inter.object->material.reflectivity;
+        nonDiffuse += inter.object->material.reflectivity;
+        reflectionSamples = totalSamples * inter.object->material.reflectivity;
     }
-    else if (inter.object->material.isTransparent) {
-        Vector refracted;
-        Ray nextRay = ray;
-        
-        if (!refractRay(inter, nextRay)) {
-            nextRay = reflectRay(inter, nextRay);
+    if (inter.object->material.isTransparent) {
+        nonDiffuse += inter.object->material.transparency;
+        refractionSamples += inter.object->material.transparency;
+    }
+    diffuseSamples = (1.0 - nonDiffuse) * totalSamples;
+    
+    // First collision, need to trace all samples
+    if (depth == pathTracingMaxDepth) {    
+        Vector result(0, 0, 0);
+        if (inter.object->material.isReflective) {
+            Ray nextRay = reflectRay(inter, ray);
+            for (int i = 0; i < reflectionSamples; i++) {
+                result += inter.object->material.emittance 
+                    + pathTrace(epsilonShift(nextRay), depth - 1);
+            }
         }
-        
-        if (depth == pathTracingMaxDepth) {
-            Vector result(0, 0, 0);
-            int square = pathTracingSamplesPerPixel * pathTracingSamplesPerPixel;
-            for (int i = 0; i < square; i++) {
+        if (inter.object->material.isTransparent) {
+            Ray nextRay = ray;
+            
+            if (!refractRay(inter, nextRay)) {
+                nextRay = reflectRay(inter, nextRay);
+            }
+            for (int i = 0; i < refractionSamples; i++) {
                 result += inter.object->material.emittance
                     + pathTrace(epsilonShift(nextRay), depth - 1);
             }
-            result /= (double)square;
-            return result;
-        } else
-            return inter.object->material.emittance
-                + pathTrace(epsilonShift(nextRay), depth - 1);
-    } else {
+        }
         Ray nextRay;
         nextRay.origin = inter.coords;
-        if (depth == pathTracingMaxDepth) {
-            Vector result(0, 0, 0);
-            // Perform stratified sampling at the first collision
-            double squareSide = 1.0 / pathTracingSamplesPerPixel;
-            for (int y = 0; y < pathTracingSamplesPerPixel; y++) {
-                double ybase = squareSide * y;
-                for (int x = 0; x < pathTracingSamplesPerPixel; x++) {
-                    //Jittered position in the grid
-                    double xbase = squareSide * x;
-            
-                    double xPos = xbase + drand() * squareSide;
-                    double yPos = ybase + drand() * squareSide;
-                    
-                    nextRay.direction = sampleHemisphere(inter.normal, xPos, yPos);
-                    nextRay = epsilonShift(nextRay);
-                    
-                    Vector brdf = inter.object->material.color * (2.0 * nextRay.direction.dot(inter.normal));
-                    Vector reflected = pathTrace(nextRay, depth - 1);
 
-                    result += inter.object->material.emittance + combineColors(brdf, reflected);
-                }
+        int sideSamples = int(round(sqrt(diffuseSamples)));
+        totalSamples = totalSamples - diffuseSamples + sideSamples * sideSamples;
+        double squareSide = 1.0/sideSamples;
+        for (int y = 0; y < sideSamples; y++) {
+            double ybase = squareSide * y;
+            for (int x = 0; x < sideSamples; x++) {
+                //Jittered position in the grid
+                double xbase = squareSide * x;
+        
+                double xPos = xbase + drand() * squareSide;
+                double yPos = ybase + drand() * squareSide;
+                
+                nextRay.direction = sampleHemisphere(inter.normal, xPos, yPos);
+                
+                Vector brdf = inter.object->material.color * (2.0 * nextRay.direction.dot(inter.normal));
+                Vector reflected = pathTrace(epsilonShift(nextRay), depth - 1);
+
+                result += inter.object->material.emittance + combineColors(brdf, reflected);
             }
-            result /= (double)(pathTracingSamplesPerPixel * pathTracingSamplesPerPixel);
-            return result;
-        } else {
-            // We are further down the ray tree, perform normal sampling
+        }
+        
+        result /= (double)totalSamples;
+        return result;
+    } else {
+        // We are further down the ray tree, perform normal sampling
+        double decision = drand();
+        
+        // Choose what to do based on Russian Roulette
+        if (decision > nonDiffuse) {            
+            Ray nextRay;
+            nextRay.origin = inter.coords;
             nextRay.direction = sampleHemisphere2(inter.normal);
             
-            nextRay = epsilonShift(nextRay);
-            
             Vector brdf = inter.object->material.color * (2.0 * nextRay.direction.dot(inter.normal));
-            Vector reflected = pathTrace(nextRay, depth - 1);
+            Vector reflected = pathTrace(epsilonShift(nextRay), depth - 1);
             
             return inter.object->material.emittance + combineColors(brdf, reflected);
+        } else if (inter.object->material.isReflective && 
+            (decision > inter.object->material.transparency || !inter.object->material.isTransparent)) {
+            // Reflect the ray
+            Ray nextRay = reflectRay(inter, ray);
+            return inter.object->material.emittance 
+                + pathTrace(epsilonShift(nextRay), depth - 1);
+        } else {
+            // Refract the ray
+            Ray nextRay = ray;
+            
+            if (!refractRay(inter, nextRay)) {
+                nextRay = reflectRay(inter, nextRay);
+            }
+            return inter.object->material.emittance
+                + pathTrace(epsilonShift(nextRay), depth - 1);
         }
     }
 }

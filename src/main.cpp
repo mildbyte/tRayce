@@ -57,7 +57,7 @@ int main()
     scene.camera.planeDistance = 15;
 
     scene.renderingMode = PATHTRACING;
-    scene.pathTracingSamplesPerPixel = 32; //spp squared is actually cast
+    scene.pathTracingSamplesPerPixel = 8; //spp squared is actually cast
     scene.pathTracingMaxDepth = 5;
     
     scene.doFinalGather = true;
@@ -114,8 +114,8 @@ int main()
     
     redSphere->material.color = Vector(.95,.35,.35);
     redSphere->material.emittance = Vector(0, 0, 0);
-    redSphere->material.reflectivity = 1.0;
-    redSphere->material.isReflective = true;
+    redSphere->material.transparency = 1.0;
+    redSphere->material.isTransparent = true;
 
     bottomPlane->material.color = Vector(.95, .95, .95);
     upPlane->material.color = Vector(.25, .95, .25);
