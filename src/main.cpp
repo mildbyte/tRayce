@@ -57,7 +57,7 @@ int main()
     scene.camera.planeDistance = 15;
 
     scene.renderingMode = PATHTRACING;
-    scene.pathTracingSamplesPerPixel = 8; //spp squared is actually cast
+    scene.pathTracingSamplesPerPixel = 16; //spp squared is actually cast
     scene.pathTracingMaxDepth = 5;
     
     scene.doFinalGather = true;
@@ -111,11 +111,15 @@ int main()
     blueSphere->material.emittance.set(10,10,10);
     
     greenSphere->material.color.set(.35,.95,.35);
+    greenSphere->material.transparency = 0.9;
+    //greenSphere->material.reflectivity = 0.1;
+    greenSphere->material.diffuse = 0.0; //for the raytracer, not used by the pathtracer
+    greenSphere->material.refrIndex = 1.1;
+    greenSphere->material.isTransparent = true;
+    //greenSphere->material.isReflective = true;
     
     redSphere->material.color = Vector(.95,.35,.35);
     redSphere->material.emittance = Vector(0, 0, 0);
-    redSphere->material.transparency = 1.0;
-    redSphere->material.isTransparent = true;
 
     bottomPlane->material.color = Vector(.95, .95, .95);
     upPlane->material.color = Vector(.25, .95, .25);
@@ -123,7 +127,11 @@ int main()
     rightPlane->material.color = Vector(.25, .25, .95);
     topPlane->material.color = Vector(.95, .95, .95);
     backPlane->material.color = Vector(.95, .95, .95);
-
+    
+    Light *pointLight = new PointLight();
+    pointLight->position = Vector(1.5, 16, 6);
+    pointLight->brightness = 10;
+    scene.addLight(pointLight);
 
     scene.addRenderable(redSphere);
     scene.addRenderable(blueSphere);
@@ -134,7 +142,7 @@ int main()
     scene.addRenderable(rightPlane);
     scene.addRenderable(topPlane);
     scene.addRenderable(backPlane);
-    scene.ambientCoefficient = 0;
+    scene.ambientCoefficient = 5;
 /*
     AreaLight* topLight = new AreaLight();
     topLight->position.set(1.5, -8, 8);

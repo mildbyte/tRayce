@@ -231,6 +231,7 @@ Ray Scene::epsilonShift(Ray ray) {
 }
 
 bool Scene::refractRay(Intersection inter, Ray& ray) {
+    //printf("Before: "); ray.direction.print();
     //Refraction index
     double n = 1 / inter.object->material.refrIndex;
     double c1 = inter.normal.dot(ray.direction);
@@ -251,7 +252,7 @@ bool Scene::refractRay(Intersection inter, Ray& ray) {
 
     if ((c2 > 1) || (c2 < 0)) return false;
 
-    c2 = sqrtf(c2);
+    c2 = sqrt(c2);
 
     //Calculate the direction of the refracted ray
     Vector refrDir = ray.direction * n + inter.normal * (n * c1 - c2);
@@ -259,6 +260,8 @@ bool Scene::refractRay(Intersection inter, Ray& ray) {
 
     ray.origin = inter.coords;
     ray.direction = refrDir;
+    
+    //printf(" After: "); ray.direction.print(); printf("\n");
     
     return true;
 }
@@ -407,7 +410,7 @@ Vector Scene::pathTrace(const Ray ray, int depth) {
     }
     if (inter.object->material.isTransparent) {
         nonDiffuse += inter.object->material.transparency;
-        refractionSamples += inter.object->material.transparency;
+        refractionSamples = totalSamples * inter.object->material.transparency;
     }
     diffuseSamples = (1.0 - nonDiffuse) * totalSamples;
     
@@ -483,7 +486,8 @@ Vector Scene::pathTrace(const Ray ray, int depth) {
             Ray nextRay = ray;
             
             if (!refractRay(inter, nextRay)) {
-                nextRay = reflectRay(inter, nextRay);
+                return backgroundColor;
+                //nextRay = reflectRay(inter, nextRay);
             }
             return inter.object->material.emittance
                 + pathTrace(epsilonShift(nextRay), depth - 1);
