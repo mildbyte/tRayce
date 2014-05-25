@@ -250,7 +250,10 @@ bool Scene::refractRay(Intersection inter, Ray& ray) {
     //Bail out if the cosine of the angle squared is > 1 (total internal
     //reflection) or negative (cannot calculate the square root)
 
-    if ((c2 > 1) || (c2 < 0)) return false;
+    if ((c2 > 1) || (c2 < 0)) {
+        //printf(" -- TIR! ");
+        return false;
+    }
 
     c2 = sqrt(c2);
 

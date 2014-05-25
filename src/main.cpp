@@ -58,7 +58,9 @@ int main()
 
     scene.renderingMode = PATHTRACING;
     scene.pathTracingSamplesPerPixel = 16; //spp squared is actually cast
-    scene.pathTracingMaxDepth = 5;
+    scene.pathTracingMaxDepth = 7; // Too few samples and rays that go through
+    // a sphere, bounce off a wall, through the sphere again and to the light
+    // will terminate too early
     
     scene.doFinalGather = true;
     //scene.visualizePhotons = true;
@@ -111,15 +113,14 @@ int main()
     blueSphere->material.emittance.set(10,10,10);
     
     greenSphere->material.color.set(.35,.95,.35);
-    greenSphere->material.transparency = 0.9;
-    //greenSphere->material.reflectivity = 0.1;
-    greenSphere->material.diffuse = 0.0; //for the raytracer, not used by the pathtracer
-    greenSphere->material.refrIndex = 1.1;
-    greenSphere->material.isTransparent = true;
-    //greenSphere->material.isReflective = true;
     
-    redSphere->material.color = Vector(.95,.35,.35);
+    
+    redSphere->material.color = Vector(.95,.95,.95);
     redSphere->material.emittance = Vector(0, 0, 0);
+    redSphere->material.diffuse = 0.0; //for the raytracer, not used by the pathtracer
+    redSphere->material.refrIndex = 0.99;
+    redSphere->material.transparency = 1.0;
+    redSphere->material.isTransparent = true;
 
     bottomPlane->material.color = Vector(.95, .95, .95);
     upPlane->material.color = Vector(.25, .95, .25);
