@@ -58,7 +58,7 @@ int main()
 
     scene.renderingMode = PATHTRACING;
     scene.pathTracingSamplesPerPixel = 16; //spp squared is actually cast
-    scene.pathTracingMaxDepth = 7; // Too few samples and rays that go through
+    scene.pathTracingMaxDepth = 10; // Too few samples and rays that go through
     // a sphere, bounce off a wall, through the sphere again and to the light
     // will terminate too early
     
@@ -93,14 +93,12 @@ int main()
     // to be shaded. Temporary solution: more photons so that at least some get
     // to the corner. Better solution?
 
-    Sphere *redSphere = new Sphere(5, Vector(-1, 5, 13));
-    Sphere *blueSphere = new Sphere(20, Vector(1.5, -29, 6.5));
-    Sphere *greenSphere = new Sphere(3, Vector(3, 7, 6));
-
-//    Box *redSphere = new Box(Vector(-6, -2, 9), Vector(6, 6, 6));
-//    Box *greenSphere = new Box(Vector(1, -2, 8), Vector(6, 6, 6));
-//    Box *blueSphere = new Box(Vector(-6.5, 4, 7.5), Vector(6, 6, 6));
-//    Box *yellowSphere = new Box(Vector(0.5, 4, 7), Vector(6, 6, 6));
+    Sphere *redSphere = new Sphere(5, Vector(-4, 5, 13));
+    Sphere *greenSphere = new Sphere(3, Vector(8, 7, 7));
+    
+    Sphere *blueLight = new Sphere(3, Vector(-1.5, -10.5, 6.5));
+    Sphere *redLight = new Sphere(3, Vector(4.5, -10.5, 6.5));
+    Sphere *greenLight = new Sphere(3, Vector(1.5, -10.5, 10.5));
 
     Plane *bottomPlane = new Plane(Vector(0, 10, 0), Vector(0, -1, 0));
     Plane *upPlane = new Plane(Vector(0, 0, 18), Vector(0, 0, -1));
@@ -109,16 +107,20 @@ int main()
     Plane *topPlane = new Plane(Vector(0, -10, 0), Vector(0, 1, 0));
     Plane *backPlane = new Plane(Vector(0, 0, -10), Vector(0, 0, 1));
 
-    blueSphere->material.color = Vector(.35,.35,.95);
-    blueSphere->material.emittance.set(10,10,10);
+    blueLight->material.color = Vector(.35,.35,.95);
+    blueLight->material.emittance.set(0,0,30);
+    redLight->material.color = Vector(.95,.35,.35);
+    redLight->material.emittance.set(30,0,0);
+    greenLight->material.color = Vector(.35,.95,.35);
+    greenLight->material.emittance.set(0,30,0);
     
-    greenSphere->material.color.set(.35,.95,.35);
-    
+    greenSphere->material.color.set(.95, .95, .95);
+    greenSphere->material.refrIndex = 1.42;
+    greenSphere->material.transparency = 1.0;
+    greenSphere->material.isTransparent = true;
     
     redSphere->material.color = Vector(.95,.95,.95);
-    redSphere->material.emittance = Vector(0, 0, 0);
-    redSphere->material.diffuse = 0.0; //for the raytracer, not used by the pathtracer
-    redSphere->material.refrIndex = 0.99;
+    redSphere->material.refrIndex = 1.10;
     redSphere->material.transparency = 1.0;
     redSphere->material.isTransparent = true;
 
@@ -135,8 +137,12 @@ int main()
     scene.addLight(pointLight);
 
     scene.addRenderable(redSphere);
-    scene.addRenderable(blueSphere);
     scene.addRenderable(greenSphere);
+    
+    scene.addRenderable(redLight);
+    scene.addRenderable(greenLight);
+    scene.addRenderable(blueLight);
+    
     scene.addRenderable(bottomPlane);
     scene.addRenderable(upPlane);
     scene.addRenderable(leftPlane);
