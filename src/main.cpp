@@ -4,6 +4,7 @@
 #include "Sphere.h"
 #include "Box.h"
 #include "Plane.h"
+#include "Triangle.h"
 #include <ctime>
 
 using namespace std;
@@ -57,8 +58,8 @@ int main()
     scene.camera.planeDistance = 15;
 
     scene.renderingMode = PATHTRACING;
-    scene.pathTracingSamplesPerPixel = 16; //spp squared is actually cast
-    scene.pathTracingMaxDepth = 10; // Too few samples and rays that go through
+    scene.pathTracingSamplesPerPixel = 8; //spp squared is actually cast
+    scene.pathTracingMaxDepth = 5; // Too few samples and rays that go through
     // a sphere, bounce off a wall, through the sphere again and to the light
     // will terminate too early
     
@@ -108,26 +109,30 @@ int main()
     Plane *backPlane = new Plane(Vector(0, 0, -10), Vector(0, 0, 1));
 
     blueLight->material.color = Vector(.35,.35,.95);
-    blueLight->material.emittance.set(0,0,30);
+    blueLight->material.emittance.set(0,0,15);
     redLight->material.color = Vector(.95,.35,.35);
-    redLight->material.emittance.set(30,0,0);
+    redLight->material.emittance.set(15,0,0);
     greenLight->material.color = Vector(.35,.95,.35);
-    greenLight->material.emittance.set(0,30,0);
+    greenLight->material.emittance.set(0,15,0);
     
-    greenSphere->material.color.set(.95, .95, .95);
+    greenSphere->material.color.set(0.35, 0.95, 0.35);
     greenSphere->material.refrIndex = 1.42;
-    greenSphere->material.transparency = 1.0;
+    greenSphere->material.transparency = 0.9;
     greenSphere->material.isTransparent = true;
+    greenSphere->material.reflectivity = 0.1;
+    greenSphere->material.isReflective = true;
     
-    redSphere->material.color = Vector(.95,.95,.95);
-    redSphere->material.refrIndex = 1.10;
-    redSphere->material.transparency = 1.0;
+    redSphere->material.color = Vector(.95,.35,.35);
+    redSphere->material.refrIndex = 1.42;
+    redSphere->material.transparency = 0.75;
     redSphere->material.isTransparent = true;
+    redSphere->material.reflectivity = 0.25;
+    redSphere->material.isReflective = true;
 
     bottomPlane->material.color = Vector(.95, .95, .95);
-    upPlane->material.color = Vector(.25, .95, .25);
-    leftPlane->material.color = Vector(.95, .25, .25);
-    rightPlane->material.color = Vector(.25, .25, .95);
+    upPlane->material.color = Vector(.95, .95, .95);
+    leftPlane->material.color = Vector(.95, .95, .95);
+    rightPlane->material.color = Vector(.95, .95, .95);
     topPlane->material.color = Vector(.95, .95, .95);
     backPlane->material.color = Vector(.95, .95, .95);
     
@@ -135,8 +140,20 @@ int main()
     pointLight->position = Vector(1.5, 16, 6);
     pointLight->brightness = 10;
     scene.addLight(pointLight);
+    
+    Triangle *t1 = new Triangle(Vector(-7, 10, 5), Vector(-3, 4, 9), Vector(1, 10, 5));
+    Triangle *t2 = new Triangle(Vector(-3, 10, 13), Vector(-3, 4, 9), Vector(1, 10, 5));
+    Triangle *t3 = new Triangle(Vector(-7, 10, 5), Vector(-3, 4, 9), Vector(-3, 10, 13));
+    
+    t1->material.color = Vector(.95, .95, .95);
+    t2->material.color = Vector(.95, .95, .95);
+    t3->material.color = Vector(.95, .95, .95);
+    
+    scene.addRenderable(t1);
+    scene.addRenderable(t2);
+    scene.addRenderable(t3);
 
-    scene.addRenderable(redSphere);
+    //scene.addRenderable(redSphere);
     scene.addRenderable(greenSphere);
     
     scene.addRenderable(redLight);
