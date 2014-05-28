@@ -424,7 +424,7 @@ Vector Scene::pathTrace(const Ray ray, int depth) {
             Ray nextRay = reflectRay(inter, ray);
             for (int i = 0; i < reflectionSamples; i++) {
                 result += inter.object->material.emittance 
-                    + pathTrace(epsilonShift(nextRay), depth - 1);
+                    + combineColors(inter.object->material.color, pathTrace(epsilonShift(nextRay), depth - 1));
             }
         }
         if (inter.object->material.isTransparent) {
@@ -435,7 +435,7 @@ Vector Scene::pathTrace(const Ray ray, int depth) {
             }
             for (int i = 0; i < refractionSamples; i++) {
                 result += inter.object->material.emittance
-                    + pathTrace(epsilonShift(nextRay), depth - 1);
+                    + combineColors(pathTrace(epsilonShift(nextRay), depth - 1), inter.object->material.color);
             }
         }
         Ray nextRay;
@@ -483,17 +483,16 @@ Vector Scene::pathTrace(const Ray ray, int depth) {
             // Reflect the ray
             Ray nextRay = reflectRay(inter, ray);
             return inter.object->material.emittance 
-                + pathTrace(epsilonShift(nextRay), depth - 1);
+                + combineColors(inter.object->material.color, pathTrace(epsilonShift(nextRay), depth - 1));
         } else {
             // Refract the ray
             Ray nextRay = ray;
             
             if (!refractRay(inter, nextRay)) {
-                return backgroundColor;
-                //nextRay = reflectRay(inter, nextRay);
+                nextRay = reflectRay(inter, nextRay);
             }
             return inter.object->material.emittance
-                + pathTrace(epsilonShift(nextRay), depth - 1);
+                + combineColors(inter.object->material.color, pathTrace(epsilonShift(nextRay), depth - 1));
         }
     }
 }

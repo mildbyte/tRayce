@@ -58,7 +58,7 @@ int main()
     scene.camera.planeDistance = 15;
 
     scene.renderingMode = PATHTRACING;
-    scene.pathTracingSamplesPerPixel = 8; //spp squared is actually cast
+    scene.pathTracingSamplesPerPixel = 64; //spp squared is actually cast
     scene.pathTracingMaxDepth = 5; // Too few samples and rays that go through
     // a sphere, bounce off a wall, through the sphere again and to the light
     // will terminate too early
@@ -109,11 +109,11 @@ int main()
     Plane *backPlane = new Plane(Vector(0, 0, -10), Vector(0, 0, 1));
 
     blueLight->material.color = Vector(.35,.35,.95);
-    blueLight->material.emittance.set(0,0,15);
-    redLight->material.color = Vector(.95,.35,.35);
-    redLight->material.emittance.set(15,0,0);
+    blueLight->material.emittance.set(10,10,10);
+    redLight->material.color = Vector(20,.35,.35);
+    redLight->material.emittance.set(10,10,10);
     greenLight->material.color = Vector(.35,.95,.35);
-    greenLight->material.emittance.set(0,15,0);
+    greenLight->material.emittance.set(10,10,10);
     
     greenSphere->material.color.set(0.35, 0.95, 0.35);
     greenSphere->material.refrIndex = 1.42;
@@ -141,20 +141,37 @@ int main()
     pointLight->brightness = 10;
     scene.addLight(pointLight);
     
-    Triangle *t1 = new Triangle(Vector(-7, 10, 5), Vector(-3, 4, 9), Vector(1, 10, 5));
-    Triangle *t2 = new Triangle(Vector(-3, 10, 13), Vector(-3, 4, 9), Vector(1, 10, 5));
-    Triangle *t3 = new Triangle(Vector(-7, 10, 5), Vector(-3, 4, 9), Vector(-3, 10, 13));
+    Triangle *t1 = new Triangle(Vector(4, 10, 13), Vector(8, -3, 9), Vector(12, 10, 13));
+    Triangle *t2 = new Triangle(Vector(12, 10, 13), Vector(8, -3, 9), Vector(8, 10, 5));
+    Triangle *t3 = new Triangle(Vector(8, 10, 5), Vector(8, -3, 9), Vector(4, 10, 13));
     
-    t1->material.color = Vector(.95, .95, .95);
-    t2->material.color = Vector(.95, .95, .95);
-    t3->material.color = Vector(.95, .95, .95);
+    t1->material.color = Vector(1, 0.3, 0.3);
+    t1->material.isTransparent = true;
+    t1->material.transparency = 0.9;
+    //t1->material.isReflective = true;
+    t1->material.reflectivity = 0.1;
+    t1->material.refrIndex = 1.42;
+    
+    t2->material.color = Vector(1, 0.3, 0.3);
+    t2->material.isTransparent = true;
+    t2->material.transparency = 0.9;
+    //t2->material.isReflective = true;
+    t2->material.reflectivity = 0.1;
+    t2->material.refrIndex = 1.42;
+    
+    t3->material.color = Vector(1, 0.3, 0.3);
+    t3->material.isTransparent = true;
+    t3->material.transparency = 0.9;
+    //t3->material.isReflective = true;
+    t3->material.reflectivity = 0.1;
+    t3->material.refrIndex = 1.42;
     
     scene.addRenderable(t1);
     scene.addRenderable(t2);
     scene.addRenderable(t3);
 
     //scene.addRenderable(redSphere);
-    scene.addRenderable(greenSphere);
+    //scene.addRenderable(greenSphere);
     
     scene.addRenderable(redLight);
     scene.addRenderable(greenLight);
