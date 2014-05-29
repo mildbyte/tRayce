@@ -56,6 +56,7 @@ int main()
     scene.traceDepth = 1;
     scene.camera.position.setZ(-20);
     scene.camera.planeDistance = 15;
+    scene.camera.lensRadius = 1.0;
 
     scene.renderingMode = PATHTRACING;
     scene.pathTracingSamplesPerPixel = 16; //spp squared is actually cast

@@ -90,6 +90,8 @@ private:
 	
 	//Directions in the image plane
 	Vector xPixel_, yPixel_;
+    
+    Vector imagePlaneX_, imagePlaneY_;
 	
 	std::thread *renderingThreads_;
 	

@@ -523,30 +523,50 @@ Vector Scene::traceRay(const Ray ray, int level) {
 }
 
 //Converts screen to image coordinates and traces them.
-Vector Scene::tracePixel(double x, double y) {
-    Ray ray;
-
-    //Uses conic projection, casts the rays from the same point.
-    ray.origin = camera.position;
-
-    Vector xWorld = xPixel_ * (x - 0.5 * (double)width_ + 0.5);
-    Vector yWorld = yPixel_ * (y - 0.5 * (double)height_ + 0.5);
-
-    //First move to the centre of the image plane, then in the image plane
-    //to the needed point.
-    ray.direction = (camera.direction * camera.planeDistance)
-                  + xWorld + yWorld;
-    ray.direction.normalize();
-    
+Vector Scene::tracePixel(double x, double y) {    
     if (renderingMode == PATHTRACING) {
         int totalSamples = pathTracingSamplesPerPixel * pathTracingSamplesPerPixel;
     
         Vector result(0, 0, 0);
-        for (int i = 0; i < totalSamples; i++) result += pathTrace(ray, pathTracingMaxDepth);
+        for (int i = 0; i < totalSamples; i++) {
+            Ray ray;
+
+            //Similar to the raytracing case, but the ray origin
+            //is perturbed
+            double r = drand() * camera.lensRadius;
+            double theta = drand() * 2 * PI;
+            
+            ray.origin = camera.position + imagePlaneX_ * r * cos(theta)
+                                         + imagePlaneY_ * r * sin(theta);
+                                         
+            Vector xWorld = xPixel_ * (x - 0.5 * (double)width_ + 0.5);
+            Vector yWorld = yPixel_ * (y - 0.5 * (double)height_ + 0.5);
+
+            //Direction has to be changed as well since it's relative
+            //to the ray origin and so moved together with it when it was moved
+            ray.direction = (camera.direction * camera.planeDistance)
+                          + xWorld + yWorld + camera.position - ray.origin;
+            ray.direction.normalize();
+            
+            result += pathTrace(ray, pathTracingMaxDepth);
+        }
         
         result /= (double)totalSamples;
         return result;
     } else {
+        Ray ray;
+
+        //Uses conic projection, casts the rays from the same point.
+        ray.origin = camera.position;
+
+        Vector xWorld = xPixel_ * (x - 0.5 * (double)width_ + 0.5);
+        Vector yWorld = yPixel_ * (y - 0.5 * (double)height_ + 0.5);
+
+        //First move to the centre of the image plane, then in the image plane
+        //to the needed point.
+        ray.direction = (camera.direction * camera.planeDistance)
+                      + xWorld + yWorld;
+        ray.direction.normalize();
         return traceRay(ray, traceDepth);
     }
 }
@@ -700,7 +720,7 @@ void Scene::threadDoWork(int threadId, int noThreads) {
 		//Trace a preemptive ray through the pixel on the image plane
 		resultColor = tracePixel(realx, realy);
 
-		currRow_[realx] = prevHit_;
+		//currRow_[realx] = prevHit_;
 		
 		//Uses global state, MSAA optimizations disabled for now
 		if (doAA) {
@@ -773,23 +793,23 @@ void Scene::render(char* filename, BitmapPixel (*postProcess)(BitmapPixel), int 
     pixelsRendered_ = 0;
 
     //imagePlaneX and imagePlaneY are the unit x and y vectors in the image plane.
-    Vector imagePlaneX(
+    imagePlaneX_ = Vector(
         camera.direction.getZ(),
         0,
         -camera.direction.getX());
     
-    Vector imagePlaneY(
+    imagePlaneY_ = Vector(
          -camera.direction.getY()*camera.direction.getX(),
          camera.direction.getZ()*camera.direction.getZ() 
             + camera.direction.getX() * camera.direction.getX(),
          -camera.direction.getZ()*camera.direction.getY());
 
-    imagePlaneX.normalize();
-    imagePlaneY.normalize();
+    imagePlaneX_.normalize();
+    imagePlaneY_.normalize();
 
     //xPixel and yPixel: one pixel in the image plane
-    xPixel_ = imagePlaneX * (camera.width / (double)width_);
-    yPixel_ = imagePlaneY * (camera.height / (double)height_);
+    xPixel_ = imagePlaneX_ * (camera.width / (double)width_);
+    yPixel_ = imagePlaneY_ * (camera.height / (double)height_);
 	
 	//Set up the information for threads
 	renderingThreads_ = new std::thread[noThreads];
