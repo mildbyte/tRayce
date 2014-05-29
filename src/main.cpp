@@ -58,7 +58,7 @@ int main()
     scene.camera.planeDistance = 15;
 
     scene.renderingMode = PATHTRACING;
-    scene.pathTracingSamplesPerPixel = 64; //spp squared is actually cast
+    scene.pathTracingSamplesPerPixel = 16; //spp squared is actually cast
     scene.pathTracingMaxDepth = 5; // Too few samples and rays that go through
     // a sphere, bounce off a wall, through the sphere again and to the light
     // will terminate too early
