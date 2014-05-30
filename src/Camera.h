@@ -10,6 +10,7 @@ struct Camera {
     double width, height;
     double planeDistance;
     double lensRadius; //Ray source randomly perturbed
+    double focalDistance;
 };
 
 #endif

@@ -42,6 +42,7 @@ Scene::Scene(int width, int height) {
     camera.height = 18;
     camera.planeDistance = 10;
     camera.lensRadius = 0.0;
+    camera.focalDistance = 10.0;
 
     traceDepth = 5;
     backgroundColor.set(0, 0, 0);
@@ -412,7 +413,7 @@ Vector Scene::pathTrace(const Ray ray, int depth) {
         nextRay.origin = inter.coords;
         nextRay.direction = sampleHemisphere2(inter.normal);
         
-        Vector brdf = inter.object->material.color * (2.0 * nextRay.direction.dot(inter.normal));
+        Vector brdf = inter.object->material.color * nextRay.direction.dot(inter.normal);
         Vector reflected = pathTrace(epsilonShift(nextRay), depth - 1);
         
         return inter.object->material.emittance + combineColors(brdf, reflected);
@@ -530,6 +531,14 @@ Vector Scene::tracePixel(double x, double y) {
         Vector result(0, 0, 0);
         for (int i = 0; i < totalSamples; i++) {
             Ray ray;
+            
+            Vector xWorld = xPixel_ * (x - 0.5 * (double)width_ + 0.5);
+            Vector yWorld = yPixel_ * (y - 0.5 * (double)height_ + 0.5);
+            ray.direction = (camera.direction * camera.planeDistance)
+                          + xWorld + yWorld;
+            ray.direction.normalize();
+
+            Vector pixelPoint = camera.position + ray.direction * camera.focalDistance;
 
             //Similar to the raytracing case, but the ray origin
             //is perturbed
@@ -538,16 +547,12 @@ Vector Scene::tracePixel(double x, double y) {
             
             ray.origin = camera.position + imagePlaneX_ * r * cos(theta)
                                          + imagePlaneY_ * r * sin(theta);
-                                         
-            Vector xWorld = xPixel_ * (x - 0.5 * (double)width_ + 0.5);
-            Vector yWorld = yPixel_ * (y - 0.5 * (double)height_ + 0.5);
-
-            //Direction has to be changed as well since it's relative
-            //to the ray origin and so moved together with it when it was moved
-            ray.direction = (camera.direction * camera.planeDistance)
-                          + xWorld + yWorld + camera.position - ray.origin;
-            ray.direction.normalize();
             
+            //Alter the direction so that the ray goes through the same pixel in the
+            //focal plane
+            ray.direction = pixelPoint - camera.position;
+            ray.direction.normalize();
+
             result += pathTrace(ray, pathTracingMaxDepth);
         }
         
