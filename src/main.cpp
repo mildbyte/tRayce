@@ -40,6 +40,18 @@ BitmapPixel amplify(BitmapPixel pix) {
 	return result;
 }
 
+void addQuad(Scene &s, Vector origin, Vector s1, Vector s2, Material m) {
+    Triangle *t1 = new Triangle(origin, origin + s1 + s2, origin + s1);
+    t1->material = m;
+    
+    Triangle *t2 = new Triangle(origin, origin + s2, origin + s1 + s2);
+    t2 -> material = m;
+    
+    s.addRenderable(t1);
+    s.addRenderable(t2);
+}
+
+
 int main()
 {
     srand((unsigned)time(0));
@@ -60,7 +72,7 @@ int main()
     scene.camera.focalDistance = 25;
 
     scene.renderingMode = PATHTRACING;
-    scene.pathTracingSamplesPerPixel = 8; //spp squared is actually cast
+    scene.pathTracingSamplesPerPixel = 32; //spp squared is actually cast
     scene.pathTracingMaxDepth = 5; // Too few samples and rays that go through
     // a sphere, bounce off a wall, through the sphere again and to the light
     // will terminate too early
@@ -168,9 +180,17 @@ int main()
     t3->material.reflectivity = 0.1;
     t3->material.refrIndex = 1.42;
     
-    scene.addRenderable(t1);
-    scene.addRenderable(t2);
-    scene.addRenderable(t3);
+    Material m;
+    m.isTransparent = true;
+    m.transparency = 0.9;
+    m.color = Vector(0.3, 1, 0.3);
+    
+    addQuad(scene, Vector(5, 10, 17), Vector(0, -7, -7), Vector(-7, 0, 0), m);
+    
+    
+    //scene.addRenderable(t1);
+    //scene.addRenderable(t2);
+    //scene.addRenderable(t3);
 
     //scene.addRenderable(redSphere);
     //scene.addRenderable(greenSphere);
