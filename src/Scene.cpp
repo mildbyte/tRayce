@@ -592,12 +592,6 @@ void Scene::populatePhotonMap() {
     for (std::list<Renderable*>::iterator it = renderables_.begin();
         it != renderables_.end(); it++) totalIntensity += ((Renderable*)(*it))->material.emittance.modulus();
 
-
-//    for (std::list<Light*>::iterator it = lights_.begin();
-//        it != lights_.end(); it++) {
-//        int photonsToCast = (int)((((Light*)(*it))->brightness/totalIntensity) 
-//                          * (double)photonCount);
-
     for (std::list<Renderable*>::iterator it = renderables_.begin();
         it != renderables_.end(); it++) {
         
@@ -621,18 +615,6 @@ void Scene::populatePhotonMap() {
             Vector photonEnergy(((Renderable*)(*it))->material.emittance);
             photonEnergy *= ((Renderable*)(*it))->getSurfaceArea();
             
-            //Add the initial photon to the map as well
-            //Negative direction since it's treated as having been incoming before bouncing
-            //in the actual direction
-            /*
-            Vector reflDir = photonRay.direction - normal
-                * 2.0f * photonRay.direction.dot(normal);
-
-            reflDir.normalize();
-            
-            photonMap_->addPhoton(photonRay.origin, reflDir,
-                                  photonEnergy, normal);
-            */
             int currBounces = 0;
 
             Intersection inter = renderables_.getFirstIntersection(photonRay, 0);

@@ -61,7 +61,6 @@ int main()
     scene.camera.height = 12;
     scene.camera.position.setX(1.5);
     scene.backgroundColor.set(0, 0, 0);
-    //scene.doAA = true;
     scene.msaaSamples = 2;
     scene.msaaOptimize = false;
     scene.softShadowSamples = 1;
@@ -78,7 +77,6 @@ int main()
     // will terminate too early
     
     scene.doFinalGather = true;
-    //scene.visualizePhotons = true;
     scene.photonCount = 65536;
     scene.photonBounces = 5;
     scene.photonGatherAmount = 32;
@@ -87,19 +85,6 @@ int main()
     scene.photonGatherDotThreshold = 0.9;
     scene.doIrradianceCaching = true;
     scene.samplingMode = STRATIFIED;
-    
-/*    Sphere *sphere1 = new Sphere(1000, Vector(0, 1000, 0));
-    sphere1->material.color = Vector(0.5, 0.8, 0.5);
-    Sphere *sphere2 = new Sphere(1000, Vector(0, 0, 1020));
-    sphere2->material.color = Vector(0.8, 0.5, 0.5);
-    Sphere *sphere3 = new Sphere(5, Vector(0, -7, 10));
-    sphere3->material.color = Vector(1, 1, 1);
-    sphere3->material.emittance = Vector(5000, 5000, 5000);
-    
-    scene.addRenderable(sphere1);
-    scene.addRenderable(sphere2);
-    scene.addRenderable(sphere3);
-  */  
     
     // Problem with this scene: when we do a final gather in the corner
     // shaded by the big sphere, most rays hit the sphere. We then look up
@@ -187,14 +172,6 @@ int main()
     
     addQuad(scene, Vector(5, 10, 17), Vector(0, -7, -7), Vector(-7, 0, 0), m);
     
-    
-    //scene.addRenderable(t1);
-    //scene.addRenderable(t2);
-    //scene.addRenderable(t3);
-
-    //scene.addRenderable(redSphere);
-    //scene.addRenderable(greenSphere);
-    
     scene.addRenderable(redLight);
     scene.addRenderable(greenLight);
     scene.addRenderable(blueLight);
@@ -206,23 +183,13 @@ int main()
     scene.addRenderable(topPlane);
     scene.addRenderable(backPlane);
     scene.ambientCoefficient = 5;
-/*
-    AreaLight* topLight = new AreaLight();
-    topLight->position.set(1.5, -8, 8);
-    topLight->dir1.set(1, 0, 0);
-    topLight->dir2.set(0, 0, 1);
-    topLight->size1 = 3;
-    topLight->size2 = 3;
-    topLight->brightness = 20000;
-    scene.addLight(topLight);
-*/    
     //Check if the precalculated map exists and is valid
-    bool mapExists = scene.loadMap("map.dat");
+    //bool mapExists = scene.loadMap("map.dat");
 
     scene.render("test.bmp", NULL, 8);
 
     //Save the calculated map for future use
-    if (!mapExists) scene.saveMap("map.dat");
+    //if (!mapExists) scene.saveMap("map.dat");
 
     return 0;
 }
