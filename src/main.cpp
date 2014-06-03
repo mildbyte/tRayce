@@ -67,12 +67,12 @@ int main()
     scene.traceDepth = 1;
     scene.camera.position.setZ(-20);
     scene.camera.planeDistance = 15;
-    scene.camera.lensRadius = 0.5;
+    scene.camera.lensRadius = 0;
     scene.camera.focalDistance = 25;
 
     scene.renderingMode = PATHTRACING;
     scene.pathTracingSamplesPerPixel = 32; //spp squared is actually cast
-    scene.pathTracingMaxDepth = 5; // Too few samples and rays that go through
+    scene.pathTracingMaxDepth = 7; // Too few samples and rays that go through
     // a sphere, bounce off a wall, through the sphere again and to the light
     // will terminate too early
     
@@ -95,10 +95,13 @@ int main()
 
     Sphere *redSphere = new Sphere(5, Vector(-4, 5, 13));
     Sphere *greenSphere = new Sphere(3, Vector(8, 7, 7));
-    
+    /*
     Sphere *blueLight = new Sphere(3, Vector(-1.5, -10.5, 6.5));
     Sphere *redLight = new Sphere(3, Vector(4.5, -10.5, 6.5));
     Sphere *greenLight = new Sphere(3, Vector(1.5, -10.5, 10.5));
+    */
+    
+    Sphere *oneLight = new Sphere(100, Vector(1.5, -109.8, 8.5));
 
     Plane *bottomPlane = new Plane(Vector(0, 10, 0), Vector(0, -1, 0));
     Plane *upPlane = new Plane(Vector(0, 0, 18), Vector(0, 0, -1));
@@ -106,13 +109,18 @@ int main()
     Plane *rightPlane = new Plane(Vector(14, 0, 0), Vector(-1, 0, 0));
     Plane *topPlane = new Plane(Vector(0, -10, 0), Vector(0, 1, 0));
     Plane *backPlane = new Plane(Vector(0, 0, -10), Vector(0, 0, 1));
+    
+    oneLight->material.color = Vector(.95, .95, .95);
+    oneLight->material.emittance = Vector(30, 30, 30);
 
+    /*
     blueLight->material.color = Vector(.35,.35,.95);
-    blueLight->material.emittance.set(10,10,10);
-    redLight->material.color = Vector(20,.35,.35);
-    redLight->material.emittance.set(10,10,10);
+    blueLight->material.emittance.set(30,20,20);
+    redLight->material.color = Vector(.95,.35,.35);
+    redLight->material.emittance.set(30,20,20);
     greenLight->material.color = Vector(.35,.95,.35);
-    greenLight->material.emittance.set(10,10,10);
+    greenLight->material.emittance.set(30,30,20);
+    */
     
     greenSphere->material.color.set(0.35, 0.95, 0.35);
     greenSphere->material.refrIndex = 1.42;
@@ -140,41 +148,35 @@ int main()
     pointLight->brightness = 10;
     scene.addLight(pointLight);
     
-    Triangle *t1 = new Triangle(Vector(4, 10, 13), Vector(8, -3, 9), Vector(12, 10, 13));
-    Triangle *t2 = new Triangle(Vector(12, 10, 13), Vector(8, -3, 9), Vector(8, 10, 5));
-    Triangle *t3 = new Triangle(Vector(8, 10, 5), Vector(8, -3, 9), Vector(4, 10, 13));
-    
-    t1->material.color = Vector(1, 0.3, 0.3);
-    t1->material.isTransparent = true;
-    t1->material.transparency = 0.9;
-    //t1->material.isReflective = true;
-    t1->material.reflectivity = 0.1;
-    t1->material.refrIndex = 1.42;
-    
-    t2->material.color = Vector(1, 0.3, 0.3);
-    t2->material.isTransparent = true;
-    t2->material.transparency = 0.9;
-    //t2->material.isReflective = true;
-    t2->material.reflectivity = 0.1;
-    t2->material.refrIndex = 1.42;
-    
-    t3->material.color = Vector(1, 0.3, 0.3);
-    t3->material.isTransparent = true;
-    t3->material.transparency = 0.9;
-    //t3->material.isReflective = true;
-    t3->material.reflectivity = 0.1;
-    t3->material.refrIndex = 1.42;
-    
+        
     Material m;
     m.isTransparent = true;
-    m.transparency = 0.9;
-    m.color = Vector(0.3, 1, 0.3);
+    m.transparency = 0.95;
+    m.reflectivity = 0.05;
+    m.isReflective = true;
+    m.refrIndex = 1.42;
+    m.color = Vector(0, 1, 0);
     
-    addQuad(scene, Vector(5, 10, 17), Vector(0, -7, -7), Vector(-7, 0, 0), m);
+    Triangle *t1 = new Triangle(Vector(4, 10, 13), Vector(8, -3, 9), Vector(12, 10, 13));
+    Triangle *t2 = new Triangle(Vector(12, 10, 13), Vector(8, -3, 9), Vector(8, 10, 5));
+    Triangle *t3 = new Triangle(Vector(8, 10, 5), Vector(4, 10, 13), Vector(8, -3, 9));
     
+    t1->material = m;
+    t2->material = m;
+    t3->material = m;
+    
+    //addQuad(scene, Vector(5, 10, 17), Vector(0, -7, -7), Vector(-7, 0, 0), m);
+    /*
     scene.addRenderable(redLight);
     scene.addRenderable(greenLight);
     scene.addRenderable(blueLight);
+    */
+    
+    scene.addRenderable(oneLight);
+    
+    scene.addRenderable(t1);
+    scene.addRenderable(t2);
+    scene.addRenderable(t3);
     
     scene.addRenderable(bottomPlane);
     scene.addRenderable(upPlane);
