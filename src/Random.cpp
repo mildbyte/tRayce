@@ -7,3 +7,5 @@ std::uniform_real_distribution<double> dist(0, 1);
 double drand() {
     return dist(twister);
 }
+
+void seed_drand(uint64_t seed) { twister.seed(seed); }

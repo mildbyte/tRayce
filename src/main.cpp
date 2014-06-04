@@ -6,21 +6,40 @@
 #include "Plane.h"
 #include "Triangle.h"
 #include <ctime>
+#include "Random.h"
 
 using namespace std;
 
 //Generates a random scene with a bunch of spheres
 void randomScene(Scene* scene) {
     for (int i = 0; i < 30; i++) {
+        double r = drand() * 2.0 + 0.3;
         Sphere *testSphere = new Sphere(
-            (double)(rand() % 30 / 15.0f),
-            Vector( (rand() % 240 - 120)/10.0, (rand() % 160 - 80) / 10.0, (rand() % 100) / 10.0 )
+            r,
+            Vector(drand() * (25.0-2*r) - (11.0-r), drand() * (20.0-2*r) - (10.0-r), drand() * (18.0-2*r) + r)
         );
 
-        testSphere->material.color = Vector((rand()% 256 / 256.0), (rand()% 256 / 256.0), (rand()% 256 / 256.0));
-        testSphere->material.isReflective = false;
-        testSphere->material.reflectivity = 0.1;
-        testSphere->material.diffuse = 1.0;
+        testSphere->material.color = Vector(drand(), drand(), drand());
+        
+        if (drand() > 0.8) {
+            testSphere->material.isReflective = true;
+            testSphere->material.reflectivity = drand();
+        }
+        
+        if (drand() > 0.8) {
+            testSphere->material.isTransparent = true;
+            testSphere->material.transparency = drand() * (1.0 - testSphere->material.reflectivity);
+            testSphere->material.refrIndex = 1.42;
+        }
+        
+        
+        /*if (!testSphere->material.isTransparent && !testSphere->material.isReflective) {
+            if (drand() > 0.5) {
+                testSphere->material.emittance = Vector(drand(), drand(), drand()) * 10.0;
+                
+            }
+        }*/
+        
         scene->addRenderable(testSphere);
     }
 }
@@ -71,8 +90,8 @@ int main()
     scene.camera.focalDistance = 25;
 
     scene.renderingMode = PATHTRACING;
-    scene.pathTracingSamplesPerPixel = 32; //spp squared is actually cast
-    scene.pathTracingMaxDepth = 7; // Too few samples and rays that go through
+    scene.pathTracingSamplesPerPixel = 8; //spp squared is actually cast
+    scene.pathTracingMaxDepth = 5; // Too few samples and rays that go through
     // a sphere, bounce off a wall, through the sphere again and to the light
     // will terminate too early
     
@@ -93,14 +112,6 @@ int main()
     // to be shaded. Temporary solution: more photons so that at least some get
     // to the corner. Better solution?
 
-    Sphere *redSphere = new Sphere(5, Vector(-4, 5, 13));
-    Sphere *greenSphere = new Sphere(3, Vector(8, 7, 7));
-    /*
-    Sphere *blueLight = new Sphere(3, Vector(-1.5, -10.5, 6.5));
-    Sphere *redLight = new Sphere(3, Vector(4.5, -10.5, 6.5));
-    Sphere *greenLight = new Sphere(3, Vector(1.5, -10.5, 10.5));
-    */
-    
     Sphere *oneLight = new Sphere(100, Vector(1.5, -109.8, 8.5));
 
     Plane *bottomPlane = new Plane(Vector(0, 10, 0), Vector(0, -1, 0));
@@ -109,32 +120,9 @@ int main()
     Plane *rightPlane = new Plane(Vector(14, 0, 0), Vector(-1, 0, 0));
     Plane *topPlane = new Plane(Vector(0, -10, 0), Vector(0, 1, 0));
     Plane *backPlane = new Plane(Vector(0, 0, -10), Vector(0, 0, 1));
-    
+  
     oneLight->material.color = Vector(.95, .95, .95);
     oneLight->material.emittance = Vector(30, 30, 30);
-
-    /*
-    blueLight->material.color = Vector(.35,.35,.95);
-    blueLight->material.emittance.set(30,20,20);
-    redLight->material.color = Vector(.95,.35,.35);
-    redLight->material.emittance.set(30,20,20);
-    greenLight->material.color = Vector(.35,.95,.35);
-    greenLight->material.emittance.set(30,30,20);
-    */
-    
-    greenSphere->material.color.set(0.35, 0.95, 0.35);
-    greenSphere->material.refrIndex = 1.42;
-    greenSphere->material.transparency = 0.9;
-    greenSphere->material.isTransparent = true;
-    greenSphere->material.reflectivity = 0.1;
-    greenSphere->material.isReflective = true;
-    
-    redSphere->material.color = Vector(.95,.35,.35);
-    redSphere->material.refrIndex = 1.42;
-    redSphere->material.transparency = 0.75;
-    redSphere->material.isTransparent = true;
-    redSphere->material.reflectivity = 0.25;
-    redSphere->material.isReflective = true;
 
     bottomPlane->material.color = Vector(.95, .95, .95);
     upPlane->material.color = Vector(.95, .95, .95);
@@ -142,13 +130,7 @@ int main()
     rightPlane->material.color = Vector(.95, .95, .95);
     topPlane->material.color = Vector(.95, .95, .95);
     backPlane->material.color = Vector(.95, .95, .95);
-    
-    Light *pointLight = new PointLight();
-    pointLight->position = Vector(1.5, 16, 6);
-    pointLight->brightness = 10;
-    scene.addLight(pointLight);
-    
-        
+/*    
     Material m;
     m.isTransparent = true;
     m.transparency = 0.95;
@@ -164,30 +146,25 @@ int main()
     t1->material = m;
     t2->material = m;
     t3->material = m;
-    
-    //addQuad(scene, Vector(5, 10, 17), Vector(0, -7, -7), Vector(-7, 0, 0), m);
-    /*
-    scene.addRenderable(redLight);
-    scene.addRenderable(greenLight);
-    scene.addRenderable(blueLight);
     */
-    
     scene.addRenderable(oneLight);
     
-    scene.addRenderable(t1);
-    scene.addRenderable(t2);
-    scene.addRenderable(t3);
-    
+    //scene.addRenderable(t1);
+    //scene.addRenderable(t2);
+    //scene.addRenderable(t3);
+
     scene.addRenderable(bottomPlane);
     scene.addRenderable(upPlane);
     scene.addRenderable(leftPlane);
     scene.addRenderable(rightPlane);
     scene.addRenderable(topPlane);
     scene.addRenderable(backPlane);
-    scene.ambientCoefficient = 5;
     //Check if the precalculated map exists and is valid
     //bool mapExists = scene.loadMap("map.dat");
-
+    
+    seed_drand(134223180);
+    randomScene(&scene);
+    
     scene.render("test.bmp", NULL, 8);
 
     //Save the calculated map for future use
