@@ -825,5 +825,7 @@ void Scene::render(char* filename, BitmapPixel (*postProcess)(BitmapPixel), int 
     //Save the resulting bitmap to file
     rendered_->saveToFile(filename);
 
-    printf("Done. kd-tree visits per pixel: %f\n", (double)(photonMap_->kdTreeVisited_) / (double)(width_ * height_));
+    printf("Done.\n");
+    if (renderingMode == PHOTONMAPPING) 
+        printf("kd-tree visits per pixel: %f\n", (double)(photonMap_->kdTreeVisited_) / (double)(width_ * height_));
 }
