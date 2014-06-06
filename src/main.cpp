@@ -7,8 +7,51 @@
 #include "Triangle.h"
 #include <ctime>
 #include "Random.h"
+#include <vector>
+#include <iostream>
+#include <fstream>
 
 using namespace std;
+
+//Adds a model inside an OBJ file into the scene with a given
+//material. Does not reuse vertices, so each triangle takes
+//3xvertexsize + overhead space. Only supports triangles.
+void importObj(Scene* scene, char* filename, Material m,
+    Vector shift, double scale) {
+    vector<Vector> vectors;
+    
+    ifstream stream;
+    stream.open(filename);
+    
+    while (!stream.eof()) {
+        char type;
+        stream >> type;
+        
+        switch (type) {
+            case 'v': {
+                double x, y, z;
+                stream >> x >> y >> z;
+                //TODO: fix the fact that Y is pointing downwards in tRayce
+                vectors.push_back(Vector(x, -y, z) * scale + shift);
+                break;
+            }
+            case 'f': {
+                int v1, v2, v3;
+                stream >> v1 >> v2 >> v3;
+                Triangle *t = new Triangle(vectors[v1], vectors[v2], vectors[v3]);
+                t->material = m;
+                scene->addRenderable(t);
+                break;
+            }
+            default: {
+                stream.ignore('\n');
+                continue;
+            }
+        }
+    }
+    
+    stream.close();
+}
 
 //Generates a random scene with a bunch of spheres
 void randomScene(Scene* scene) {
@@ -26,7 +69,7 @@ void randomScene(Scene* scene) {
             testSphere->material.reflectivity = drand();
         }
         
-        if (drand() > 0.8) {
+        if (drand() > 0) {
             testSphere->material.isTransparent = true;
             testSphere->material.transparency = drand() * (1.0 - testSphere->material.reflectivity);
             testSphere->material.refrIndex = 1.42;
@@ -90,14 +133,14 @@ int main()
     scene.camera.focalDistance = 25;
 
     scene.renderingMode = PATHTRACING;
-    scene.pathTracingSamplesPerPixel = 8; //spp squared is actually cast
-    scene.pathTracingMaxDepth = 5; // Too few samples and rays that go through
+    scene.pathTracingSamplesPerPixel = 4; //spp squared is actually cast
+    scene.pathTracingMaxDepth = 3; // Too few samples and rays that go through
     // a sphere, bounce off a wall, through the sphere again and to the light
     // will terminate too early
     
     scene.doFinalGather = true;
     scene.photonCount = 65536;
-    scene.photonBounces = 5;
+    scene.photonBounces = 7;
     scene.photonGatherAmount = 32;
     scene.photonGatherSamples = 16;
     scene.irradiancePhotonFrequency = 4;
@@ -130,15 +173,15 @@ int main()
     rightPlane->material.color = Vector(.95, .95, .95);
     topPlane->material.color = Vector(.95, .95, .95);
     backPlane->material.color = Vector(.95, .95, .95);
-/*    
-    Material m;
-    m.isTransparent = true;
-    m.transparency = 0.95;
-    m.reflectivity = 0.05;
-    m.isReflective = true;
-    m.refrIndex = 1.42;
-    m.color = Vector(0, 1, 0);
     
+    Material m;
+//    m.isTransparent = true;
+//    m.transparency = 0.95;
+//    m.reflectivity = 0.05;
+//    m.isReflective = true;
+//    m.refrIndex = 1.42;
+    m.color = Vector(0.933, 0.933, 0.941);
+/*    
     Triangle *t1 = new Triangle(Vector(4, 10, 13), Vector(8, -3, 9), Vector(12, 10, 13));
     Triangle *t2 = new Triangle(Vector(12, 10, 13), Vector(8, -3, 9), Vector(8, 10, 5));
     Triangle *t3 = new Triangle(Vector(8, 10, 5), Vector(4, 10, 13), Vector(8, -3, 9));
@@ -162,8 +205,10 @@ int main()
     //Check if the precalculated map exists and is valid
     //bool mapExists = scene.loadMap("map.dat");
     
-    seed_drand(134223180);
-    randomScene(&scene);
+    //seed_drand(39332);
+    //randomScene(&scene);
+    
+    importObj(&scene, "teapot.obj", m, Vector(2, 10, 18), 3.0);
     
     scene.render("test.bmp", NULL, 8);
 
