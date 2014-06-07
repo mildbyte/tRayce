@@ -23,6 +23,8 @@ bool Triangle::intersects(Ray ray)
     return false;
 }
 
+
+
 // Implements the Möller–Trumbore ray-triangle intersection algorithm.
 Intersection Triangle::getIntersection (Ray ray)
 {
@@ -48,7 +50,7 @@ Intersection Triangle::getIntersection (Ray ray)
     if (t > 0.0001) {
         result.happened = true;
         result.object = this;
-        result.normal = normal;
+        result.normal = n1;
         result.distance = t;
         result.coords = ray.origin + ray.direction * t;
     }
@@ -71,7 +73,26 @@ Vector Triangle::sampleSurface()
 
 Vector Triangle::getNormalAt(Vector position)
 {
-    return normal;
+    if (customNormals) {
+        //Interpolate the normal
+        
+        //Get the barycentric coordinates of the point
+        //(from https://gamedev.stackexchange.com/questions/23743/whats-the-most-efficient-way-to-find-barycentric-coordinates)
+        
+        Vector relPos = position - v1;
+        
+        double d00 = e1.dot(e1);
+        double d01 = e1.dot(e2);
+        double d11 = e2.dot(e2);
+        double d20 = relPos.dot(e1);
+        double d21 = relPos.dot(e2);
+        double denom = d00 * d11 - d01 * d01;
+        double v = (d11 * d20 - d01 * d21) / denom;
+        double w = (d00 * d21 - d01 * d20) / denom;
+        double u = 1.0 - v - w;
+        
+        return n1 * u + n2 * v + n3 * w;        
+    } else return n1;
 }
 
 double Triangle::getSurfaceArea()
