@@ -50,7 +50,10 @@ Intersection Triangle::getIntersection (Ray ray)
     if (t > 0.0001) {
         result.happened = true;
         result.object = this;
-        result.normal = n1;
+        
+        if (customNormals) result.normal = n1 * (1 - u - v) + n2 * u + n3 * v;
+        else result.normal = n1;
+            
         result.distance = t;
         result.coords = ray.origin + ray.direction * t;
     }
@@ -91,7 +94,7 @@ Vector Triangle::getNormalAt(Vector position)
         double w = (d00 * d21 - d01 * d20) / denom;
         double u = 1.0 - v - w;
         
-        return n1 * u + n2 * v + n3 * w;        
+        return n1 * w + n2 * u + n3 * v;        
     } else return n1;
 }
 
