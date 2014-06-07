@@ -10,6 +10,8 @@
 #include <vector>
 #include <iostream>
 #include <fstream>
+#include <string>
+#include <sstream>
 
 using namespace std;
 
@@ -19,36 +21,76 @@ using namespace std;
 void importObj(Scene* scene, char* filename, Material m,
     Vector shift, double scale) {
     vector<Vector> vectors;
+    vector<Vector> normalVectors;
     
     ifstream stream;
     stream.open(filename);
     
+    int faces = 0;
+    
     while (!stream.eof()) {
-        char type;
+        string type;
         stream >> type;
         
-        switch (type) {
-            case 'v': {
-                double x, y, z;
-                stream >> x >> y >> z;
-                //TODO: fix the fact that Y is pointing downwards in tRayce
-                vectors.push_back(Vector(x, -y, z) * scale + shift);
-                break;
+        if (type == "v") {
+            double x, y, z;
+            stream >> x >> y >> z;
+            //TODO: fix the fact that Y is pointing downwards in tRayce
+            vectors.push_back(Vector(x, -y, z) * scale + shift);
+        } else if (type == "vn") {
+            double x, y, z;
+            stream >> x >> y >> z;
+            normalVectors.push_back(Vector(x, y, z));
+        } else if (type == "f") {
+            faces++;
+            //Face format: f vertex vertex vertex
+            //vertex: v/t/n
+            //where v is the vertex id, t is the texture UV coordinate id
+            //n is the normal direction at the vertex
+            //Any of the second or the third can be skipped:
+            //v, v/t, v//n are all valid
+            
+            int vIds[3];
+            int normalvIds[3] = {-1, -1, -1};
+            
+            for (int i = 0; i < 3; i++) {
+                string vertices;
+                stream >> vertices;
+                
+                //Split on '/'
+                istringstream ss(vertices);
+                string tok;
+                getline(ss, tok, '/'); //First number: vertex id
+                vIds[i] = atoi(tok.c_str());
+                
+                if (!ss.eof()) getline(ss, tok, '/'); //Second number: texture UV coordinates (discard)
+                
+                if (!ss.eof()) {
+                    getline(ss, tok, '/'); //Last number: normal vertex id
+                    normalvIds[i] = atoi(tok.c_str());
+                }
             }
-            case 'f': {
-                int v1, v2, v3;
-                stream >> v1 >> v2 >> v3;
-                Triangle *t = new Triangle(vectors[v1], vectors[v2], vectors[v3]);
-                t->material = m;
-                scene->addRenderable(t);
-                break;
+            
+            Triangle *t;
+            
+            //Vertex ids in OBJ are 1-based (so 0 never appears in a face description)
+            if (normalvIds[0] != -1 && normalvIds[1] != -1 && normalvIds[2] != -1) {
+                t = new Triangle(vectors[vIds[0]-1], vectors[vIds[1]-1], vectors[vIds[2]-1],
+                                 normalVectors[normalvIds[0]-1], normalVectors[normalvIds[1]-1], normalVectors[normalvIds[2]-1]);
+            } else {
+                t = new Triangle(vectors[vIds[0]-1], vectors[vIds[1]-1], vectors[vIds[2]-1]);
             }
-            default: {
-                stream.ignore('\n');
-                continue;
-            }
+            
+            t->material = m;
+            scene->addRenderable(t);
+        } else {
+            stream.ignore(numeric_limits<streamsize>::max(), '\n');
+            continue;
         }
     }
+    
+    cout << "Loaded " << vectors.size() << " vertices, " << normalVectors.size() <<
+        " normal vectors and " << faces << " faces." << endl;
     
     stream.close();
 }
@@ -132,7 +174,7 @@ int main()
     scene.camera.lensRadius = 0;
     scene.camera.focalDistance = 25;
 
-    scene.renderingMode = PATHTRACING;
+    scene.renderingMode = RAYTRACING;
     scene.pathTracingSamplesPerPixel = 4; //spp squared is actually cast
     scene.pathTracingMaxDepth = 3; // Too few samples and rays that go through
     // a sphere, bounce off a wall, through the sphere again and to the light
@@ -163,6 +205,10 @@ int main()
     Plane *rightPlane = new Plane(Vector(14, 0, 0), Vector(-1, 0, 0));
     Plane *topPlane = new Plane(Vector(0, -10, 0), Vector(0, 1, 0));
     Plane *backPlane = new Plane(Vector(0, 0, -10), Vector(0, 0, 1));
+    
+    Light *testLight = new PointLight();
+    testLight->position = Vector(1.5, -8, 0);
+    testLight->brightness = 1.0;
   
     oneLight->material.color = Vector(.95, .95, .95);
     oneLight->material.emittance = Vector(30, 30, 30);
@@ -192,6 +238,8 @@ int main()
     */
     scene.addRenderable(oneLight);
     
+    scene.addLight(testLight);
+    
     //scene.addRenderable(t1);
     //scene.addRenderable(t2);
     //scene.addRenderable(t3);
@@ -208,7 +256,8 @@ int main()
     //seed_drand(39332);
     //randomScene(&scene);
     
-    importObj(&scene, "teapot.obj", m, Vector(2, 10, 18), 3.0);
+    printf("Loading the object file...\n");
+    importObj(&scene, "wt_teapot.obj", m, Vector(2, 10, 12), 7.0);
     
     scene.render("test.bmp", NULL, 8);
 
