@@ -6,7 +6,9 @@
 #include "Vector.h"
 #include "Ray.h"
 #include "Random.h"
+#include "Box.h"
 #include <cstdlib>
+#include <algorithm>
 
 class Triangle: public Renderable {
 private:

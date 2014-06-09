@@ -5,6 +5,7 @@
 
 #include "Box.h"
 #include "Triangle.h"
+#include "Intersection.h"
 #include <vector>
 #include <algorithm>
 using namespace std;
@@ -18,7 +19,9 @@ public:
     
     KDNode() {}
     
-    KDNode* build(vector<Triangle*>&triangles, int depth) const;
+    static KDNode* build(vector<Triangle*>&triangles, int depth);
+    
+    Intersection getClosestIntersection(Ray r, double planeDist);
 };
 
 #endif
