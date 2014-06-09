@@ -14,15 +14,21 @@ private:
 public:
     Box() {}
     Box(Vector position, Vector size) {_aabb.point = position; _aabb.size = size;}
-    bool intersects(Ray ray);
+    bool intersects(Ray ray, double &dist);
     //Intersection getIntersection (Ray ray);
     
     void addBox(Box b);
     
     int getGreatestSpread() {
-        if (_aabb.size.getX() >= _aabb.size.getY() && _aabb.size.getX() >= _aabb.size.getZ()) return 0;
-        else if (_aabb.size.getY() >= _aabb.size.getX() && _aabb.size.getY() >= _aabb.size.getZ()) return 1;
-        else return 2;
+        double size = 0;
+        int axis = -1;
+        for (int i = 0; i < 3; i++) {
+            if (axis == -1 || _aabb.size[i] > size) {
+                axis = i; size = _aabb.size[i];
+            }
+        }
+        
+        return axis;
     }
     
     Vector getPosition() {return _aabb.point;}

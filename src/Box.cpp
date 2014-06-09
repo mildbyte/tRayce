@@ -1,6 +1,6 @@
 #include "Box.h"
 
-bool Box::intersects(Ray ray) {
+bool Box::intersects(Ray ray, double &dist) {
     double distance[6] = {-1, -1, -1, -1, -1, -1};
     Vector boxEnd = _aabb.point + _aabb.size;
 
@@ -14,7 +14,7 @@ bool Box::intersects(Ray ray) {
     distance[5] = (boxEnd.getZ() - ray.origin.getZ()) / ray.direction.getZ();
 
     int closestFace = -1;
-    double minDist = 0;
+    dist = 0;
 
     for (int i = 0; i < 6; i++) {
         Vector rayToBox = ray.origin + ray.direction * distance[i];
@@ -26,9 +26,9 @@ bool Box::intersects(Ray ray) {
             (rayToBox.getZ() > _aabb.point.getZ() - 0.001) &&
             (rayToBox.getZ() < boxEnd.getZ() + 0.001)
         ) {
-            if ((closestFace == -1) || distance[i] < minDist) {
-                closestFace = i;
-                minDist = distance[i];
+            if ((closestFace == -1) || distance[i] < dist) {
+                closestFace = i;        
+                dist = distance[i];
             }
         }
     }
@@ -88,6 +88,16 @@ Intersection Box::getIntersection(Ray ray) {
 }*/
 
 void Box::addBox(Box b) {
+    /*printf("Source box: ");
+    getPosition().print();
+    printf(" -> ");
+    getEndpoint().print();
+    printf("; added ");
+    b.getPosition().print();
+    printf(" -> ");
+    b.getEndpoint().print();
+    printf(" get ");*/
+    
     Vector difference = b._aabb.point - _aabb.point;
     difference.setX(min(difference.getX(), 0.0));
     difference.setY(min(difference.getY(), 0.0));
@@ -101,4 +111,10 @@ void Box::addBox(Box b) {
     difference.setZ(max(difference.getZ(), 0.0));
     
     _aabb.size += difference;
+    
+    /*
+    getPosition().print();
+    printf(" -> ");
+    getEndpoint().print();
+    printf("\n");*/
 }

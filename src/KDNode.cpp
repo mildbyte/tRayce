@@ -5,12 +5,18 @@ KDNode* KDNode::build(vector<Triangle*>& triangles, int depth) {
     node->triangles = triangles;
     node->left = NULL;
     node->right = NULL;
-    node->boundingBox = Box();
+    
+    //Use the first triangle's bounding box as base since 0,0,0->0,0,0 still
+    //keeps the end at 0,0,0 even if all triangles have negative coordinates.
+    //Are we guaranteed to have > 0 triangles?
+    node->boundingBox = triangles[0]->getBoundingBox();
     //TODO: only need to store the triangles in the leaves
     
+    printf("level %d, %d triangles\n", depth, triangles.size());
+    
     //Calculate the bounding box
-    for (auto it : triangles) {
-        node->boundingBox.addBox(it->getBoundingBox());
+    for (auto it = triangles.begin() + 1; it != triangles.end(); it++) {
+        node->boundingBox.addBox((*it)->getBoundingBox());
     }
     
     //Leaf node: fewer than 16 triangles
@@ -22,6 +28,13 @@ KDNode* KDNode::build(vector<Triangle*>& triangles, int depth) {
         [ax](Triangle* t1, Triangle* t2) {
             return t1->getMidpoint()[ax] < t2->getMidpoint()[ax]; 
         });
+        
+    printf("splitting on %d\n", ax);
+    printf("bounding box: from ");
+    node->boundingBox.getPosition().print();
+    printf(" to ");
+    node->boundingBox.getEndpoint().print();
+    printf("\n");
     
     //Split so that the surface areas in the left and the right child
     //are similar (surface area heuristic)
@@ -75,13 +88,6 @@ KDNode* KDNode::build(vector<Triangle*>& triangles, int depth) {
 
 //ignore hits that happened less than planeDist away from the ray origin
 Intersection KDNode::getFirstIntersection(Ray r, double planeDist) {
-    //If the ray doesn't intersect the bounding box, return
-    if (!boundingBox.intersects(r)) {
-        Intersection result;
-        result.happened = false;
-        return result;
-    }
-    
     //Base case: do an O(n) search through the triangles
     if (left == NULL && right == NULL) {
         Intersection bestInter;
@@ -109,11 +115,53 @@ Intersection KDNode::getFirstIntersection(Ray r, double planeDist) {
         return bestInter;
     }
     
-    //Recursive case: try the first child, then the second one
-    //(TODO: try the closest one first instead)
-    Intersection interL = left->getFirstIntersection(r, planeDist);
-    Intersection interR = right->getFirstIntersection(r, planeDist);
-    if (!interL.happened || (interR.happened && interL.distance > interR.distance))
-        return interR;
-    else return interL;
+    // Try the closest-intersecting box first, if nothing, move on to the second one
+    double lDist;
+    double rDist;
+    
+    /*
+    printf("Ray: ");
+    r.origin.print();
+    printf(" -> ");
+    r.direction.print();
+    printf("\n");
+    
+    printf("Left box: ");
+    left->boundingBox.getPosition().print();
+    printf(" -> ");
+    left->boundingBox.getEndpoint().print();
+    
+    printf("\nRight box: ");
+    right->boundingBox.getPosition().print();
+    printf(" -> ");
+    right->boundingBox.getEndpoint().print();
+    */
+    
+    bool lInter = left->boundingBox.intersects(r, lDist);
+    bool rInter = right->boundingBox.intersects(r, rDist);
+    
+    KDNode* first;
+    KDNode* second;
+    
+    if (lInter && (lDist <= rDist || !rInter)) {
+    //    printf("\nLeft intersected first\n");
+        first = left;
+        if (!rInter) second = NULL;
+        else second = right;
+    } else if (rInter && (rDist < lDist || !lInter)) {
+    //    printf("\nRight intersected first\n");
+        first = right;
+        if (!lInter) second = NULL;
+        else second = left;
+    } else {
+    //    printf("\nNo intersections\n");
+        Intersection inter;
+        inter.happened = false;
+        return inter;
+    }
+    
+    Intersection inter = first->getFirstIntersection(r, planeDist);
+    if (!inter.happened && second != NULL) inter = second->getFirstIntersection(r, planeDist);
+    
+    return inter;
 }
