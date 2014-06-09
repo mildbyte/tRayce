@@ -74,7 +74,7 @@ KDNode* KDNode::build(vector<Triangle*>& triangles, int depth) {
 }
 
 //ignore hits that happened less than planeDist away from the ray origin
-Intersection KDNode::getClosestIntersection(Ray r, double planeDist) {
+Intersection KDNode::getFirstIntersection(Ray r, double planeDist) {
     //If the ray doesn't intersect the bounding box, return
     if (!boundingBox.intersects(r)) {
         Intersection result;
@@ -111,7 +111,9 @@ Intersection KDNode::getClosestIntersection(Ray r, double planeDist) {
     
     //Recursive case: try the first child, then the second one
     //(TODO: try the closest one first instead)
-    Intersection inter = left->getClosestIntersection(r, planeDist);
-    if (!inter.happened) return right->getClosestIntersection(r, planeDist);
-    else return inter;
+    Intersection interL = left->getFirstIntersection(r, planeDist);
+    Intersection interR = right->getFirstIntersection(r, planeDist);
+    if (!interL.happened || (interR.happened && interL.distance > interR.distance))
+        return interR;
+    else return interL;
 }

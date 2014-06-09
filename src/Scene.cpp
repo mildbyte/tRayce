@@ -20,6 +20,10 @@ double halton(int index, int base) {
     return result;
 }
 
+void Scene::addTriangle(Triangle* triangle) {
+    trianglesVector_.push_back(triangle);
+}
+
 void Scene::addRenderable(Renderable* renderable) {
     renderables_.addRenderable(renderable);
 }
@@ -392,8 +396,14 @@ Vector Scene::pathTrace(const Ray ray, int depth) {
     //If we are casting a ray from the eye into the scene, cull collisions behind the image plane
     if (depth == pathTracingMaxDepth) {
         inter = renderables_.getFirstIntersection(ray, camera.planeDistance);
+
+        Intersection inter2 = triangles_->getFirstIntersection(ray, camera.planeDistance);    
+        if (!inter.happened || (inter2.happened && inter.distance > inter2.distance)) inter = inter2;
     } else {
         inter = renderables_.getFirstIntersection(ray, 0);
+        
+        Intersection inter2 = triangles_->getFirstIntersection(ray, 0);
+        if (!inter.happened || (inter2.happened && inter.distance > inter2.distance)) inter = inter2;
     }
 
     if (!inter.happened) {
@@ -444,6 +454,9 @@ Vector Scene::traceRay(const Ray ray, int level) {
 
     //If the ray hits something, return the background color.
     Intersection inter = renderables_.getFirstIntersection(ray, camera.planeDistance);
+    
+    Intersection inter2 = triangles_->getFirstIntersection(ray, camera.planeDistance);    
+    if (!inter.happened || (inter2.happened && inter.distance > inter2.distance)) inter = inter2;
 
     if (!inter.happened) {
         prevHit_ = NULL;
@@ -774,6 +787,10 @@ void Scene::render(char* filename, BitmapPixel (*postProcess)(BitmapPixel), int 
             haltonYCoords_[i] = halton(i, 3);
         }
     }
+    
+    //Build a kd-tree for the triangles
+    printf("Building a kd-tree for the triangles...\n");
+    triangles_ = KDNode::build(trianglesVector_, 0);
 
     printf("Rendering...\n");
 

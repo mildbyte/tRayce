@@ -9,6 +9,8 @@
 #include "Camera.h"
 #include "PhotonMap.h"
 #include "Random.h"
+#include "KDNode.h"
+#include "Triangle.h"
 #include <list>
 #include <cstring>
 #include <cstdlib>
@@ -30,6 +32,9 @@ private:
     //Scene objects
     std::list<Light*> lights_;
     RenderablesList renderables_;
+    
+    std::vector<Triangle*> trianglesVector_;
+    KDNode* triangles_;
 
     //The photon map
     PhotonMap* photonMap_;
@@ -104,6 +109,7 @@ public:
     //Add objects to the scene
     void addRenderable(Renderable* renderable);
     void addLight(Light* light);
+    void addTriangle(Triangle* triangle);
 
     //Render the scene to a file
     void render(char* filename, BitmapPixel (*postProcess)(BitmapPixel), int noThreads);

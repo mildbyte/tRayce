@@ -21,7 +21,7 @@ public:
     
     static KDNode* build(vector<Triangle*>&triangles, int depth);
     
-    Intersection getClosestIntersection(Ray r, double planeDist);
+    Intersection getFirstIntersection(Ray r, double planeDist);
 };
 
 #endif

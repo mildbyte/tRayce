@@ -82,7 +82,8 @@ void importObj(Scene* scene, char* filename, Material m,
             }
             
             t->material = m;
-            scene->addRenderable(t);
+            scene->addTriangle(t);
+            //scene->addRenderable(t);
         } else {
             stream.ignore(numeric_limits<streamsize>::max(), '\n');
             continue;
@@ -168,15 +169,15 @@ int main()
     scene.msaaSamples = 2;
     scene.msaaOptimize = false;
     scene.softShadowSamples = 1;
-    scene.traceDepth = 1;
+    scene.traceDepth = 3;
     scene.camera.position.setZ(-20);
     scene.camera.planeDistance = 15;
     scene.camera.lensRadius = 0;
     scene.camera.focalDistance = 25;
 
-    scene.renderingMode = RAYTRACING;
+    scene.renderingMode = PATHTRACING;
     scene.pathTracingSamplesPerPixel = 4; //spp squared is actually cast
-    scene.pathTracingMaxDepth = 3; // Too few samples and rays that go through
+    scene.pathTracingMaxDepth = 5; // Too few samples and rays that go through
     // a sphere, bounce off a wall, through the sphere again and to the light
     // will terminate too early
     
@@ -207,8 +208,8 @@ int main()
     Plane *backPlane = new Plane(Vector(0, 0, -10), Vector(0, 0, 1));
     
     Light *testLight = new PointLight();
-    testLight->position = Vector(1.5, -8, 0);
-    testLight->brightness = 1.0;
+    testLight->position = Vector(1.5, -8, -5);
+    testLight->brightness = 2.0;
   
     oneLight->material.color = Vector(.95, .95, .95);
     oneLight->material.emittance = Vector(30, 30, 30);
@@ -221,12 +222,12 @@ int main()
     backPlane->material.color = Vector(.95, .95, .95);
     
     Material m;
-//    m.isTransparent = true;
-//    m.transparency = 0.95;
-//    m.reflectivity = 0.05;
-//    m.isReflective = true;
-//    m.refrIndex = 1.42;
-    m.color = Vector(0.933, 0.933, 0.941);
+    //m.isTransparent = true;
+    m.transparency = 0.95;
+    m.reflectivity = 0.05;
+    //m.isReflective = true;
+    m.refrIndex = 1.42;
+    m.color = Vector(1.0, 0.1, 0.6);
 /*    
     Triangle *t1 = new Triangle(Vector(4, 10, 13), Vector(8, -3, 9), Vector(12, 10, 13));
     Triangle *t2 = new Triangle(Vector(12, 10, 13), Vector(8, -3, 9), Vector(8, 10, 5));
@@ -257,7 +258,7 @@ int main()
     //randomScene(&scene);
     
     printf("Loading the object file...\n");
-    importObj(&scene, "wt_teapot.obj", m, Vector(2, 10, 12), 7.0);
+    importObj(&scene, "wt_teapot.obj", m, Vector(2, 11, 12), 7.0);
     
     scene.render("test.bmp", NULL, 8);
 
