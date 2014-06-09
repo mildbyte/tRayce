@@ -1,27 +1,23 @@
 #include "Box.h"
 
 bool Box::intersects(Ray ray) {
-    Vector rayOrigin = ray.origin;
-    Vector rayDirection = ray.direction;
     double distance[6] = {-1, -1, -1, -1, -1, -1};
     Vector boxEnd = _aabb.point + _aabb.size;
 
+    distance[0] = (_aabb.point.getX() - ray.origin.getX()) / ray.direction.getX();
+    distance[3] = (boxEnd.getX() - ray.origin.getX()) / ray.direction.getX();
 
+    distance[1] = (_aabb.point.getY() - ray.origin.getY()) / ray.direction.getY();
+    distance[4] = (boxEnd.getY() - ray.origin.getY()) / ray.direction.getY();
 
-    distance[0] = (_aabb.point.getX() - rayOrigin.getX()) / ray.direction.getX();
-    distance[3] = (boxEnd.getX() - rayOrigin.getX()) / ray.direction.getX();
-
-    distance[1] = (_aabb.point.getY() - rayOrigin.getY()) / ray.direction.getY();
-    distance[4] = (boxEnd.getY() - rayOrigin.getY()) / ray.direction.getY();
-
-    distance[2] = (_aabb.point.getZ() - rayOrigin.getZ()) / ray.direction.getZ();
-    distance[5] = (boxEnd.getZ() - rayOrigin.getZ()) / ray.direction.getZ();
+    distance[2] = (_aabb.point.getZ() - ray.origin.getZ()) / ray.direction.getZ();
+    distance[5] = (boxEnd.getZ() - ray.origin.getZ()) / ray.direction.getZ();
 
     int closestFace = -1;
     double minDist = 0;
 
     for (int i = 0; i < 6; i++) {
-        Vector rayToBox = rayOrigin + ray.direction * distance[i];
+        Vector rayToBox = ray.origin + ray.direction * distance[i];
         if (
             (rayToBox.getX() > _aabb.point.getX() - 0.001) &&
             (rayToBox.getX() < boxEnd.getX() + 0.001) &&
@@ -38,7 +34,7 @@ bool Box::intersects(Ray ray) {
     }
     return (closestFace != -1);
 }
-
+/*
 Intersection Box::getIntersection(Ray ray) {
     double distance[6] = {-1, -1, -1, -1, -1, -1};
     Vector boxEnd = _aabb.point + _aabb.size;
@@ -89,4 +85,20 @@ Intersection Box::getIntersection(Ray ray) {
     }
 
     return result;
+}*/
+
+void Box::addBox(Box b) {
+    Vector difference = b._aabb.point - _aabb.point;
+    difference.setX(min(difference.getX(), 0.0));
+    difference.setY(min(difference.getY(), 0.0));
+    difference.setZ(min(difference.getZ(), 0.0));
+    
+    _aabb.point += difference;
+    
+    difference = b._aabb.point + b._aabb.size - _aabb.point - _aabb.size;
+    difference.setX(max(difference.getX(), 0.0));
+    difference.setY(max(difference.getY(), 0.0));
+    difference.setZ(max(difference.getZ(), 0.0));
+    
+    _aabb.size += difference;
 }

@@ -4,6 +4,7 @@
 
 #include <cmath>
 #include <cstdio>
+#include <stdexcept>
 
 const double PI = 4 * atan(1);
 
@@ -41,6 +42,15 @@ public:
     Vector operator-();
 
     Vector operator*(const double rhs) {return Vector(x_ * rhs, y_ * rhs, z_ * rhs);}
+    
+    double& operator[](int ix) {
+        switch (ix) {
+            case 0: return x_; break;
+            case 1: return y_; break;
+            case 2: return z_; break;
+            default: throw std::out_of_range("vector subscript");
+        }
+    }
 
     //Dot and cross products
     double dot(const Vector& rhs) {return x_ * rhs.x_ + y_ * rhs.y_ + z_ * rhs.z_;}
