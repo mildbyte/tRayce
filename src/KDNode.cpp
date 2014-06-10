@@ -6,17 +6,22 @@ KDNode* KDNode::build(vector<Triangle*>& triangles, int depth) {
     node->left = NULL;
     node->right = NULL;
     
-    //Use the first triangle's bounding box as base since 0,0,0->0,0,0 still
-    //keeps the end at 0,0,0 even if all triangles have negative coordinates.
-    //Are we guaranteed to have > 0 triangles?
-    node->boundingBox = triangles[0]->getBoundingBox();
     //TODO: only need to store the triangles in the leaves
     
-    printf("level %d, %d triangles\n", depth, triangles.size());
+    //printf("level %d, %d triangles\n", depth, triangles.size());
     
     //Calculate the bounding box
-    for (auto it = triangles.begin() + 1; it != triangles.end(); it++) {
-        node->boundingBox.addBox((*it)->getBoundingBox());
+    bool firstTriangle = true;
+    
+    for (auto it : triangles) {
+        if (firstTriangle) {
+            firstTriangle = false;
+            //Use the first triangle's bounding box as base since 0,0,0->0,0,0 still
+            //keeps the end at 0,0,0 even if all triangles have negative coordinates.
+            //Are we guaranteed to have > 0 triangles?
+            node->boundingBox = it->getBoundingBox();
+        }
+        node->boundingBox.addBox(it->getBoundingBox());
     }
     
     //Leaf node: fewer than 16 triangles
@@ -28,13 +33,15 @@ KDNode* KDNode::build(vector<Triangle*>& triangles, int depth) {
         [ax](Triangle* t1, Triangle* t2) {
             return t1->getMidpoint()[ax] < t2->getMidpoint()[ax]; 
         });
-        
+    
+    /*
     printf("splitting on %d\n", ax);
     printf("bounding box: from ");
     node->boundingBox.getPosition().print();
     printf(" to ");
     node->boundingBox.getEndpoint().print();
     printf("\n");
+    */
     
     //Split so that the surface areas in the left and the right child
     //are similar (surface area heuristic)
@@ -46,7 +53,7 @@ KDNode* KDNode::build(vector<Triangle*>& triangles, int depth) {
     double split = cumulSA[cumulSA.size()-1] / 2.0;
     int splitPos = distance(cumulSA.begin(), upper_bound(cumulSA.begin(), cumulSA.end(), split));
     
-    double splitCoordinate = triangles[splitPos]->getMidpoint()[ax];
+    double splitCoordinate = triangles[splitPos]->getBoundingBox().getPosition()[ax];
 
     vector<Triangle*> left;
     vector<Triangle*> right;
@@ -57,6 +64,7 @@ KDNode* KDNode::build(vector<Triangle*>& triangles, int depth) {
         //If the triangle's bounding box starts before the split coordinate,
         //add it to the left subtree.
         bool inLeft = false;
+        
         if (t->getBoundingBox().getPosition()[ax] <= splitCoordinate) {
             inLeft = true;
             left.push_back(t);
@@ -78,7 +86,7 @@ KDNode* KDNode::build(vector<Triangle*>& triangles, int depth) {
     //turn the node into a leaf.
     if (straddling == right.size() || straddling == left.size()) return node;
     
-    printf("L%d R%d S%d\n", left.size(), right.size(), straddling);
+    //printf("L%d R%d S%d\n", left.size(), right.size(), straddling);
     
     node->left = KDNode::build(left, depth+1);
     node->right = KDNode::build(right, depth+1);
@@ -115,12 +123,8 @@ Intersection KDNode::getFirstIntersection(Ray r, double planeDist) {
         return bestInter;
     }
     
-    // Try the closest-intersecting box first, if nothing, move on to the second one
-    double lDist;
-    double rDist;
-    
     /*
-    printf("Ray: ");
+        printf("Ray: ");
     r.origin.print();
     printf(" -> ");
     r.direction.print();
@@ -137,31 +141,41 @@ Intersection KDNode::getFirstIntersection(Ray r, double planeDist) {
     right->boundingBox.getEndpoint().print();
     */
     
+    // Try the closest-intersecting box first, if nothing, move on to the second one
+    double lDist;
+    double rDist;
+    
     bool lInter = left->boundingBox.intersects(r, lDist);
     bool rInter = right->boundingBox.intersects(r, rDist);
     
     KDNode* first;
     KDNode* second;
+
+    Intersection inter;
+    inter.happened = false;
     
     if (lInter && (lDist <= rDist || !rInter)) {
-    //    printf("\nLeft intersected first\n");
-        first = left;
-        if (!rInter) second = NULL;
-        else second = right;
-    } else if (rInter && (rDist < lDist || !lInter)) {
-    //    printf("\nRight intersected first\n");
-        first = right;
-        if (!lInter) second = NULL;
-        else second = left;
-    } else {
-    //    printf("\nNo intersections\n");
-        Intersection inter;
-        inter.happened = false;
-        return inter;
+        inter = left->getFirstIntersection(r, planeDist);
+        if (!inter.happened && rInter) inter = right->getFirstIntersection(r, planeDist);
+    } else if (rInter && (rDist <= lDist || !lInter)) {
+        inter = right->getFirstIntersection(r, planeDist);
+        if (!inter.happened && lInter) inter = left->getFirstIntersection(r, planeDist);
     }
     
-    Intersection inter = first->getFirstIntersection(r, planeDist);
-    if (!inter.happened && second != NULL) inter = second->getFirstIntersection(r, planeDist);
-    
     return inter;
+    
+    /* TODO: no artifacts with this method (when checking both children all the time, after checking the bounding boxes)
+    
+    Intersection i1, i2;
+    i1.happened = false;
+    i2.happened = false;
+    
+    if (lInter) i1 = left->getFirstIntersection(r, planeDist);
+    if (rInter) i2 = right->getFirstIntersection(r, planeDist);
+    
+    if (!i1.happened) return i2;
+    if (!i2.happened) return i1;
+    
+    if (i1.distance < i2.distance) return i1; else return i2;
+    */
 }
