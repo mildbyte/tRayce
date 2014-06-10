@@ -85,19 +85,15 @@ void Box::addBox(Box b) {
     b.getEndpoint().print();
     printf(" get ");*/
     
-    Vector difference = b._aabb.point - _aabb.point;
-    difference.setX(min(difference.getX(), 0.0));
-    difference.setY(min(difference.getY(), 0.0));
-    difference.setZ(min(difference.getZ(), 0.0));
+    Vector end = _aabb.point + _aabb.size;
     
-    _aabb.point += difference;
+    for (int i = 0; i < 3; i++) _aabb.point[i] = min(_aabb.point[i], b._aabb.point[i]);
     
-    difference = b._aabb.point + b._aabb.size - _aabb.point - _aabb.size;
-    difference.setX(max(difference.getX(), 0.0));
-    difference.setY(max(difference.getY(), 0.0));
-    difference.setZ(max(difference.getZ(), 0.0));
+    Vector bEnd = b._aabb.point + b._aabb.size;
     
-    _aabb.size += difference;
+    for (int i = 0; i < 3; i++) end[i] = max(end[i], bEnd[i]);
+    
+    _aabb.size = end - _aabb.point;
     
     /*
     getPosition().print();
