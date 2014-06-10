@@ -37,7 +37,7 @@ private:
         minV.setY(min(minV.getY(), v3.getY()));
         minV.setZ(min(minV.getZ(), v3.getZ()));
         
-        Vector maxV = v2;
+        Vector maxV = v1;
         
         maxV.setX(max(maxV.getX(), v2.getX()));
         maxV.setY(max(maxV.getY(), v2.getY()));
@@ -78,6 +78,8 @@ public:
     }
     
     Box getBoundingBox() {return boundingBox;}
+    
+    void print() { v1.print(); printf(" -> "); v2.print(); printf(" -> "); v3.print(); }
     
     virtual bool intersects(Ray ray);
     virtual Intersection getIntersection (Ray ray);
