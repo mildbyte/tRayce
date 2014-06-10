@@ -1,38 +1,25 @@
 #include "Box.h"
 
 bool Box::intersects(Ray ray, double &dist) {
-    double distance[6] = {-1, -1, -1, -1, -1, -1};
     Vector boxEnd = _aabb.point + _aabb.size;
 
-    distance[0] = (_aabb.point.getX() - ray.origin.getX()) / ray.direction.getX();
-    distance[3] = (boxEnd.getX() - ray.origin.getX()) / ray.direction.getX();
+    double t1 = (_aabb.point.getX() - ray.origin.getX()) / ray.direction.getX();
+    double t2 = (boxEnd.getX() - ray.origin.getX()) / ray.direction.getX();
 
-    distance[1] = (_aabb.point.getY() - ray.origin.getY()) / ray.direction.getY();
-    distance[4] = (boxEnd.getY() - ray.origin.getY()) / ray.direction.getY();
+    double t3 = (_aabb.point.getY() - ray.origin.getY()) / ray.direction.getY();
+    double t4 = (boxEnd.getY() - ray.origin.getY()) / ray.direction.getY();
 
-    distance[2] = (_aabb.point.getZ() - ray.origin.getZ()) / ray.direction.getZ();
-    distance[5] = (boxEnd.getZ() - ray.origin.getZ()) / ray.direction.getZ();
+    double t5 = (_aabb.point.getZ() - ray.origin.getZ()) / ray.direction.getZ();
+    double t6 = (boxEnd.getZ() - ray.origin.getZ()) / ray.direction.getZ();
 
-    int closestFace = -1;
-    dist = 0;
-
-    for (int i = 0; i < 6; i++) {
-        Vector rayToBox = ray.origin + ray.direction * distance[i];
-        if (
-            (rayToBox.getX() > _aabb.point.getX() - 0.001) &&
-            (rayToBox.getX() < boxEnd.getX() + 0.001) &&
-            (rayToBox.getY() > _aabb.point.getY() - 0.001) &&
-            (rayToBox.getY() < boxEnd.getY() + 0.001) &&
-            (rayToBox.getZ() > _aabb.point.getZ() - 0.001) &&
-            (rayToBox.getZ() < boxEnd.getZ() + 0.001)
-        ) {
-            if ((closestFace == -1) || distance[i] < dist) {
-                closestFace = i;        
-                dist = distance[i];
-            }
-        }
-    }
-    return (closestFace != -1);
+    double tmin = max(max(min(t1, t2), min(t3, t4)), min(t5, t6));
+    double tmax = min(min(max(t1, t2), max(t3, t4)), max(t5, t6));
+    
+    if (tmax < 0) return false;
+    if (tmin > tmax) return false;
+    
+    dist = tmin;
+    return true;
 }
 /*
 Intersection Box::getIntersection(Ray ray) {
