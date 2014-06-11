@@ -40,7 +40,7 @@ void importObj(Scene* scene, char* filename, Material m,
         } else if (type == "vn") {
             double x, y, z;
             stream >> x >> y >> z;
-            normalVectors.push_back(Vector(x, y, z));
+            normalVectors.push_back(Vector(x, -y, z));
         } else if (type == "f") {
             faces++;
             //Face format: f vertex vertex vertex
@@ -166,16 +166,17 @@ int main()
     scene.camera.height = 12;
     scene.camera.position.setX(1.5);
     scene.backgroundColor.set(0, 0, 0);
-    scene.msaaSamples = 2;
+    //scene.doAA = true;
+    //scene.msaaSamples = 4;
     scene.msaaOptimize = false;
     scene.softShadowSamples = 1;
-    scene.traceDepth = 3;
+    scene.traceDepth = 5;
     scene.camera.position.setZ(-20);
     scene.camera.planeDistance = 15;
     scene.camera.lensRadius = 0;
     scene.camera.focalDistance = 25;
 
-    scene.renderingMode = PATHTRACING;
+    scene.renderingMode = RAYTRACING;
     scene.pathTracingSamplesPerPixel = 4; //spp squared is actually cast
     scene.pathTracingMaxDepth = 5; // Too few samples and rays that go through
     // a sphere, bounce off a wall, through the sphere again and to the light
@@ -208,7 +209,7 @@ int main()
     Plane *backPlane = new Plane(Vector(0, 0, -10), Vector(0, 0, 1));
     
     Light *testLight = new PointLight();
-    testLight->position = Vector(1.5, -8, -5);
+    testLight->position = Vector(1.5, -9.9, -5);
     testLight->brightness = 2.0;
   
     oneLight->material.color = Vector(.95, .95, .95);
@@ -219,15 +220,18 @@ int main()
     leftPlane->material.color = Vector(.95, .95, .95);
     rightPlane->material.color = Vector(.95, .95, .95);
     topPlane->material.color = Vector(.95, .95, .95);
+    topPlane->material.emittance = Vector(5, 5, 5);
     backPlane->material.color = Vector(.95, .95, .95);
     
     Material m;
     //m.isTransparent = true;
-    m.transparency = 0.95;
-    m.reflectivity = 0.05;
-    //m.isReflective = true;
-    m.refrIndex = 1.42;
-    m.color = Vector(1.0, 0.1, 0.6);
+    m.transparency = 1.0;
+    //m.reflectivity = 1.0;
+	//m.isReflective = true;
+    //m.diffuse = 1.0;
+    m.refrIndex = 1.0;
+    //m.color = Vector(0.392, 0.584, 0.929);
+	m.color = Vector(1,1,1);
 /*    
     Triangle *t1 = new Triangle(Vector(4, 10, 13), Vector(8, -3, 9), Vector(12, 10, 13));
     Triangle *t2 = new Triangle(Vector(12, 10, 13), Vector(8, -3, 9), Vector(8, 10, 5));
@@ -237,7 +241,7 @@ int main()
     t2->material = m;
     t3->material = m;
     */
-    scene.addRenderable(oneLight);
+    //scene.addRenderable(oneLight);
     
     scene.addLight(testLight);
     
@@ -258,7 +262,7 @@ int main()
     //randomScene(&scene);
     
     printf("Loading the object file...\n");
-    importObj(&scene, "wt_teapot.obj", m, Vector(2, 11, 12), 7.0);
+    importObj(&scene, "bunny.obj", m, Vector(2, 10, 10), 5.0);
     
     scene.render("test.bmp", NULL, 8);
 
