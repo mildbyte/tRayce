@@ -67,8 +67,8 @@ void Bitmap::saveToFile(char* filename) {
 
     //Open the output file and write the header
     FILE* output;
-
-    output = fopen(filename, "wb");
+	
+	fopen_s(&output, filename, "wb");
 
     fwrite(&bfheader, 1, sizeof(bfheader), output);
     fwrite(&biheader, 1, sizeof(biheader), output);

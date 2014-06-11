@@ -2,6 +2,7 @@
 #define RANDOM_H
 
 #include <random>
+#include <cstdint>
 
 //Generates a random number between 0.0 and 1.0
 double drand();
