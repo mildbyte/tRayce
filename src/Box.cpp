@@ -15,8 +15,9 @@ bool Box::intersects(Ray ray, double &dist) {
     double tmin = max(max(min(t1, t2), min(t3, t4)), min(t5, t6));
     double tmax = min(min(max(t1, t2), max(t3, t4)), max(t5, t6));
     
-    if (tmax < 0) return false;
-    if (tmin > tmax) return false;
+    //Otherwise degenerate BBs (one dimension zero) are not intersected
+    if (tmax < 0.0001) return false;
+    if (tmin-tmax > 0.0001) return false;
     
     dist = tmin;
     return true;

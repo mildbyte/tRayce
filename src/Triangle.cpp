@@ -11,11 +11,11 @@ bool Triangle::intersects(Ray ray)
     
     Vector T = ray.origin - v1;
     double u = T.dot(P) * invDet;
-    if (u < 0 || u > 1) return false;
+    if (u < 0.0001 || u > 1.0001) return false;
     
     Vector Q = T.cross(e1);
     double v = ray.direction.dot(Q) * invDet;
-    if (u < 0 || u + v > 1) return false;
+    if (u < 0.0001 || u + v > 1.0001) return false;
     
     double t = e2.dot(Q) * invDet;
     if (t > 0.0001) return true;
@@ -40,11 +40,11 @@ Intersection Triangle::getIntersection (Ray ray)
     
     Vector T = ray.origin - v1;
     double u = T.dot(P) * invDet;
-    if (u < 0 || u > 1) return result;
+    if (u < 0.0001 || u > 1.0001) return result;
     
     Vector Q = T.cross(e1);
     double v = ray.direction.dot(Q) * invDet;
-    if (v < 0 || u + v > 1) return result;
+    if (v < 0.0001 || u + v > 1.0001) return result;
     
     double t = e2.dot(Q) * invDet;
     if (t > 0.0001) {
