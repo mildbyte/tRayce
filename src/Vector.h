@@ -14,7 +14,7 @@ private:
 public:
     //Constructor
     Vector(){}
-    Vector(double x, double y, float z) {x_ = x; y_ = y; z_ = z;}
+    Vector(double x, double y, double z) {x_ = x; y_ = y; z_ = z;}
 
     //Getters
     inline double getX() {return x_;}
@@ -57,7 +57,7 @@ public:
     Vector cross(const Vector& rhs); //too long to be featured here
 
     double normalize();
-    double modulus() {return sqrtf(x_ * x_ + y_ * y_ + z_ * z_);}
+    double modulus() {return sqrt(x_ * x_ + y_ * y_ + z_ * z_);}
 
     void print() {printf("%f, %f, %f", x_, y_, z_);}
 
@@ -68,10 +68,10 @@ public:
         z_ = z_ / (1 + z_);
     }
 
-    void toPow(double pow) {
-        x_ = powf(x_, pow);
-        y_ = powf(y_, pow);
-        z_ = powf(z_, pow);
+    void toPow(double p) {
+        x_ = pow(x_, p);
+        y_ = pow(y_, p);
+        z_ = pow(z_, p);
     }
 
 };
