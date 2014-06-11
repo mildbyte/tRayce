@@ -9,6 +9,7 @@
 #include <vector>
 #include <algorithm>
 #include <iterator>
+#include <set>
 using namespace std;
 
 class KDNode {
@@ -23,6 +24,16 @@ public:
     static KDNode* build(vector<Triangle*>&triangles, int depth);
     
     Intersection getFirstIntersection(Ray r, double planeDist);
+    
+    set<Triangle*> getItems() {
+        if (left == NULL) return set<Triangle*>(triangles.begin(), triangles.end());
+        
+        set<Triangle*> leftI = left->getItems();
+        set<Triangle*> rightI = right->getItems();
+        leftI.insert(rightI.begin(), rightI.end());
+        
+        return leftI;
+    }
 };
 
 #endif

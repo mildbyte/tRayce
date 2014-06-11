@@ -209,7 +209,7 @@ Vector Scene::calculatePhongColor(Intersection inter, Ray ray) {
         //the stronger is the specular coefficient.
         double specCoef = ray.direction.dot(reflLight);
         if (specCoef > 0) {
-            specCoef = powf(specCoef,
+            specCoef = pow(specCoef,
                             inter.object->material.specularExp) * shade;
 
             //Apply the specular highlight to the color
@@ -453,9 +453,12 @@ Vector Scene::traceRay(const Ray ray, int level) {
     if (level <= 0) return backgroundColor;
 
     //If the ray hits something, return the background color.
-    Intersection inter = renderables_.getFirstIntersection(ray, camera.planeDistance);
+
+	double planeDist = level == traceDepth ? camera.planeDistance : 0;
+
+    Intersection inter = renderables_.getFirstIntersection(ray, planeDist);
     
-    Intersection inter2 = triangles_->getFirstIntersection(ray, camera.planeDistance);    
+    Intersection inter2 = triangles_->getFirstIntersection(ray, planeDist);
     if (!inter.happened || (inter2.happened && inter.distance > inter2.distance)) inter = inter2;
 
     if (!inter.happened) {
@@ -760,7 +763,7 @@ void Scene::threadDoWork(int threadId, int noThreads) {
 
 		pixelsRendered_++;
 		if (pixelsRendered_ % onePercent == 0) {
-			printf("Rendered %d pixel(s) out of %d (%f\%)\r", pixelsRendered_, 
+			printf("Rendered %d pixel(s) out of %d (%f%%)\r", pixelsRendered_, 
 				(width_ * height_),
 				pixelsRendered_ / (double)(width_ * height_) * 100);
             fflush(stdout);
@@ -791,6 +794,8 @@ void Scene::render(char* filename, BitmapPixel (*postProcess)(BitmapPixel), int 
     //Build a kd-tree for the triangles
     printf("Building a kd-tree for the triangles...\n");
     triangles_ = KDNode::build(trianglesVector_, 0);
+    
+    printf("Built, %d triangles\n", triangles_->getItems().size());
 
     printf("Rendering...\n");
 

@@ -69,7 +69,7 @@ public:
         e1 = v2 - v1;
         e2 = v3 - v1;
         n1 = e1.cross(e2);
-        area = n2.normalize() / 2;
+        area = n1.normalize() / 2;
         calcBB();
     }
     

@@ -45,7 +45,7 @@ Vector Plane::sampleSurface() {
     // sampling the plane as a light emitter for the purposes of photon mapping is problematic
 }
 
-Vector Plane::getNormalAt(Vector position) {
+Vector Plane::getNormalAt(Vector) {
     return normal_;
 }
     

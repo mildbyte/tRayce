@@ -1,4 +1,5 @@
 #include "KDNode.h"
+#include <cassert>
 
 KDNode* KDNode::build(vector<Triangle*>& triangles, int depth) {
     KDNode* node = new KDNode();
@@ -25,7 +26,7 @@ KDNode* KDNode::build(vector<Triangle*>& triangles, int depth) {
     }
     
     //Leaf node: fewer than 16 triangles
-    if (triangles.size() < 16) return node;
+    if (triangles.size() < 4) return node;
     
     //Choose a greatest spread axis and sort the triangles by it
     int ax = node->boundingBox.getGreatestSpread();
@@ -115,6 +116,22 @@ Intersection KDNode::getFirstIntersection(Ray r, double planeDist) {
                     mindist = currInter.distance;
                     found = true;
                 }
+                
+                Box bb = t->getBoundingBox();
+                double d;
+                if (!bb.intersects(r, d)) {
+                    printf("ASSERTION FAILED: triangle ");
+                    t->print();
+                    printf("; ray ");
+                    r.origin.print();
+                    printf(" -> ");
+                    r.direction.print();
+                    printf("; box ");
+                    bb.getPosition().print();
+                    printf(" -> ");
+                    bb.getEndpoint().print();
+                    printf(": Triangle intersected, BB wasn't\n");
+                }
             }
         }
 
@@ -147,7 +164,7 @@ Intersection KDNode::getFirstIntersection(Ray r, double planeDist) {
     
     bool lInter = left->boundingBox.intersects(r, lDist);
     bool rInter = right->boundingBox.intersects(r, rDist);
-    
+    /*
     KDNode* first;
     KDNode* second;
 
@@ -163,8 +180,11 @@ Intersection KDNode::getFirstIntersection(Ray r, double planeDist) {
     }
     
     return inter;
-    
+*/
     /* TODO: no artifacts with this method (when checking both children all the time, after checking the bounding boxes)
+  */
+    //lInter = true;
+    //rInter = true;
     
     Intersection i1, i2;
     i1.happened = false;
@@ -177,5 +197,4 @@ Intersection KDNode::getFirstIntersection(Ray r, double planeDist) {
     if (!i2.happened) return i1;
     
     if (i1.distance < i2.distance) return i1; else return i2;
-    */
 }
