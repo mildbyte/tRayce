@@ -6,7 +6,7 @@ bool Plane::intersects(Ray ray) {
 
     //Numerator being zero could also mean that the ray lies completely in the
     //plane
-    if (std::abs(denominator) < 0.0001) return false;
+    if (std::abs(denominator) < EPSILON) return false;
 
     double distance = numerator / denominator;
     if (distance < 0) return false;
@@ -19,7 +19,7 @@ Intersection Plane::getIntersection(Ray ray) {
     double denominator = ray.direction.dot(normal_);
     double numerator = normal_.dot(point_ - ray.origin);
 
-    if (std::abs(denominator) < 0.0001) {
+    if (std::abs(denominator) < EPSILON) {
         result.happened = false;
         return result;
     }

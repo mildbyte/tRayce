@@ -18,9 +18,9 @@ bool Sphere::intersects(Ray ray) {
     if (d < 0.0) return false;
 
     double t = (-b - sqrt(d)) * 0.5;
-    if (t > 0.0001) return true;
+    if (t > EPSILON) return true;
     t = (-b + sqrt(d)) * 0.5;
-    if (t > 0.0001) return true;
+    if (t > EPSILON) return true;
     return false;
 }
 
@@ -45,10 +45,10 @@ Intersection Sphere::getIntersection(Ray ray) {
     if (d < 0) return result;
 
     double t = (-b - sqrt(d)) * 0.5;
-    if (t > 0.001) result.happened = true;
+    if (t > EPSILON) result.happened = true;
     else {
         t = (-b + sqrt(d)) * 0.5;
-        if (t > 0.001)
+        if (t > EPSILON)
             result.happened = true;
         else
             return result;

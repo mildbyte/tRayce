@@ -19,12 +19,12 @@ bool Box::intersects(Ray ray, double &dist) {
     for (int i = 0; i < 6; i++) {
         Vector rayToBox = ray.origin + ray.direction * distance[i];
         if (
-            (rayToBox.getX() > _aabb.point.getX() - 0.001) &&
-            (rayToBox.getX() < boxEnd.getX() + 0.001) &&
-            (rayToBox.getY() > _aabb.point.getY() - 0.001) &&
-            (rayToBox.getY() < boxEnd.getY() + 0.001) &&
-            (rayToBox.getZ() > _aabb.point.getZ() - 0.001) &&
-            (rayToBox.getZ() < boxEnd.getZ() + 0.001)
+            (rayToBox.getX() > _aabb.point.getX() - EPSILON) &&
+            (rayToBox.getX() < boxEnd.getX() + EPSILON) &&
+            (rayToBox.getY() > _aabb.point.getY() - EPSILON) &&
+            (rayToBox.getY() < boxEnd.getY() + EPSILON) &&
+            (rayToBox.getZ() > _aabb.point.getZ() - EPSILON) &&
+            (rayToBox.getZ() < boxEnd.getZ() + EPSILON)
         ) {
             if ((closestFace == -1) || distance[i] < dist) {
                 closestFace = i;

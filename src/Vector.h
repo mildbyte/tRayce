@@ -7,6 +7,7 @@
 #include <stdexcept>
 
 const double PI = 4 * atan(1);
+const double EPSILON = 0.0000001;
 
 class Vector {
 private:

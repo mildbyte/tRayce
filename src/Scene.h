@@ -15,6 +15,7 @@
 #include <cstring>
 #include <cstdlib>
 #include <thread>
+#include <limits>
 
 enum SamplingMode {
     STRATIFIED,

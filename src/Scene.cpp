@@ -231,7 +231,7 @@ Vector Scene::calculatePhongColor(Intersection inter, Ray ray) {
 
 Ray Scene::epsilonShift(Ray ray) {
     Ray result = ray;
-    result.origin += result.direction * 0.0001;
+    result.origin += result.direction * EPSILON;
 
     return result;
 }

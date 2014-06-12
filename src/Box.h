@@ -6,6 +6,7 @@
 #include "Ray.h"
 #include "AABB.h"
 #include <algorithm>
+#include <limits>
 using namespace std;
 
 class Box {

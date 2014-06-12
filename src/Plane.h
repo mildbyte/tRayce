@@ -7,6 +7,7 @@
 #include "Ray.h"
 #include "Renderable.h"
 #include <cmath>
+#include <limits>
 
 class Plane: public Renderable {
 private:

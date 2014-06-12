@@ -7,6 +7,7 @@
 #include "Ray.h"
 #include "Random.h"
 #include <cstdlib>
+#include <limits>
 
 class Sphere: public Renderable {
 private:

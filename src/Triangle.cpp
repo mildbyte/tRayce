@@ -5,20 +5,20 @@ bool Triangle::intersects(Ray ray)
     Vector P = ray.direction.cross(e2);
     double det = P.dot(e1);
     
-    if (det > -0.0001 && det < 0.0001) return false;
+    if (det >= -EPSILON && det <= EPSILON) return false;
     
     double invDet = 1.0/det;
     
     Vector T = ray.origin - v1;
     double u = T.dot(P) * invDet;
-    if (u < 0.0001 || u > 1.0001) return false;
+    if (u < EPSILON || u > 1 + EPSILON) return false;
     
     Vector Q = T.cross(e1);
     double v = ray.direction.dot(Q) * invDet;
-    if (u < 0.0001 || u + v > 1.0001) return false;
+    if (u < EPSILON || u + v > 1 + EPSILON) return false;
     
     double t = e2.dot(Q) * invDet;
-    if (t > 0.0001) return true;
+    if (t > EPSILON) return true;
     
     return false;
 }
@@ -34,20 +34,20 @@ Intersection Triangle::getIntersection (Ray ray)
     Vector P = ray.direction.cross(e2);
     double det = P.dot(e1);
     
-    if (det > -0.0001 && det < 0.0001) return result;
+    if (det >= -EPSILON && det <= EPSILON) return result;
     
     double invDet = 1.0/det;
     
     Vector T = ray.origin - v1;
     double u = T.dot(P) * invDet;
-    if (u < 0.0001 || u > 1.0001) return result;
+    if (u < EPSILON || u > 1 + EPSILON) return result;
     
     Vector Q = T.cross(e1);
     double v = ray.direction.dot(Q) * invDet;
-    if (v < 0.0001 || u + v > 1.0001) return result;
+    if (v < EPSILON || u + v > 1 + EPSILON) return result;
     
     double t = e2.dot(Q) * invDet;
-    if (t > 0.0001) {
+    if (t > EPSILON) {
         result.happened = true;
         result.object = this;
         
