@@ -26,7 +26,7 @@ bool Box::intersects(Ray ray, double &dist) {
             (rayToBox.getZ() > _aabb.point.getZ() - EPSILON) &&
             (rayToBox.getZ() < boxEnd.getZ() + EPSILON)
         ) {
-            if ((closestFace == -1) || distance[i] < dist) {
+            if (((closestFace == -1) || distance[i] < dist) && dist > EPSILON) {
                 closestFace = i;
                 dist = distance[i];
             }

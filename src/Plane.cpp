@@ -9,7 +9,7 @@ bool Plane::intersects(Ray ray) {
     if (std::abs(denominator) < EPSILON) return false;
 
     double distance = numerator / denominator;
-    if (distance < 0) return false;
+    if (distance < EPSILON) return false;
     return true;
 }
 
@@ -26,7 +26,7 @@ Intersection Plane::getIntersection(Ray ray) {
     
     //Get the intersection distance
     result.distance = numerator / denominator;
-    if (result.distance < 0) {
+    if (result.distance < EPSILON) {
         result.happened = false;
         return result;
     }

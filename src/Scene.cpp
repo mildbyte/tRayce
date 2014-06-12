@@ -96,8 +96,6 @@ double Scene::calculateShadingCoefficient(Light* light, Vector point, Vector toL
             pointToLight.direction = toLight;
             pointToLight.origin = point;
 
-             pointToLight = epsilonShift(pointToLight);
-
             //If the ray intersects something closer than the light, the point
             //is fully shaded, otherwise, it's fully illuminated.
             if (renderables_.intersectsCloser(pointToLight, lightDist)) return 0;
@@ -113,8 +111,6 @@ double Scene::calculateShadingCoefficient(Light* light, Vector point, Vector toL
                 Ray pointToLight;
                 pointToLight.direction = toLight;
                 pointToLight.origin = point;
-
-                pointToLight = epsilonShift(pointToLight);
 
                 //If the ray intersects something closer than the light, the point
                 //is fully shaded, otherwise, it's fully illuminated.
@@ -151,8 +147,6 @@ double Scene::calculateShadingCoefficient(Light* light, Vector point, Vector toL
 
                     pointToLight.direction = gridPos;
                     pointToLight.origin = point;
-
-                    pointToLight = epsilonShift(pointToLight);
 
                     if (!renderables_.intersectsCloser(pointToLight, distance)){
                         //If the ray reaches the light safely, increase the
@@ -229,13 +223,6 @@ Vector Scene::calculatePhongColor(Intersection inter, Ray ray) {
     return totalColor;
 }
 
-Ray Scene::epsilonShift(Ray ray) {
-    Ray result = ray;
-    result.origin += result.direction * EPSILON;
-
-    return result;
-}
-
 bool Scene::refractRay(Intersection inter, Ray& ray) {
     //printf("Before: "); ray.direction.print();
     //Refraction index
@@ -279,7 +266,7 @@ Vector Scene::calculateRefraction(Intersection inter, Ray ray, int level) {
     //Refracts the ray and sends it further
     //Form the refracted ray and trace it
     if (refractRay(inter, ray)) {
-        return traceRay(epsilonShift(ray), level - 1) * inter.object->material.transparency;
+        return traceRay(ray, level - 1) * inter.object->material.transparency;
     } else {
         return backgroundColor;
     }
@@ -303,7 +290,7 @@ Ray Scene::reflectRay(Intersection inter, Ray ray) {
 
 Vector Scene::calculateReflection(Intersection inter, Ray ray, int level) {
     //Send the reflected ray further (and decrease the tracing level)
-    return traceRay(epsilonShift(reflectRay(inter, ray)), level - 1) 
+    return traceRay(reflectRay(inter, ray), level - 1) 
            * inter.object->material.reflectivity;
 }
 
@@ -368,9 +355,6 @@ Vector Scene::sampleMapAt(Vector coords, Vector normal, double x, double y) {
     samplingRay.direction = sampleHemisphere(normal, x, y);
     
     double dot = normal.dot(samplingRay.direction);
-    
-    //Shift the origin slightly to avoid collisions with itself
-    samplingRay = epsilonShift(samplingRay);
 
     Intersection sampleInter = renderables_.getFirstIntersection(samplingRay, 0);
     if (!sampleInter.happened) return backgroundColor;
@@ -424,7 +408,7 @@ Vector Scene::pathTrace(const Ray ray, int depth) {
         nextRay.direction = sampleHemisphere2(inter.normal);
         
         Vector brdf = inter.object->material.color * nextRay.direction.dot(inter.normal);
-        Vector reflected = pathTrace(epsilonShift(nextRay), depth - 1);
+        Vector reflected = pathTrace(nextRay, depth - 1);
         
         return inter.object->material.emittance + combineColors(brdf, reflected);
     } else if (inter.object->material.isReflective && 
@@ -432,7 +416,7 @@ Vector Scene::pathTrace(const Ray ray, int depth) {
         // Reflect the ray
         Ray nextRay = reflectRay(inter, ray);
         return inter.object->material.emittance 
-            + combineColors(inter.object->material.color, pathTrace(epsilonShift(nextRay), depth - 1));
+            + combineColors(inter.object->material.color, pathTrace(nextRay, depth - 1));
     } else {
         // Refract the ray
         Ray nextRay = ray;
@@ -441,7 +425,7 @@ Vector Scene::pathTrace(const Ray ray, int depth) {
             nextRay = reflectRay(inter, nextRay);
         }
         return inter.object->material.emittance
-            + combineColors(inter.object->material.color, pathTrace(epsilonShift(nextRay), depth - 1));
+            + combineColors(inter.object->material.color, pathTrace(nextRay, depth - 1));
     }
 }
 
@@ -624,7 +608,6 @@ void Scene::populatePhotonMap() {
             photonRay.origin = ((Renderable*)(*it))->sampleSurface();
             Vector normal = ((Renderable*)(*it))->getNormalAt(photonRay.origin);
             photonRay.direction = sampleHemisphere(normal, drand(), drand());
-            photonRay = epsilonShift(photonRay);
 
             //double brightness = ((Light*)(*it))->brightness;
             
@@ -664,9 +647,8 @@ void Scene::populatePhotonMap() {
                 //Diffuse the ray
                 photonRay.direction = sampleHemisphere(inter.normal, drand(), drand());
                 
-                //New point to cast the ray from (+ avoid collision with itself)
+                //New point to cast the ray from
                 photonRay.origin = inter.coords;
-                photonRay = epsilonShift(photonRay);
 
                 //Send the ray onwards
                 inter = renderables_.getFirstIntersection(photonRay, 0);

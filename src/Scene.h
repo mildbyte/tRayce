@@ -63,9 +63,6 @@ private:
     //Shading coefficient (how much a point is obscured) calculation
     double calculateShadingCoefficient(Light* light, Vector point, Vector toLight, double lightDist);
 
-    //Slightly shift the origin of the ray so that it doesn't collide with the previous object
-    Ray epsilonShift(Ray ray);
-
     //Phong (diffuse+specular) shading
     Vector calculatePhongColor(Intersection inter, Ray ray);
 
