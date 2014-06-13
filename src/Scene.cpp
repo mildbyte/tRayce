@@ -223,7 +223,7 @@ Vector Scene::calculatePhongColor(Intersection inter, Ray ray) {
     return totalColor;
 }
 
-bool Scene::refractRay(Intersection inter, Ray& ray) {
+Ray Scene::refractRay(Intersection inter, Ray ray) {
     //printf("Before: "); ray.direction.print();
     //Refraction index
     double n = 1 / inter.object->material.refrIndex;
@@ -244,8 +244,7 @@ bool Scene::refractRay(Intersection inter, Ray& ray) {
     //reflection) or negative (cannot calculate the square root)
 
     if ((c2 > 1) || (c2 < 0)) {
-        //printf(" -- TIR! ");
-        return false;
+		return reflectRay(inter, ray);
     }
 
     c2 = sqrt(c2);
@@ -257,19 +256,13 @@ bool Scene::refractRay(Intersection inter, Ray& ray) {
     ray.origin = inter.coords;
     ray.direction = refrDir;
     
-    //printf(" After: "); ray.direction.print(); printf("\n");
-    
-    return true;
+	return ray;
 }
 
 Vector Scene::calculateRefraction(Intersection inter, Ray ray, int level) {
-    //Refracts the ray and sends it further
-    //Form the refracted ray and trace it
-    if (refractRay(inter, ray)) {
-        return traceRay(ray, level - 1) * inter.object->material.transparency;
-    } else {
-        return backgroundColor;
-    }
+	//Refracts the ray and sends it further
+	//TODO: do we need to multiply by the transparency if total internal reflection happens?
+	return traceRay(refractRay(inter, ray), level - 1) * inter.object->material.transparency;
 }
 
 Ray Scene::reflectRay(Intersection inter, Ray ray) {
@@ -356,7 +349,7 @@ Vector Scene::sampleMapAt(Vector coords, Vector normal, double x, double y) {
     
     double dot = normal.dot(samplingRay.direction);
 
-    Intersection sampleInter = renderables_.getFirstIntersection(samplingRay, 0);
+    Intersection sampleInter = getClosestIntersection(samplingRay, 0);
     if (!sampleInter.happened) return backgroundColor;
     sampleInter.normal.normalize();
 
@@ -375,21 +368,9 @@ Vector Scene::pathTrace(const Ray ray, int depth) {
     //If the maximum tracing depth has been reached, return
     if (depth <= 0) return backgroundColor;
     
-    Intersection inter;
-    
     //If we are casting a ray from the eye into the scene, cull collisions behind the image plane
-    if (depth == pathTracingMaxDepth) {
-        inter = renderables_.getFirstIntersection(ray, camera.planeDistance);
-
-        Intersection inter2 = triangles_->getFirstIntersection(ray, camera.planeDistance);    
-        if (!inter.happened || (inter2.happened && inter.distance > inter2.distance)) inter = inter2;
-    } else {
-        inter = renderables_.getFirstIntersection(ray, 0);
-        
-        Intersection inter2 = triangles_->getFirstIntersection(ray, 0);
-        if (!inter.happened || (inter2.happened && inter.distance > inter2.distance)) inter = inter2;
-    }
-
+    Intersection inter = getClosestIntersection(ray, depth == pathTracingMaxDepth ? camera.planeDistance : 0);
+    
     if (!inter.happened) {
         return backgroundColor;
     }
@@ -419,14 +400,20 @@ Vector Scene::pathTrace(const Ray ray, int depth) {
             + combineColors(inter.object->material.color, pathTrace(nextRay, depth - 1));
     } else {
         // Refract the ray
-        Ray nextRay = ray;
+		Ray nextRay = refractRay(inter, ray);
         
-        if (!refractRay(inter, nextRay)) {
-            nextRay = reflectRay(inter, nextRay);
-        }
         return inter.object->material.emittance
             + combineColors(inter.object->material.color, pathTrace(nextRay, depth - 1));
     }
+}
+
+Intersection Scene::getClosestIntersection(Ray ray, double cullDistance) {
+	Intersection inter = renderables_.getFirstIntersection(ray, cullDistance);
+
+	Intersection inter2 = triangles_->getFirstIntersection(ray, cullDistance);
+	if (!inter.happened || (inter2.happened && inter.distance > inter2.distance)) inter = inter2;
+
+	return inter;
 }
 
 Vector Scene::traceRay(const Ray ray, int level) {
@@ -440,10 +427,7 @@ Vector Scene::traceRay(const Ray ray, int level) {
 
 	double planeDist = level == traceDepth ? camera.planeDistance : 0;
 
-    Intersection inter = renderables_.getFirstIntersection(ray, planeDist);
-    
-    Intersection inter2 = triangles_->getFirstIntersection(ray, planeDist);
-    if (!inter.happened || (inter2.happened && inter.distance > inter2.distance)) inter = inter2;
+	Intersection inter = getClosestIntersection(ray, planeDist);
 
     if (!inter.happened) {
         prevHit_ = NULL;
@@ -616,7 +600,7 @@ void Scene::populatePhotonMap() {
             
             int currBounces = 0;
 
-            Intersection inter = renderables_.getFirstIntersection(photonRay, 0);
+            Intersection inter = getClosestIntersection(photonRay, 0);
 
             while (inter.happened && currBounces < photonBounces) {
                 currBounces++;
@@ -651,7 +635,7 @@ void Scene::populatePhotonMap() {
                 photonRay.origin = inter.coords;
 
                 //Send the ray onwards
-                inter = renderables_.getFirstIntersection(photonRay, 0);
+                inter = getClosestIntersection(photonRay, 0);
             }
         }
     }
@@ -694,7 +678,7 @@ void Scene::threadDoWork(int threadId, int noThreads) {
     //Renderable that has been hit previously
     //Renderable* prevHit = NULL;
     
-    int onePercent = width_ * height_ / 100;
+    int onePercent = width_ * height_ / 1000;
     
     //Each MSAA sample's contribution to the final pixel
     double contribution = 1.0 / (msaaSamples*msaaSamples);
@@ -756,12 +740,6 @@ void Scene::threadDoWork(int threadId, int noThreads) {
 void Scene::render(char* filename, BitmapPixel (*postProcess)(BitmapPixel), int noThreads) {
     //Renders the scene to a file
 
-    //Do we have the photon map yet?
-    if (renderingMode == PHOTONMAPPING && photonMap_ == NULL) {
-        printf("Populating the photon map...\n");
-        populatePhotonMap();
-    }
-
     //Populate the Halton sequence cache if we are using Halton sampling
     if (samplingMode == HALTON) {
         haltonXCoords_ = new double[photonGatherSamples];
@@ -778,6 +756,12 @@ void Scene::render(char* filename, BitmapPixel (*postProcess)(BitmapPixel), int 
     triangles_ = KDNode::build(trianglesVector_, 0);
     
     printf("Built, %d triangles\n", triangles_->getItems().size());
+
+	//Do we have the photon map yet?
+	if (renderingMode == PHOTONMAPPING && photonMap_ == NULL) {
+		printf("Populating the photon map...\n");
+		populatePhotonMap();
+	}
 
     printf("Rendering...\n");
 

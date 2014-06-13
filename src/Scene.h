@@ -68,11 +68,14 @@ private:
 
     //Transparency contribution
     Vector calculateRefraction(Intersection inter, Ray ray, int depth);
-    bool refractRay(Intersection inter, Ray& ray);
+    Ray refractRay(Intersection inter, Ray ray);
 
     //Reflection contribution
     Vector calculateReflection(Intersection inter, Ray ray, int depth);
     Ray reflectRay(Intersection inter, Ray ray);
+
+	//Returns the closest intersection of the ray from the triangles' or other renderables' list
+	Intersection getClosestIntersection(Ray ray, double cullDistance);
 
     //Convert one pixel to world coordinates and trace it
     Vector tracePixel(double x, double y);
