@@ -3,12 +3,8 @@
 
 KDNode* KDNode::build(vector<Triangle*>& triangles, int depth) {
     KDNode* node = new KDNode();
-    node->triangles = triangles;
     node->left = NULL;
     node->right = NULL;
-    
-    //TODO: only need to store the triangles in the leaves
-    
     //printf("level %d, %d triangles\n", depth, triangles.size());
     
     //Calculate the bounding box
@@ -26,7 +22,10 @@ KDNode* KDNode::build(vector<Triangle*>& triangles, int depth) {
     }
     
     //Leaf node: fewer than 16 triangles
-    if (triangles.size() < 4) return node;
+	if (triangles.size() < 4) {
+		node->triangles = triangles;
+		return node;
+	}
     
     //Choose a greatest spread axis and sort the triangles by it
     int ax = node->boundingBox.getGreatestSpread();
@@ -81,12 +80,13 @@ KDNode* KDNode::build(vector<Triangle*>& triangles, int depth) {
     }
     
     //If more than 50% of the triangles end up in both subtrees, make this node a leaf.
-    if (straddling * 2 > triangles.size()) return node;
-    
-    //If the L/R nodes are a subset of R/L nodes, we get infinite recursion and so
-    //turn the node into a leaf.
-    if (straddling == right.size() || straddling == left.size()) return node;
-    
+	//If the L/R nodes are a subset of R/L nodes, we get infinite recursion and so
+	//turn the node into a leaf.
+	if (straddling * 2 > triangles.size() || straddling == right.size() || straddling == left.size()) {
+		node->triangles = triangles;
+		return node;
+	}
+
     //printf("L%d R%d S%d\n", left.size(), right.size(), straddling);
     
     node->left = KDNode::build(left, depth+1);
@@ -159,12 +159,16 @@ Intersection KDNode::getFirstIntersection(Ray r, double planeDist) {
     */
     
     // Try the closest-intersecting box first, if nothing, move on to the second one
+	// TODO: doesn't completely work, sometimes returns later intersections if the ray goes
+	// through where two boxes merge.
+
+	
     double lDist;
     double rDist;
     
     bool lInter = left->boundingBox.intersects(r, lDist);
     bool rInter = right->boundingBox.intersects(r, rDist);
-    /*
+	/*
     KDNode* first;
     KDNode* second;
 
@@ -180,11 +184,7 @@ Intersection KDNode::getFirstIntersection(Ray r, double planeDist) {
     }
     
     return inter;
-*/
-    /* TODO: no artifacts with this method (when checking both children all the time, after checking the bounding boxes)
-  */
-    //lInter = true;
-    //rInter = true;
+	*/
     
     Intersection i1, i2;
     i1.happened = false;
