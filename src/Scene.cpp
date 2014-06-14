@@ -773,7 +773,8 @@ void Scene::render(char* filename, BitmapPixel (*postProcess)(BitmapPixel), int 
         0,
         -camera.direction.getX());
     
-    imagePlaneY_ = Vector(
+	// Negate imagePlaneY so that it increases downwards (since it does in the bitmap)
+    imagePlaneY_ = -Vector(
          -camera.direction.getY()*camera.direction.getX(),
          camera.direction.getZ()*camera.direction.getZ() 
             + camera.direction.getX() * camera.direction.getX(),

@@ -35,12 +35,11 @@ void importObj(Scene* scene, char* filename, Material m,
         if (type == "v") {
             double x, y, z;
             stream >> x >> y >> z;
-            //TODO: fix the fact that Y is pointing downwards in tRayce
-            vectors.push_back(Vector(x, -y, z) * scale + shift);
+            vectors.push_back(Vector(x, y, z) * scale + shift);
         } else if (type == "vn") {
             double x, y, z;
             stream >> x >> y >> z;
-            normalVectors.push_back(Vector(x, -y, z));
+            normalVectors.push_back(Vector(x, y, z));
         } else if (type == "f") {
             faces++;
             //Face format: f vertex vertex vertex
@@ -160,34 +159,37 @@ void addQuad(Scene &s, Vector origin, Vector s1, Vector s2, Material m) {
 int main()
 {
     srand((unsigned)time(0));
-    Scene scene(640, 480);
+    Scene scene(640, 360);
     //scene.camera.width = 32;
     scene.camera.width = 16;
-    scene.camera.height = 12;
-    scene.camera.position.setX(1.5);
+    scene.camera.height = 9;
+
     scene.backgroundColor.set(0, 0, 0);
     //scene.doAA = true;
     //scene.msaaSamples = 4;
     scene.msaaOptimize = false;
     scene.softShadowSamples = 1;
     scene.traceDepth = 5;
-    scene.camera.position.setZ(-20);
+	scene.camera.position = Vector(-3, -5, -20);
+	scene.camera.direction = Vector(1, 0, 20);
+	scene.camera.direction.normalize();
     scene.camera.planeDistance = 15;
     scene.camera.lensRadius = 0;
     scene.camera.focalDistance = 25;
-
-    scene.renderingMode = RAYTRACING;
-    scene.pathTracingSamplesPerPixel = 4; //spp squared is actually cast
-    scene.pathTracingMaxDepth = 5; // Too few samples and rays that go through
+	
+    scene.renderingMode = PATHTRACING;
+    scene.pathTracingSamplesPerPixel = 16; //spp squared is actually cast
+    scene.pathTracingMaxDepth = 10; // Too few samples and rays that go through
     // a sphere, bounce off a wall, through the sphere again and to the light
     // will terminate too early
     
     scene.doFinalGather = true;
-    scene.photonCount = 65536;
-    scene.photonBounces = 7;
+	scene.visualizePhotons = true;
+	scene.photonCount = 65536;
+    scene.photonBounces = 5;
     scene.photonGatherAmount = 32;
-    scene.photonGatherSamples = 16;
-    scene.irradiancePhotonFrequency = 4;
+    scene.photonGatherSamples = 4;
+    scene.irradiancePhotonFrequency = 8;
     scene.photonGatherDotThreshold = 0.9;
     scene.doIrradianceCaching = true;
     scene.samplingMode = STRATIFIED;
@@ -199,18 +201,18 @@ int main()
     // to be shaded. Temporary solution: more photons so that at least some get
     // to the corner. Better solution?
 
-    Sphere *oneLight = new Sphere(100, Vector(1.5, -109.8, 8.5));
+    Sphere *oneLight = new Sphere(10, Vector(0, 10, -10));
 
-    Plane *bottomPlane = new Plane(Vector(0, 10, 0), Vector(0, -1, 0));
+    Plane *bottomPlane = new Plane(Vector(0, -10, 0), Vector(0, 1, 0));
     Plane *upPlane = new Plane(Vector(0, 0, 18), Vector(0, 0, -1));
-    Plane *leftPlane = new Plane(Vector(-11, 0, 0), Vector(1, 0, 0));
-    Plane *rightPlane = new Plane(Vector(14, 0, 0), Vector(-1, 0, 0));
-    Plane *topPlane = new Plane(Vector(0, -10, 0), Vector(0, 1, 0));
+    Plane *leftPlane = new Plane(Vector(-10.0, 0, 0), Vector(1, 0, 0));
+    Plane *rightPlane = new Plane(Vector(10.0, 0, 0), Vector(-1, 0, 0));
+    Plane *topPlane = new Plane(Vector(0, 10, 0), Vector(0, -1, 0));
     Plane *backPlane = new Plane(Vector(0, 0, -10), Vector(0, 0, 1));
     
     Light *testLight = new PointLight();
-    testLight->position = Vector(1.5, -9.9, -5);
-    testLight->brightness = 2.0;
+    testLight->position = Vector(0, 12, 5);
+    testLight->brightness = 5.0;
   
     oneLight->material.color = Vector(.95, .95, .95);
     oneLight->material.emittance = Vector(30, 30, 30);
@@ -220,18 +222,18 @@ int main()
     leftPlane->material.color = Vector(.95, .95, .95);
     rightPlane->material.color = Vector(.95, .95, .95);
     topPlane->material.color = Vector(.95, .95, .95);
-    topPlane->material.emittance = Vector(5, 5, 5);
+    //topPlane->material.emittance = Vector(5, 5, 5);
     backPlane->material.color = Vector(.95, .95, .95);
     
     Material m;
-    //m.isTransparent = true;
+    m.isTransparent = true;
     m.transparency = 1.0;
     //m.reflectivity = 1.0;
 	//m.isReflective = true;
     //m.diffuse = 1.0;
-    m.refrIndex = 1.0;
-    //m.color = Vector(0.392, 0.584, 0.929);
-	m.color = Vector(1,1,1);
+    m.refrIndex = 1.42;
+    m.color = Vector(0.929, 0.5, 0.01);
+	//m.color = Vector(1, 1, 1);
 /*    
     Triangle *t1 = new Triangle(Vector(4, 10, 13), Vector(8, -3, 9), Vector(12, 10, 13));
     Triangle *t2 = new Triangle(Vector(12, 10, 13), Vector(8, -3, 9), Vector(8, 10, 5));
@@ -241,7 +243,7 @@ int main()
     t2->material = m;
     t3->material = m;
     */
-    //scene.addRenderable(oneLight);
+    scene.addRenderable(oneLight);
     
     scene.addLight(testLight);
     
@@ -251,10 +253,10 @@ int main()
 
     scene.addRenderable(bottomPlane);
     scene.addRenderable(upPlane);
-    scene.addRenderable(leftPlane);
-    scene.addRenderable(rightPlane);
-    scene.addRenderable(topPlane);
-    scene.addRenderable(backPlane);
+    //scene.addRenderable(leftPlane);
+    //scene.addRenderable(rightPlane);
+    //scene.addRenderable(topPlane);
+    //scene.addRenderable(backPlane);
     //Check if the precalculated map exists and is valid
     //bool mapExists = scene.loadMap("map.dat");
     
@@ -262,7 +264,7 @@ int main()
     //randomScene(&scene);
     
     printf("Loading the object file...\n");
-    importObj(&scene, "bunny.obj", m, Vector(2, 10, 10), 5.0);
+    importObj(&scene, "pyramid.obj", m, Vector(0, -10, 10), 4.0);
     
     scene.render("test.bmp", NULL, 8);
 
