@@ -116,7 +116,7 @@ Intersection KDNode::getFirstIntersection(Ray r, double planeDist) {
                     mindist = currInter.distance;
                     found = true;
                 }
-                
+				/*
                 Box bb = t->getBoundingBox();
                 double d;
                 if (!bb.intersects(r, d)) {
@@ -131,7 +131,7 @@ Intersection KDNode::getFirstIntersection(Ray r, double planeDist) {
                     printf(" -> ");
                     bb.getEndpoint().print();
                     printf(": Triangle intersected, BB wasn't\n");
-                }
+                }*/
             }
         }
 

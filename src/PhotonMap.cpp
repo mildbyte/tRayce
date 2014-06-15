@@ -306,7 +306,7 @@ void PhotonMap::precalculateIrradiance(int frequency, int noPhotons) {
     //Precompute the radiance for every frequencyth photon
     for (int i = 0; i < currPtr_; i+= frequency) {
         if (i % 1000 == 0) {
-            printf ("\r%d out of %d photons processed (%f%%)\n", 
+            printf ("\r%d out of %d photons processed (%f%%)\r", 
                 i, currPtr_, (double)i/currPtr_*100);
         }
         photons_[i].irradiance = irradianceEstimate(
