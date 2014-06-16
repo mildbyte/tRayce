@@ -18,9 +18,6 @@
     <ClCompile Include="src\Bitmap.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="src\Box.cpp">
-      <Filter>Source Files</Filter>
-    </ClCompile>
     <ClCompile Include="src\KDNode.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
@@ -51,15 +48,15 @@
     <ClCompile Include="src\Vector.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="src\AABB.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="src\AABB.h">
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="src\Bitmap.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
-    <ClInclude Include="src\Box.h">
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="src\Camera.h">

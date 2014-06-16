@@ -53,7 +53,7 @@ KDNode* KDNode::build(vector<Triangle*>& triangles, int depth) {
     double split = cumulSA[cumulSA.size()-1] / 2.0;
     int splitPos = distance(cumulSA.begin(), upper_bound(cumulSA.begin(), cumulSA.end(), split));
     
-    double splitCoordinate = triangles[splitPos]->getBoundingBox().getPosition()[ax];
+    double splitCoordinate = triangles[splitPos]->getBoundingBox().getStartpoint()[ax];
 
     vector<Triangle*> left;
     vector<Triangle*> right;
@@ -65,7 +65,7 @@ KDNode* KDNode::build(vector<Triangle*>& triangles, int depth) {
         //add it to the left subtree.
         bool inLeft = false;
         
-        if (t->getBoundingBox().getPosition()[ax] <= splitCoordinate) {
+        if (t->getBoundingBox().getStartpoint()[ax] <= splitCoordinate) {
             inLeft = true;
             left.push_back(t);
         }

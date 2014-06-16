@@ -6,9 +6,10 @@
 #include "Vector.h"
 #include "Ray.h"
 #include "Random.h"
-#include "Box.h"
+#include "AABB.h"
 #include <cstdlib>
 #include <algorithm>
+using namespace std;
 
 class Triangle: public Renderable {
 private:
@@ -24,7 +25,7 @@ private:
     Vector n3;
     
     double area;
-    Box boundingBox;
+    AABB boundingBox;
     
     void calcBB() {
         Vector minV = v1;
@@ -47,7 +48,7 @@ private:
         maxV.setY(max(maxV.getY(), v3.getY()));
         maxV.setZ(max(maxV.getZ(), v3.getZ()));
         
-        boundingBox = Box(minV, maxV - minV);
+        boundingBox = AABB(minV, maxV);
     }
     
 public:
@@ -77,7 +78,7 @@ public:
         return (v1 + v2 + v3) * (1.0/3.0);
     }
     
-    Box getBoundingBox() {return boundingBox;}
+    AABB getBoundingBox() {return boundingBox;}
     
     void print() { v1.print(); printf(" -> "); v2.print(); printf(" -> "); v3.print(); }
     

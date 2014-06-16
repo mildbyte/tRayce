@@ -27,8 +27,8 @@
     </ProjectConfiguration>
   </ItemGroup>
   <ItemGroup>
+    <ClCompile Include="src\AABB.cpp" />
     <ClCompile Include="src\Bitmap.cpp" />
-    <ClCompile Include="src\Box.cpp" />
     <ClCompile Include="src\KDNode.cpp" />
     <ClCompile Include="src\main.cpp" />
     <ClCompile Include="src\PhotonMap.cpp" />
@@ -43,7 +43,6 @@
   <ItemGroup>
     <ClInclude Include="src\AABB.h" />
     <ClInclude Include="src\Bitmap.h" />
-    <ClInclude Include="src\Box.h" />
     <ClInclude Include="src\Camera.h" />
     <ClInclude Include="src\Intersection.h" />
     <ClInclude Include="src\KDNode.h" />
