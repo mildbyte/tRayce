@@ -758,9 +758,14 @@ void Scene::render(char* filename, BitmapPixel (*postProcess)(BitmapPixel), int 
     printf("Built, %d triangles\n", triangles_->getItems().size());
 
 	//Do we have the photon map yet?
-	if (renderingMode == PHOTONMAPPING && photonMap_ == NULL) {
-		printf("Populating the photon map...\n");
-		populatePhotonMap();
+	bool mapExists;
+	if (renderingMode == PHOTONMAPPING) {
+		//Check if the precalculated map exists and is valid
+		mapExists = loadMap("map.dat");
+		if (!mapExists) {
+			printf("Populating the photon map...\n");
+			populatePhotonMap();
+		}
 	}
 
     printf("Rendering...\n");
@@ -815,6 +820,12 @@ void Scene::render(char* filename, BitmapPixel (*postProcess)(BitmapPixel), int 
     rendered_->saveToFile(filename);
 
     printf("Done.\n");
-    if (renderingMode == PHOTONMAPPING) 
-        printf("kd-tree visits per pixel: %f\n", (double)(photonMap_->kdTreeVisited_) / (double)(width_ * height_));
+	if (renderingMode == PHOTONMAPPING) {
+		printf("kd-tree visits per pixel: %f\n", (double)(photonMap_->kdTreeVisited_) / (double)(width_ * height_));
+		//Save the calculated map for future use
+		if (!mapExists) {
+			printf("Saving the photon map...\n");
+			saveMap("map.dat");
+		}
+	}
 }
