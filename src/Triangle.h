@@ -28,25 +28,12 @@ private:
     AABB boundingBox;
     
     void calcBB() {
-        Vector minV = v1;
-        
-        minV.setX(min(minV.getX(), v2.getX()));
-        minV.setY(min(minV.getY(), v2.getY()));
-        minV.setZ(min(minV.getZ(), v2.getZ()));
-        
-        minV.setX(min(minV.getX(), v3.getX()));
-        minV.setY(min(minV.getY(), v3.getY()));
-        minV.setZ(min(minV.getZ(), v3.getZ()));
-        
-        Vector maxV = v1;
-        
-        maxV.setX(max(maxV.getX(), v2.getX()));
-        maxV.setY(max(maxV.getY(), v2.getY()));
-        maxV.setZ(max(maxV.getZ(), v2.getZ()));
-        
-        maxV.setX(max(maxV.getX(), v3.getX()));
-        maxV.setY(max(maxV.getY(), v3.getY()));
-        maxV.setZ(max(maxV.getZ(), v3.getZ()));
+		Vector minV, maxV;
+
+		for (int i = 0; i < 3; i++) {
+			minV[i] = min(v1[i], min(v2[i], v3[i]));
+			maxV[i] = max(v1[i], max(v2[i], v3[i]));
+		}
         
         boundingBox = AABB(minV, maxV);
     }
