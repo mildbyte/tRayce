@@ -340,6 +340,12 @@ Vector sampleHemisphere(Vector normal, double Xi1, double Xi2) {
     return direction;
 }
 
+Vector Scene::getColorAt(Vector point) {
+	double thresh = 0.05;
+	if (abs(point[0] - round(point[0])) < thresh || abs(point[2] - round(point[2])) < thresh) return Vector(0, 0, 0);
+	return Vector(1, 1, 1);
+}
+
 Vector Scene::sampleMapAt(Vector coords, Vector normal, double x, double y) {
     //Sampling ray from the surface of the entity
     Ray samplingRay;
@@ -388,7 +394,7 @@ Vector Scene::pathTrace(const Ray ray, int depth) {
         nextRay.origin = inter.coords;
         nextRay.direction = sampleHemisphere2(inter.normal);
         
-        Vector brdf = inter.object->material.color * nextRay.direction.dot(inter.normal);
+        Vector brdf = /*inter.object->material.color*/ getColorAt(inter.coords) * nextRay.direction.dot(inter.normal);
         Vector reflected = pathTrace(nextRay, depth - 1);
         
         return inter.object->material.emittance + combineColors(brdf, reflected);
@@ -397,13 +403,13 @@ Vector Scene::pathTrace(const Ray ray, int depth) {
         // Reflect the ray
         Ray nextRay = reflectRay(inter, ray);
         return inter.object->material.emittance 
-            + combineColors(inter.object->material.color, pathTrace(nextRay, depth - 1));
+            + combineColors(/*inter.object->material.color*/ getColorAt(inter.coords), pathTrace(nextRay, depth - 1));
     } else {
         // Refract the ray
 		Ray nextRay = refractRay(inter, ray);
         
         return inter.object->material.emittance
-            + combineColors(inter.object->material.color, pathTrace(nextRay, depth - 1));
+            + combineColors(/*inter.object->material.color*/ getColorAt(inter.coords), pathTrace(nextRay, depth - 1));
     }
 }
 

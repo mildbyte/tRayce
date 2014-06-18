@@ -83,6 +83,8 @@ private:
     //Path tracing
     Vector pathTrace(const Ray ray, int depth);
 
+	Vector getColorAt(Vector point);
+
     //Throw photons at the wall and see what sticks
     void populatePhotonMap();
 
