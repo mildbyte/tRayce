@@ -2,7 +2,7 @@
 
 #include "Scene.h"
 #include "Sphere.h"
-#include "Box.h"
+#include "AABB.h"
 #include "Plane.h"
 #include "Triangle.h"
 #include <ctime>
@@ -107,12 +107,10 @@ void randomScene(Scene* scene) {
         testSphere->material.color = Vector(drand(), drand(), drand());
         
         if (drand() > 0.8) {
-            testSphere->material.isReflective = true;
             testSphere->material.reflectivity = drand();
         }
         
         if (drand() > 0) {
-            testSphere->material.isTransparent = true;
             testSphere->material.transparency = drand() * (1.0 - testSphere->material.reflectivity);
             testSphere->material.refrIndex = 1.42;
         }
@@ -161,8 +159,8 @@ int main()
     srand((unsigned)time(0));
     Scene scene(640, 360);
     //scene.camera.width = 32;
-    scene.camera.width = 16;
-    scene.camera.height = 9;
+    scene.camera.width = 8;
+    scene.camera.height = 4.5;
 
     scene.backgroundColor.set(0, 0, 0);
     //scene.doAA = true;
@@ -170,8 +168,8 @@ int main()
     scene.msaaOptimize = false;
     scene.softShadowSamples = 1;
     scene.traceDepth = 5;
-	scene.camera.position = Vector(-3, -5, -20);
-	scene.camera.direction = Vector(1, 0, 20);
+	scene.camera.position = Vector(0, 3, -10);
+	scene.camera.direction = Vector(0, -6.2, 10);
 	scene.camera.direction.normalize();
     scene.camera.planeDistance = 15;
     scene.camera.lensRadius = 0;
@@ -226,12 +224,11 @@ int main()
     backPlane->material.color = Vector(.95, .95, .95);
     
     Material m;
-    m.isTransparent = true;
-    m.transparency = 1.0;
-    //m.reflectivity = 1.0;
-	//m.isReflective = true;
+    //m.isTransparent = true;
+    //m.transparency = 1.0;
+	m.reflectivity = 0.5;
     //m.diffuse = 1.0;
-    m.refrIndex = 1.42;
+    //m.refrIndex = 1.42;
     m.color = Vector(0.929, 0.5, 0.01);
 	//m.color = Vector(1, 1, 1);
 /*    
@@ -257,19 +254,14 @@ int main()
     //scene.addRenderable(rightPlane);
     //scene.addRenderable(topPlane);
     //scene.addRenderable(backPlane);
-    //Check if the precalculated map exists and is valid
-    //bool mapExists = scene.loadMap("map.dat");
     
     //seed_drand(39332);
     //randomScene(&scene);
     
     printf("Loading the object file...\n");
-    importObj(&scene, "pyramid.obj", m, Vector(0, -10, 10), 4.0);
+    importObj(&scene, "torus.obj", m, Vector(0, -10, 10), 4.0);
     
     scene.render("test.bmp", NULL, 8);
-
-    //Save the calculated map for future use
-    //if (!mapExists) scene.saveMap("map.dat");
 
     return 0;
 }

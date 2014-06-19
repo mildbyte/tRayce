@@ -11,9 +11,7 @@ struct Material {
     double specularExp;
     double transparency;
     double refrIndex;
-    bool isTransparent;
     double reflectivity;
-    bool isReflective;
     Vector emittance;
 
     Material() {
@@ -22,9 +20,7 @@ struct Material {
         diffuse = 1;
         specular = 1;
         specularExp = 20;
-        isTransparent = false;
         transparency = 0.0;
-        isReflective = false;
         reflectivity = 0.0;
         refrIndex = 1.0;
     }

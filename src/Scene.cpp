@@ -383,8 +383,7 @@ Vector Scene::pathTrace(const Ray ray, int depth) {
 
     inter.normal.normalize();
 
-    double nonDiffuse = (inter.object->material.isReflective ? inter.object->material.reflectivity : 0) +
-                        (inter.object->material.isTransparent ? inter.object->material.transparency : 0);
+    double nonDiffuse = inter.object->material.reflectivity + inter.object->material.transparency;
 
     double decision = drand();
     
@@ -394,22 +393,21 @@ Vector Scene::pathTrace(const Ray ray, int depth) {
         nextRay.origin = inter.coords;
         nextRay.direction = sampleHemisphere2(inter.normal);
         
-        Vector brdf = /*inter.object->material.color*/ getColorAt(inter.coords) * nextRay.direction.dot(inter.normal);
+        Vector brdf = inter.object->material.color  * nextRay.direction.dot(inter.normal);
         Vector reflected = pathTrace(nextRay, depth - 1);
         
         return inter.object->material.emittance + combineColors(brdf, reflected);
-    } else if (inter.object->material.isReflective && 
-        (decision > inter.object->material.transparency || !inter.object->material.isTransparent)) {
+    } else if (decision > inter.object->material.transparency) {
         // Reflect the ray
         Ray nextRay = reflectRay(inter, ray);
         return inter.object->material.emittance 
-            + combineColors(/*inter.object->material.color*/ getColorAt(inter.coords), pathTrace(nextRay, depth - 1));
+            + combineColors(inter.object->material.color, pathTrace(nextRay, depth - 1));
     } else {
         // Refract the ray
 		Ray nextRay = refractRay(inter, ray);
         
         return inter.object->material.emittance
-            + combineColors(/*inter.object->material.color*/ getColorAt(inter.coords), pathTrace(nextRay, depth - 1));
+            + combineColors(inter.object->material.color, pathTrace(nextRay, depth - 1));
     }
 }
 
@@ -450,11 +448,11 @@ Vector Scene::traceRay(const Ray ray, int level) {
             resultColor += calculatePhongColor(inter, ray);
 
             //Add the transmitted ray
-            if (inter.object->material.isTransparent)
+            if (inter.object->material.transparency != 0.0)
                 resultColor += calculateRefraction(inter, ray, level);
 
             //Add the reflected ray
-            if (inter.object->material.isReflective)
+            if (inter.object->material.reflectivity != 0.0)
                 resultColor += calculateReflection(inter, ray, level);
         break;
         case PHOTONMAPPING:
