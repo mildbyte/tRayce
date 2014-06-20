@@ -223,46 +223,57 @@ Vector Scene::calculatePhongColor(Intersection inter, Ray ray) {
     return totalColor;
 }
 
-Ray Scene::refractRay(Intersection inter, Ray ray) {
-    //printf("Before: "); ray.direction.print();
-    //Refraction index
-    double n = 1 / inter.object->material.refrIndex;
+void Scene::refractRay(Intersection inter, Ray &ray, double &reflectance) {
+	//Refracts a ray, using Fresnel equations to calculate the fraction that should also be reflected.
+
     double c1 = inter.normal.dot(ray.direction);
+	double n_in, n_out;
 
     //Make c1 positive. If it was positive, the ray hit the sphere from the inside
     //and so the normal must be inverted.
     if (c1 < 0) {
         c1 = -c1;
+		n_in = 1;
+		n_out = inter.object->material.refrIndex;
     } else {
         inter.normal = -inter.normal;
-        n = 1/n;
+		n_in = inter.object->material.refrIndex;
+		n_out = 1;
     }
 
-    double c2 = 1 - n * n * (1 - c1 * c1);
+	double refrRatio = n_in / n_out;
+
+    double c2 = 1 - pow(n_in / n_out, 2) * (1 - c1 * c1);
 
     //Bail out if the cosine of the angle squared is > 1 (total internal
     //reflection) or negative (cannot calculate the square root)
 
     if ((c2 > 1) || (c2 < 0)) {
-		return reflectRay(inter, ray);
+		reflectance = 1;
+		return;
     }
 
     c2 = sqrt(c2);
 
+	double r_s = pow((n_in * c1 - n_out * c2) / (n_in * c1 + n_out * c2), 2);
+	double r_p = pow((n_out * c1 - n_in * c2) / (n_out * c1 + n_in * c2), 2);
+	reflectance = (r_s + r_p) * 0.5;
+
     //Calculate the direction of the refracted ray
-    Vector refrDir = ray.direction * n + inter.normal * (n * c1 - c2);
+    Vector refrDir = ray.direction * refrRatio + inter.normal * (refrRatio * c1 - c2);
     refrDir.normalize();
 
     ray.origin = inter.coords;
     ray.direction = refrDir;
-    
-	return ray;
 }
 
 Vector Scene::calculateRefraction(Intersection inter, Ray ray, int level) {
 	//Refracts the ray and sends it further
 	//TODO: do we need to multiply by the transparency if total internal reflection happens?
-	return traceRay(refractRay(inter, ray), level - 1) * inter.object->material.transparency;
+	double bogus;
+	refractRay(inter, ray, bogus);
+
+	return traceRay(ray, level - 1) * inter.object->material.transparency;
 }
 
 Ray Scene::reflectRay(Intersection inter, Ray ray) {
@@ -387,27 +398,41 @@ Vector Scene::pathTrace(const Ray ray, int depth) {
 
     double decision = drand();
     
-    // Choose what to do based on Russian Roulette
-    if (decision > nonDiffuse) {
-        Ray nextRay;
-        nextRay.origin = inter.coords;
-        nextRay.direction = sampleHemisphere2(inter.normal);
-        
-        Vector brdf = inter.object->material.color  * nextRay.direction.dot(inter.normal);
-        Vector reflected = pathTrace(nextRay, depth - 1);
-        
-        return inter.object->material.emittance + combineColors(brdf, reflected);
-    } else if (decision > inter.object->material.transparency) {
-        // Reflect the ray
-        Ray nextRay = reflectRay(inter, ray);
-        return inter.object->material.emittance 
-            + combineColors(inter.object->material.color, pathTrace(nextRay, depth - 1));
-    } else {
-        // Refract the ray
-		Ray nextRay = refractRay(inter, ray);
-        
-        return inter.object->material.emittance
-            + combineColors(inter.object->material.color, pathTrace(nextRay, depth - 1));
+    // The material can be part diffuse and part either perfectly specular or transparent.
+	// For specular, we reflect the ray and trace it; for transparent, use Fresnel equations
+	// to compute the weights of the reflected and the transmitted components.
+	if (decision > nonDiffuse) {
+		Ray nextRay;
+		nextRay.origin = inter.coords;
+		nextRay.direction = sampleHemisphere2(inter.normal);
+
+		Vector brdf = inter.object->material.color  * nextRay.direction.dot(inter.normal);
+		Vector reflected = pathTrace(nextRay, depth - 1);
+
+		return inter.object->material.emittance + combineColors(brdf, reflected);
+	} else if (inter.object->material.transparency > 0) {
+		// Transparent material, use Fresnel's equations to compute the reflectance
+		double reflectance;
+
+		Ray nextRay = ray;
+		refractRay(inter, nextRay, reflectance);
+
+		decision = drand();
+
+		if (decision > reflectance) {
+			return inter.object->material.emittance
+				+ combineColors(inter.object->material.color, pathTrace(nextRay, depth - 1));
+		} else {
+			if (inter.normal.dot(ray.direction) > 0) inter.normal = -inter.normal;
+			Ray nextRay = reflectRay(inter, ray);
+			return inter.object->material.emittance
+				+ combineColors(inter.object->material.color, pathTrace(nextRay, depth - 1));
+		}
+	} else {
+		// Specular reflection
+		Ray nextRay = reflectRay(inter, ray);
+		return inter.object->material.emittance
+			+ combineColors(inter.object->material.color, pathTrace(nextRay, depth - 1));
     }
 }
 

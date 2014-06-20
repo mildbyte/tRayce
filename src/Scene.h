@@ -68,7 +68,7 @@ private:
 
     //Transparency contribution
     Vector calculateRefraction(Intersection inter, Ray ray, int depth);
-    Ray refractRay(Intersection inter, Ray ray);
+    void refractRay(Intersection inter, Ray &ray, double &reflectance);
 
     //Reflection contribution
     Vector calculateReflection(Intersection inter, Ray ray, int depth);
