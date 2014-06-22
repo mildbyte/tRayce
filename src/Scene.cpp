@@ -86,6 +86,89 @@ Scene::Scene(int width, int height) {
     renderingMode = RAYTRACING;
 }
 
+//Adds a model inside an OBJ file into the scene with a given
+//material. Does not reuse vertices, so each triangle takes
+//3xvertexsize + overhead space. Only supports triangles.
+void Scene::importObj(char* filename, Material m, Vector shift, double scale) {
+	vector<Vector> vectors;
+	vector<Vector> normalVectors;
+
+	ifstream stream;
+	stream.open(filename);
+
+	int faces = 0;
+
+	while (!stream.eof()) {
+		string type;
+		stream >> type;
+
+		if (type == "v") {
+			double x, y, z;
+			stream >> x >> y >> z;
+			vectors.push_back(Vector(x, y, z) * scale + shift);
+		}
+		else if (type == "vn") {
+			double x, y, z;
+			stream >> x >> y >> z;
+			normalVectors.push_back(Vector(x, y, z));
+		}
+		else if (type == "f") {
+			faces++;
+			//Face format: f vertex vertex vertex
+			//vertex: v/t/n
+			//where v is the vertex id, t is the texture UV coordinate id
+			//n is the normal direction at the vertex
+			//Any of the second or the third can be skipped:
+			//v, v/t, v//n are all valid
+
+			int vIds[3];
+			int normalvIds[3] = { -1, -1, -1 };
+
+			for (int i = 0; i < 3; i++) {
+				string vertices;
+				stream >> vertices;
+
+				//Split on '/'
+				istringstream ss(vertices);
+				string tok;
+				getline(ss, tok, '/'); //First number: vertex id
+				vIds[i] = atoi(tok.c_str());
+
+				if (!ss.eof()) getline(ss, tok, '/'); //Second number: texture UV coordinates (discard)
+
+				if (!ss.eof()) {
+					getline(ss, tok, '/'); //Last number: normal vertex id
+					normalvIds[i] = atoi(tok.c_str());
+				}
+			}
+
+			Triangle *t;
+
+			//Vertex ids in OBJ are 1-based (so 0 never appears in a face description)
+			if (normalvIds[0] != -1 && normalvIds[1] != -1 && normalvIds[2] != -1) {
+				t = new Triangle(vectors[vIds[0] - 1], vectors[vIds[1] - 1], vectors[vIds[2] - 1],
+					normalVectors[normalvIds[0] - 1], normalVectors[normalvIds[1] - 1], normalVectors[normalvIds[2] - 1]);
+			}
+			else {
+				t = new Triangle(vectors[vIds[0] - 1], vectors[vIds[1] - 1], vectors[vIds[2] - 1]);
+			}
+
+			t->material = m;
+			addTriangle(t);
+			//addRenderable(t);
+		}
+		else {
+			stream.ignore(numeric_limits<streamsize>::max(), '\n');
+			continue;
+		}
+	}
+
+	cout << "Loaded " << vectors.size() << " vertices, " << normalVectors.size() <<
+		" normal vectors and " << faces << " faces." << endl;
+
+	stream.close();
+}
+
 double Scene::calculateShadingCoefficient(Light* light, Vector point, Vector toLight, double lightDist) {
     //Calculates the shading coefficient (how much a point is obscured)
     //Different calculations for different light types

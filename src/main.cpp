@@ -7,93 +7,8 @@
 #include "Triangle.h"
 #include <ctime>
 #include "Random.h"
-#include <vector>
-#include <iostream>
-#include <fstream>
-#include <string>
-#include <sstream>
 
 using namespace std;
-
-//Adds a model inside an OBJ file into the scene with a given
-//material. Does not reuse vertices, so each triangle takes
-//3xvertexsize + overhead space. Only supports triangles.
-void importObj(Scene* scene, char* filename, Material m,
-    Vector shift, double scale) {
-    vector<Vector> vectors;
-    vector<Vector> normalVectors;
-    
-    ifstream stream;
-    stream.open(filename);
-    
-    int faces = 0;
-    
-    while (!stream.eof()) {
-        string type;
-        stream >> type;
-        
-        if (type == "v") {
-            double x, y, z;
-            stream >> x >> y >> z;
-            vectors.push_back(Vector(x, y, z) * scale + shift);
-        } else if (type == "vn") {
-            double x, y, z;
-            stream >> x >> y >> z;
-            normalVectors.push_back(Vector(x, y, z));
-        } else if (type == "f") {
-            faces++;
-            //Face format: f vertex vertex vertex
-            //vertex: v/t/n
-            //where v is the vertex id, t is the texture UV coordinate id
-            //n is the normal direction at the vertex
-            //Any of the second or the third can be skipped:
-            //v, v/t, v//n are all valid
-            
-            int vIds[3];
-            int normalvIds[3] = {-1, -1, -1};
-            
-            for (int i = 0; i < 3; i++) {
-                string vertices;
-                stream >> vertices;
-                
-                //Split on '/'
-                istringstream ss(vertices);
-                string tok;
-                getline(ss, tok, '/'); //First number: vertex id
-                vIds[i] = atoi(tok.c_str());
-                
-                if (!ss.eof()) getline(ss, tok, '/'); //Second number: texture UV coordinates (discard)
-                
-                if (!ss.eof()) {
-                    getline(ss, tok, '/'); //Last number: normal vertex id
-                    normalvIds[i] = atoi(tok.c_str());
-                }
-            }
-            
-            Triangle *t;
-            
-            //Vertex ids in OBJ are 1-based (so 0 never appears in a face description)
-            if (normalvIds[0] != -1 && normalvIds[1] != -1 && normalvIds[2] != -1) {
-                t = new Triangle(vectors[vIds[0]-1], vectors[vIds[1]-1], vectors[vIds[2]-1],
-                                 normalVectors[normalvIds[0]-1], normalVectors[normalvIds[1]-1], normalVectors[normalvIds[2]-1]);
-            } else {
-                t = new Triangle(vectors[vIds[0]-1], vectors[vIds[1]-1], vectors[vIds[2]-1]);
-            }
-            
-            t->material = m;
-            scene->addTriangle(t);
-            //scene->addRenderable(t);
-        } else {
-            stream.ignore(numeric_limits<streamsize>::max(), '\n');
-            continue;
-        }
-    }
-    
-    cout << "Loaded " << vectors.size() << " vertices, " << normalVectors.size() <<
-        " normal vectors and " << faces << " faces." << endl;
-    
-    stream.close();
-}
 
 //Generates a random scene with a bunch of spheres
 void randomScene(Scene* scene) {
@@ -159,8 +74,8 @@ int main()
     srand((unsigned)time(0));
     Scene scene(640, 360);
     //scene.camera.width = 32;
-    scene.camera.width = 8;
-    scene.camera.height = 4.5;
+    scene.camera.width = 16;
+    scene.camera.height = 9;
 
     scene.backgroundColor.set(0, 0, 0);
     //scene.doAA = true;
@@ -168,16 +83,16 @@ int main()
     scene.msaaOptimize = false;
     scene.softShadowSamples = 1;
     scene.traceDepth = 5;
-	scene.camera.position = Vector(0, 3, -10);
-	scene.camera.direction = Vector(0, -6.2, 10);
+	scene.camera.position = Vector(0, -6, -15);
+	scene.camera.direction = Vector(0, 0, 1);
 	scene.camera.direction.normalize();
     scene.camera.planeDistance = 15;
     scene.camera.lensRadius = 0;
     scene.camera.focalDistance = 25;
 	
     scene.renderingMode = PATHTRACING;
-    scene.pathTracingSamplesPerPixel = 16; //spp squared is actually cast
-    scene.pathTracingMaxDepth = 10; // Too few samples and rays that go through
+    scene.pathTracingSamplesPerPixel = 32; //spp squared is actually cast
+    scene.pathTracingMaxDepth = 5; // Too few samples and rays that go through
     // a sphere, bounce off a wall, through the sphere again and to the light
     // will terminate too early
     
@@ -199,7 +114,7 @@ int main()
     // to be shaded. Temporary solution: more photons so that at least some get
     // to the corner. Better solution?
 
-    Sphere *oneLight = new Sphere(10, Vector(0, 10, -10));
+    Sphere *oneLight = new Sphere(7, Vector(0, 15, 10));
 
     Plane *bottomPlane = new Plane(Vector(0, -10, 0), Vector(0, 1, 0));
     Plane *upPlane = new Plane(Vector(0, 0, 18), Vector(0, 0, -1));
@@ -224,12 +139,11 @@ int main()
     backPlane->material.color = Vector(.95, .95, .95);
     
     Material m;
-    //m.isTransparent = true;
-    //m.transparency = 1.0;
-	m.reflectivity = 0.5;
+    m.transparency = 1.0;
+	//m.reflectivity = 0.5;
     //m.diffuse = 1.0;
-    //m.refrIndex = 1.42;
-    m.color = Vector(0.929, 0.5, 0.01);
+    m.refrIndex = 1.42;
+    m.color = Vector(0.01, 0.5, 0.929);
 	//m.color = Vector(1, 1, 1);
 /*    
     Triangle *t1 = new Triangle(Vector(4, 10, 13), Vector(8, -3, 9), Vector(12, 10, 13));
@@ -259,7 +173,7 @@ int main()
     //randomScene(&scene);
     
     printf("Loading the object file...\n");
-    importObj(&scene, "torus.obj", m, Vector(0, -10, 10), 4.0);
+	scene.importObj("wt_teapot.obj", m, Vector(0, -10, 5), 4.0);
     
     scene.render("test.bmp", NULL, 8);
 

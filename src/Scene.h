@@ -16,6 +16,12 @@
 #include <cstdlib>
 #include <thread>
 #include <limits>
+#include <vector>
+#include <iostream>
+#include <fstream>
+#include <string>
+#include <sstream>
+
 
 enum SamplingMode {
     STRATIFIED,
@@ -116,6 +122,9 @@ public:
 
     //Render the scene to a file
     void render(char* filename, BitmapPixel (*postProcess)(BitmapPixel), int noThreads);
+
+	//Import an OBJ file into the scene
+	void importObj(char* filename, Material m, Vector shift, double scale);
 
     //Load the photon map from a file (generates the map from scratch otherwise)
     bool loadMap(char* path);
