@@ -732,17 +732,48 @@ void Scene::populatePhotonMap() {
                                           //to save CPU cycles
                 
                 photonEnergy *= (1.0 / avgDiffuse);
-
-                photonEnergy = combineColors(photonEnergy, 
-                                             inter.object->material.color);
+                photonEnergy = combineColors(photonEnergy, objMat.color) + objMat.emittance;
 				
                 photonMap_->addPhoton(inter.coords, photonRay.direction, 
                                       photonEnergy, inter.normal);
 
+				// Code copied from the pathtracing.
+				// TODO: generalizegeneralizegeneralize
 
-                //Diffuse the ray
-                photonRay.direction = sampleHemisphere(inter.normal, drand(), drand());
-                
+				double nonDiffuse = inter.object->material.reflectivity + inter.object->material.transparency;
+
+				double decision = drand();
+
+				// The material can be part diffuse and part either perfectly specular or transparent.
+				// For specular, we reflect the ray and trace it; for transparent, use Fresnel equations
+				// to compute the weights of the reflected and the transmitted components.
+				if (decision > nonDiffuse) {
+					photonRay.direction = sampleHemisphere2(inter.normal);
+				}
+				else if (inter.object->material.transparency > 0) {
+					// Transparent material, use Fresnel's equations to compute the reflectance
+					double reflectance;
+
+					Ray newRay = photonRay;
+					refractRay(inter, newRay, reflectance);
+
+					decision = drand();
+
+					if (decision <= reflectance) {
+						if (inter.normal.dot(photonRay.direction) > 0) inter.normal = -inter.normal;
+						photonRay = reflectRay(inter, photonRay);
+					}
+					else {
+						photonRay = newRay;
+					}
+
+				}
+				else {
+					// Specular reflection
+					photonRay = reflectRay(inter, photonRay);
+				}
+				
+				
                 //New point to cast the ray from
                 photonRay.origin = inter.coords;
 
