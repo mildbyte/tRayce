@@ -682,9 +682,6 @@ void Scene::populatePhotonMap() {
     
     int allHits = 0;
 
-    //for (std::list<Light*>::iterator it = lights_.begin();
-    //    it != lights_.end(); it++) totalIntensity += ((Light*)(*it))->brightness;
-    
     for (std::list<Renderable*>::iterator it = renderables_.begin();
         it != renderables_.end(); it++) totalIntensity += ((Renderable*)(*it))->material.emittance.modulus();
 
@@ -693,20 +690,17 @@ void Scene::populatePhotonMap() {
         
         int photonsToCast = (int)((((Renderable*)(*it))->material.emittance.modulus()/totalIntensity)
                           * (double)photonCount);
-        
+
         printf("Casting %d photons...\n", photonsToCast);
 
         for (int i = 0; i < photonsToCast; i++) {
             //Make the light->scene ray
             Ray photonRay;
-            //photonRay.origin = ((Light*)(*it))->position;
             
             photonRay.origin = ((Renderable*)(*it))->sampleSurface();
             Vector normal = ((Renderable*)(*it))->getNormalAt(photonRay.origin);
             photonRay.direction = sampleHemisphere(normal, drand(), drand());
 
-            //double brightness = ((Light*)(*it))->brightness;
-            
             Vector photonEnergy(((Renderable*)(*it))->material.emittance);
             photonEnergy *= ((Renderable*)(*it))->getSurfaceArea();
             
@@ -734,8 +728,11 @@ void Scene::populatePhotonMap() {
                 photonEnergy *= (1.0 / avgDiffuse);
                 photonEnergy = combineColors(photonEnergy, objMat.color) + objMat.emittance;
 				
+				// Make sure the correct-direction normal is stored in the map
+				Vector normal = inter.normal;
+				if (normal.dot(photonRay.direction) > 0.0) normal = -normal;
                 photonMap_->addPhoton(inter.coords, photonRay.direction, 
-                                      photonEnergy, inter.normal);
+                                      photonEnergy, normal);
 
 				// Code copied from the pathtracing.
 				// TODO: generalizegeneralizegeneralize
