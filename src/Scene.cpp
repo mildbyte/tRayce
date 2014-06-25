@@ -181,7 +181,8 @@ double Scene::calculateShadingCoefficient(Light* light, Vector point, Vector toL
 
             //If the ray intersects something closer than the light, the point
             //is fully shaded, otherwise, it's fully illuminated.
-            if (renderables_.intersectsCloser(pointToLight, lightDist)) return 0;
+			if (renderables_.intersectsCloser(pointToLight, lightDist) 
+				|| triangles_->getFirstIntersection(pointToLight, lightDist).happened) return 0;
             return 1;
 
         } break;
@@ -197,7 +198,8 @@ double Scene::calculateShadingCoefficient(Light* light, Vector point, Vector toL
 
                 //If the ray intersects something closer than the light, the point
                 //is fully shaded, otherwise, it's fully illuminated.
-                if (renderables_.intersectsCloser(pointToLight, lightDist)) return 0;
+                if (renderables_.intersectsCloser(pointToLight, lightDist)
+					|| triangles_->getFirstIntersection(pointToLight, lightDist).happened) return 0;
                 return 1;
             }
 
