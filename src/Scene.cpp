@@ -625,9 +625,13 @@ Vector Scene::tracePixel(double x, double y) {
         Vector result(0, 0, 0);
         for (int i = 0; i < totalSamples; i++) {
             Ray ray;
+
+			//Exploit multiple SPP to perform AA
+			double xShift = drand() - 0.5;
+			double yShift = drand() - 0.5;
             
-            Vector xWorld = xPixel_ * (x - 0.5 * (double)width_ + 0.5);
-            Vector yWorld = yPixel_ * (y - 0.5 * (double)height_ + 0.5);
+            Vector xWorld = xPixel_ * (x - 0.5 * (double)width_ + xShift);
+            Vector yWorld = yPixel_ * (y - 0.5 * (double)height_ + yShift);
             ray.direction = (camera.direction * camera.planeDistance)
                           + xWorld + yWorld;
             ray.direction.normalize();
