@@ -78,9 +78,6 @@ int main()
     scene.camera.height = 9;
 
     scene.backgroundColor.set(0, 0, 0);
-    //scene.doAA = true;
-    //scene.msaaSamples = 4;
-    scene.msaaOptimize = false;
     scene.softShadowSamples = 1;
     scene.traceDepth = 5;
 	scene.camera.position = Vector(0, -6, -15);
@@ -90,17 +87,17 @@ int main()
     scene.camera.lensRadius = 0;
     scene.camera.focalDistance = 25;
 	
-    scene.renderingMode = PATHTRACING;
-    scene.pathTracingSamplesPerPixel = 32; //spp squared is actually cast
+    scene.renderingMode = PHOTONMAPPING;
+    scene.pathTracingSamplesPerPixel = 16; //spp squared is actually cast
     scene.pathTracingMaxDepth = 5; // Too few samples and rays that go through
     // a sphere, bounce off a wall, through the sphere again and to the light
     // will terminate too early
     
     scene.doFinalGather = true;
-	scene.visualizePhotons = true;
-	scene.photonCount = 65536;
-    scene.photonBounces = 5;
-    scene.photonGatherAmount = 32;
+	scene.visualizePhotons = false;
+	scene.photonCount = 100000;
+    scene.photonBounces = 7;
+    scene.photonGatherAmount = 128;
     scene.photonGatherSamples = 4;
     scene.irradiancePhotonFrequency = 8;
     scene.photonGatherDotThreshold = 0.9;
@@ -173,7 +170,11 @@ int main()
     //randomScene(&scene);
     
     printf("Loading the object file...\n");
-	scene.importObj("wt_teapot.obj", m, Vector(0, -10, 5), 4.0);
+	//scene.importObj("sphere.obj", m, Vector(0, -10, 5), 4.0);
+
+	Sphere *s = new Sphere(4, Vector(0, -6, 5));
+	s->material = m;
+	scene.addRenderable(s);
     
     scene.render("test.bmp", NULL, 8);
 

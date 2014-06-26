@@ -51,10 +51,6 @@ Scene::Scene(int width, int height) {
     traceDepth = 5;
     backgroundColor.set(0, 0, 0);
 
-    doAA = false;
-    msaaSamples = 1;
-    msaaOptimize = true;
-
     softShadowSamples = 1;
 
     //Set up the AA optimization structures
@@ -822,52 +818,15 @@ void Scene::threadDoWork(int threadId, int noThreads) {
     
     int onePercent = width_ * height_ / 1000;
     
-    //Each MSAA sample's contribution to the final pixel
-    double contribution = 1.0 / (msaaSamples*msaaSamples);
     for (int pixel = threadId; pixel < width_ * height_; pixel += noThreads) {    
 		int realx = pixel % width_;
 		int realy = pixel / width_;
 
-		//Trace a preemptive ray through the pixel on the image plane
+		//Trace a ray through the pixel on the image plane
 		resultColor = tracePixel(realx, realy);
 
-		//currRow_[realx] = prevHit_;
-		
-		//Uses global state, MSAA optimizations disabled for now
-		if (doAA) {
-		//Runs if either no optimizations enabled or a new object is hit
-		//either in the pixel on the left or above the current pixel
-		//if (doAA && (!msaaOptimize || (prevHit_ != prevHit)
-		//			 || (prevHit_ != prevRow_[realx]))){
-			//Antialiased image
-			//Divides every pixel into an msaaSamples x msaaSamples grid
-			//Traces a ray through the centre of each square
-			//prevHit = prevHit_;
-
-			resultColor.set(0, 0, 0);
-
-			//Traverse the grid
-			for (int i = 1; i <= msaaSamples; i++) {
-				for (int j = 1; j <= msaaSamples; j++) {
-					//Trace the ray (contributes only a part of the
-					//resultant color)
-					resultColor += tracePixel(
-						realx + 1.0/(msaaSamples + 1.0) * (i + 0.5) - 0.5,
-						realy + 1.0/(msaaSamples + 1.0) * (j + 0.5) - 0.5)
-						* contribution;
-				}
-			}
-			//Mark the antialiased pixels (for debugging purposes)
-			//resultColor.set(1, 1, 1);
-		}
-
-		//Set the result color (either AA'd or w/o AA)
-		//TODO: prevDist_ is global state, remove
-		rendered_->setPixel(realx, realy, resultColor, prevDist_);
-		
-		//Changes global state: bad for threading. MSAA optimizations disabled for now
-		////Copy the collision data in the current row
-		//memcpy(prevRow_, currRow_, sizeof(Renderable*) * width_);
+		//TODO: actually get the depth returned from the tracing routine
+		rendered_->setPixel(realx, realy, resultColor, 0);
 
 		pixelsRendered_++;
 		if (pixelsRendered_ % onePercent == 0) {

@@ -141,15 +141,6 @@ public:
     //The maximum tracing depth
     int traceDepth;
 
-    //Do antialiasing?
-    bool doAA;
-
-    //Do AA only when encountering a border?
-    bool msaaOptimize;
-
-    //The amount of antialiasing samples
-    int msaaSamples;
-
     //Soft shadow samples (1 means treat soft shadow lights as ordinary lights)
     int softShadowSamples;
 
