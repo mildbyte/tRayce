@@ -5,7 +5,10 @@ KDNode* KDNode::build(vector<Triangle*>& triangles, int depth) {
     KDNode* node = new KDNode();
     node->left = NULL;
     node->right = NULL;
-    //printf("level %d, %d triangles\n", depth, triangles.size());
+
+#ifdef DEBUG
+    printf("level %d, %d triangles\n", depth, triangles.size());
+#endif
     
     //Calculate the bounding box
     bool firstTriangle = true;
@@ -34,14 +37,14 @@ KDNode* KDNode::build(vector<Triangle*>& triangles, int depth) {
             return t1->getMidpoint()[ax] < t2->getMidpoint()[ax]; 
         });
     
-    /*
+#ifdef DEBUG
     printf("splitting on %d\n", ax);
     printf("bounding box: from ");
     node->boundingBox.getPosition().print();
     printf(" to ");
     node->boundingBox.getEndpoint().print();
     printf("\n");
-    */
+#endif
     
     //Split so that the surface areas in the left and the right child
     //are similar (surface area heuristic)
@@ -86,8 +89,6 @@ KDNode* KDNode::build(vector<Triangle*>& triangles, int depth) {
 		node->triangles = triangles;
 		return node;
 	}
-
-    //printf("L%d R%d S%d\n", left.size(), right.size(), straddling);
     
     node->left = KDNode::build(left, depth+1);
     node->right = KDNode::build(right, depth+1);
@@ -116,8 +117,8 @@ Intersection KDNode::getFirstIntersection(Ray r, double planeDist) {
                     mindist = currInter.distance;
                     found = true;
                 }
-				/*
-                Box bb = t->getBoundingBox();
+#ifdef DEBUG
+                AABB bb = t->getBoundingBox();
                 double d;
                 if (!bb.intersects(r, d)) {
                     printf("ASSERTION FAILED: triangle ");
@@ -131,7 +132,8 @@ Intersection KDNode::getFirstIntersection(Ray r, double planeDist) {
                     printf(" -> ");
                     bb.getEndpoint().print();
                     printf(": Triangle intersected, BB wasn't\n");
-                }*/
+                }
+#endif
             }
         }
 
@@ -140,8 +142,8 @@ Intersection KDNode::getFirstIntersection(Ray r, double planeDist) {
         return bestInter;
     }
     
-    /*
-        printf("Ray: ");
+#ifdef DEBUG
+	printf("Ray: ");
     r.origin.print();
     printf(" -> ");
     r.direction.print();
@@ -156,13 +158,12 @@ Intersection KDNode::getFirstIntersection(Ray r, double planeDist) {
     right->boundingBox.getPosition().print();
     printf(" -> ");
     right->boundingBox.getEndpoint().print();
-    */
+#endif
     
     // Try the closest-intersecting box first, if nothing, move on to the second one
 	// TODO: doesn't completely work, sometimes returns later intersections if the ray goes
 	// through where two boxes merge.
 
-	
     double lDist;
     double rDist;
     
