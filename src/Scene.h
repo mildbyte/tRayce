@@ -50,19 +50,9 @@ private:
     Bitmap* rendered_;
 
     //Traces a single ray and returns the resultant color
-    Vector traceRay(const Ray ray, int depth);
+    Vector traceRay(const Ray ray, int depth, double &dist);
 
     int width_, height_; //Horizontal and vertical resolution
-
-    Renderable* prevHit_; //Previously hit object, used to optimize AA (only
-                          //trace several rays when encountering a new object)
-
-    double prevDist_;      //Distance to the hit object
-
-    //Store the previously traced row of objects and the current
-    //Used to optimize AA (do AA only if the pixel above it has a different
-    //object in it)
-    Renderable **prevRow_, **currRow_;
 
     Vector xPixel, yPixel; //X and Y directions in the image plane
 
@@ -84,10 +74,11 @@ private:
 	Intersection getClosestIntersection(Ray ray, double cullDistance);
 
     //Convert one pixel to world coordinates and trace it
-    Vector tracePixel(double x, double y);
+	//dist: distance to the first intersection (INFINITY if no intersections)
+    Vector tracePixel(double x, double y, double &dist);
     
     //Path tracing
-    Vector pathTrace(const Ray ray, int depth);
+    Vector pathTrace(const Ray ray, int depth, double &dist);
 
 	Vector getColorAt(Vector point);
 

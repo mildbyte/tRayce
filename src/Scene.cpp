@@ -53,15 +53,6 @@ Scene::Scene(int width, int height) {
 
     softShadowSamples = 1;
 
-    //Set up the AA optimization structures
-    prevHit_ = NULL;
-
-    prevRow_ = new Renderable*[width];
-    memset(prevRow_, NULL, width * sizeof (Renderable*));
-
-    currRow_ = new Renderable*[width];
-    memset(currRow_, NULL, width * sizeof (Renderable*));
-
     //Some default settings
     doFinalGather = false;
     visualizePhotons = false;
@@ -354,7 +345,7 @@ Vector Scene::calculateRefraction(Intersection inter, Ray ray, int level) {
 	double bogus;
 	refractRay(inter, ray, bogus);
 
-	return traceRay(ray, level - 1) * inter.object->material.transparency;
+	return traceRay(ray, level - 1, bogus) * inter.object->material.transparency;
 }
 
 Ray Scene::reflectRay(Intersection inter, Ray ray) {
@@ -375,7 +366,8 @@ Ray Scene::reflectRay(Intersection inter, Ray ray) {
 
 Vector Scene::calculateReflection(Intersection inter, Ray ray, int level) {
     //Send the reflected ray further (and decrease the tracing level)
-    return traceRay(reflectRay(inter, ray), level - 1) 
+	double bogus;
+    return traceRay(reflectRay(inter, ray), level - 1, bogus) 
            * inter.object->material.reflectivity;
 }
 
@@ -462,7 +454,7 @@ Vector Scene::sampleMapAt(Vector coords, Vector normal, double x, double y) {
                                                photonGatherAmount);
 }
 
-Vector Scene::pathTrace(const Ray ray, int depth) {
+Vector Scene::pathTrace(const Ray ray, int depth, double &dist) {
     //If the maximum tracing depth has been reached, return
     if (depth <= 0) return backgroundColor;
     
@@ -470,10 +462,12 @@ Vector Scene::pathTrace(const Ray ray, int depth) {
     Intersection inter = getClosestIntersection(ray, depth == pathTracingMaxDepth ? camera.planeDistance : 0);
     
     if (!inter.happened) {
+		dist = INFINITY;
         return backgroundColor;
     }
 
     inter.normal.normalize();
+	dist = inter.distance;
 
     double nonDiffuse = inter.object->material.reflectivity + inter.object->material.transparency;
 
@@ -482,13 +476,15 @@ Vector Scene::pathTrace(const Ray ray, int depth) {
     // The material can be part diffuse and part either perfectly specular or transparent.
 	// For specular, we reflect the ray and trace it; for transparent, use Fresnel equations
 	// to compute the weights of the reflected and the transmitted components.
+	double dummy;
 	if (decision > nonDiffuse) {
 		Ray nextRay;
 		nextRay.origin = inter.coords;
 		nextRay.direction = sampleHemisphere2(inter.normal);
 
 		Vector brdf = inter.object->material.color  * nextRay.direction.dot(inter.normal);
-		Vector reflected = pathTrace(nextRay, depth - 1);
+
+		Vector reflected = pathTrace(nextRay, depth - 1, dummy);
 
 		return inter.object->material.emittance + combineColors(brdf, reflected);
 	} else if (inter.object->material.transparency > 0) {
@@ -502,18 +498,18 @@ Vector Scene::pathTrace(const Ray ray, int depth) {
 
 		if (decision > reflectance) {
 			return inter.object->material.emittance
-				+ combineColors(inter.object->material.color, pathTrace(nextRay, depth - 1));
+				+ combineColors(inter.object->material.color, pathTrace(nextRay, depth - 1, dummy));
 		} else {
 			if (inter.normal.dot(ray.direction) > 0) inter.normal = -inter.normal;
 			Ray nextRay = reflectRay(inter, ray);
 			return inter.object->material.emittance
-				+ combineColors(inter.object->material.color, pathTrace(nextRay, depth - 1));
+				+ combineColors(inter.object->material.color, pathTrace(nextRay, depth - 1, dummy));
 		}
 	} else {
 		// Specular reflection
 		Ray nextRay = reflectRay(inter, ray);
 		return inter.object->material.emittance
-			+ combineColors(inter.object->material.color, pathTrace(nextRay, depth - 1));
+			+ combineColors(inter.object->material.color, pathTrace(nextRay, depth - 1, dummy));
     }
 }
 
@@ -526,7 +522,7 @@ Intersection Scene::getClosestIntersection(Ray ray, double cullDistance) {
 	return inter;
 }
 
-Vector Scene::traceRay(const Ray ray, int level) {
+Vector Scene::traceRay(const Ray ray, int level, double &dist) {
     //Traces a single ray through the scene; returns its color.
     //This is where the magic happens.
     
@@ -540,11 +536,12 @@ Vector Scene::traceRay(const Ray ray, int level) {
 	Intersection inter = getClosestIntersection(ray, planeDist);
 
     if (!inter.happened) {
-        prevHit_ = NULL;
+		dist = INFINITY;
         return backgroundColor;
     }
 
     inter.normal.normalize();
+	dist = inter.distance;
     
     Vector resultColor(0, 0, 0);
     
@@ -611,14 +608,12 @@ Vector Scene::traceRay(const Ray ray, int level) {
         break;       
     }
 
-    //Store the distance (used for postprocessing)
-    prevDist_ = inter.distance;
-    prevHit_ = inter.object;
     return resultColor;
 }
 
 //Converts screen to image coordinates and traces them.
-Vector Scene::tracePixel(double x, double y) {    
+Vector Scene::tracePixel(double x, double y, double &dist) {    
+	dist = 0;
     if (renderingMode == PATHTRACING) {
         int totalSamples = pathTracingSamplesPerPixel * pathTracingSamplesPerPixel;
     
@@ -651,10 +646,14 @@ Vector Scene::tracePixel(double x, double y) {
             ray.direction = pixelPoint - camera.position;
             ray.direction.normalize();
 
-            result += pathTrace(ray, pathTracingMaxDepth);
+			double d;
+            result += pathTrace(ray, pathTracingMaxDepth, d);
+			dist += d;
         }
         
         result /= (double)totalSamples;
+		dist /= (double)totalSamples;
+		
         return result;
     } else {
         Ray ray;
@@ -670,7 +669,7 @@ Vector Scene::tracePixel(double x, double y) {
         ray.direction = (camera.direction * camera.planeDistance)
                       + xWorld + yWorld;
         ray.direction.normalize();
-        return traceRay(ray, traceDepth);
+        return traceRay(ray, traceDepth, dist);
     }
 }
 
@@ -827,10 +826,9 @@ void Scene::threadDoWork(int threadId, int noThreads) {
 		int realy = pixel / width_;
 
 		//Trace a ray through the pixel on the image plane
-		resultColor = tracePixel(realx, realy);
-
-		//TODO: actually get the depth returned from the tracing routine
-		rendered_->setPixel(realx, realy, resultColor, 0);
+		double dist;
+		resultColor = tracePixel(realx, realy, dist);
+		rendered_->setPixel(realx, realy, resultColor, dist);
 
 		pixelsRendered_++;
 		if (pixelsRendered_ % onePercent == 0) {
