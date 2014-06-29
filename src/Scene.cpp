@@ -371,18 +371,7 @@ Vector Scene::calculateReflection(Intersection inter, Ray ray, int level) {
            * inter.object->material.reflectivity;
 }
 
-/*
-Vector sampleHemisphere(Vector normal, double a, double b) {
-    Vector result;
-    do {
-        result = Vector(2*drand()-1, 2*drand()-1, 2*drand()-1);
-        if (result.normalize() > 1) continue;
-        if (result.dot(normal) < 0) continue;
-        return result;
-    } while (true);
-}*/
-
-Vector sampleHemisphere2(Vector normal) {
+Vector sampleHemisphere(Vector normal) {
     while (true) {
         Vector direction(2*drand()-1, 2*drand()-1, 2*drand()-1);
         
@@ -394,7 +383,7 @@ Vector sampleHemisphere2(Vector normal) {
     }
 }
 
-Vector sampleHemisphere(Vector normal, double Xi1, double Xi2) {
+Vector sampleHemisphereCosine(Vector normal, double Xi1, double Xi2) {
     //Cosine-weighted hemisphere sampling.
     //Adapted from http://pathtracing.wordpress.com/2011/03/03/cosine-weighted-hemisphere/
     double theta = acos(sqrt(1.0-Xi1));
@@ -435,7 +424,7 @@ Vector Scene::sampleMapAt(Vector coords, Vector normal, double x, double y) {
     Ray samplingRay;
 
     samplingRay.origin = coords;
-    samplingRay.direction = sampleHemisphere(normal, x, y);
+    samplingRay.direction = sampleHemisphereCosine(normal, x, y);
     
     double dot = normal.dot(samplingRay.direction);
 
@@ -480,7 +469,7 @@ Vector Scene::pathTrace(const Ray ray, int depth, double &dist) {
 	if (decision > nonDiffuse) {
 		Ray nextRay;
 		nextRay.origin = inter.coords;
-		nextRay.direction = sampleHemisphere2(inter.normal);
+		nextRay.direction = sampleHemisphereCosine(inter.normal, drand(), drand());
 
 		Vector brdf = inter.object->material.color  * nextRay.direction.dot(inter.normal);
 
@@ -700,7 +689,7 @@ void Scene::populatePhotonMap() {
             
             photonRay.origin = ((Renderable*)(*it))->sampleSurface();
             Vector normal = ((Renderable*)(*it))->getNormalAt(photonRay.origin);
-            photonRay.direction = sampleHemisphere(normal, drand(), drand());
+            photonRay.direction = sampleHemisphereCosine(normal, drand(), drand());
 
             Vector photonEnergy(((Renderable*)(*it))->material.emittance);
             photonEnergy *= ((Renderable*)(*it))->getSurfaceArea();
@@ -746,7 +735,7 @@ void Scene::populatePhotonMap() {
 				// For specular, we reflect the ray and trace it; for transparent, use Fresnel equations
 				// to compute the weights of the reflected and the transmitted components.
 				if (decision > nonDiffuse) {
-					photonRay.direction = sampleHemisphere2(inter.normal);
+					photonRay.direction = sampleHemisphereCosine(inter.normal, drand(), drand());
 				}
 				else if (inter.object->material.transparency > 0) {
 					// Transparent material, use Fresnel's equations to compute the reflectance
