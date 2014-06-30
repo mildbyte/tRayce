@@ -665,7 +665,7 @@ Vector Scene::tracePixel(double x, double y, double &dist) {
 void Scene::populatePhotonMap() {
     //Construct the map
     //There will be one photon per bounce at most (+ photonCount initial photons)
-    photonMap_ = new PhotonMap(photonCount * photonBounces);
+    photonMap_ = new PhotonMap(photonCount * (photonBounces + 1));
 
     //The number of photons emitted per light depends on the light's intensity
     double totalIntensity = 0;
@@ -693,6 +693,17 @@ void Scene::populatePhotonMap() {
 
             Vector photonEnergy(((Renderable*)(*it))->material.emittance);
             photonEnergy *= ((Renderable*)(*it))->getSurfaceArea();
+
+			//Add the initial photon to the map
+			//Reflect it in the normal of the light source 
+			//so that it goes on the right track after being legitimately reflected back
+
+			Intersection bogus;
+			bogus.normal = normal;
+			Ray reflRay = reflectRay(bogus, photonRay);
+
+			photonMap_->addPhoton(photonRay.origin, reflRay.direction,
+				photonEnergy, normal);
             
             int currBounces = 0;
 
