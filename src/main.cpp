@@ -51,6 +51,12 @@ BitmapPixel postProcess(BitmapPixel pix) {
     return pix;
 }
 
+BitmapPixel depthify(BitmapPixel pix) {
+	double d = (pix.depth + 1) / 10;
+	pix.color = Vector(d, d, d);
+	return pix;
+}
+
 BitmapPixel amplify(BitmapPixel pix) {
 	BitmapPixel result;
 	result.color.set(pix.color.getX() * 100, pix.color.getY() * 100, pix.color.getZ() * 100);
@@ -72,44 +78,26 @@ void addQuad(Scene &s, Vector origin, Vector s1, Vector s2, Material m) {
 int main()
 {
     srand((unsigned)time(0));
-    Scene scene(640, 360);
+    Scene scene(1280, 720);
     //scene.camera.width = 32;
     scene.camera.width = 16;
     scene.camera.height = 9;
 
     scene.backgroundColor.set(0, 0, 0);
-    scene.softShadowSamples = 1;
     scene.traceDepth = 5;
 	scene.camera.position = Vector(0, -6, -15);
 	scene.camera.direction = Vector(0, 0, 1);
 	scene.camera.direction.normalize();
     scene.camera.planeDistance = 15;
     scene.camera.lensRadius = 0;
-    scene.camera.focalDistance = 25;
+    scene.camera.focalDistance = 20;
 	
-    scene.renderingMode = PHOTONMAPPING;
-    scene.pathTracingSamplesPerPixel = 16; //spp squared is actually cast
+    scene.pathTracingSamplesPerPixel = 64; //spp squared is actually cast
     scene.pathTracingMaxDepth = 5; // Too few samples and rays that go through
     // a sphere, bounce off a wall, through the sphere again and to the light
     // will terminate too early
-    
-    scene.doFinalGather = true;
-	scene.visualizePhotons = false;
-	scene.photonCount = 100000;
-    scene.photonBounces = 7;
-    scene.photonGatherAmount = 128;
-    scene.photonGatherSamples = 4;
-    scene.irradiancePhotonFrequency = 8;
-    scene.photonGatherDotThreshold = 0.9;
-    scene.doIrradianceCaching = true;
+
     scene.samplingMode = STRATIFIED;
-    
-    // Problem with this scene: when we do a final gather in the corner
-    // shaded by the big sphere, most rays hit the sphere. We then look up
-    // an irradiance photon with a similar normal, but the closest one we find
-    // is one on the emitting sphere. Hence we do light the corner that's supposed
-    // to be shaded. Temporary solution: more photons so that at least some get
-    // to the corner. Better solution?
 
     Sphere *oneLight = new Sphere(7, Vector(0, 15, 10));
 
@@ -136,7 +124,7 @@ int main()
     backPlane->material.color = Vector(.95, .95, .95);
     
     Material m;
-    m.transparency = 1.0;
+    m.transparency = 0.0;
 	//m.reflectivity = 0.5;
     //m.diffuse = 1.0;
     m.refrIndex = 1.42;
