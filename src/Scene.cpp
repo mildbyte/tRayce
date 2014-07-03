@@ -28,10 +28,6 @@ void Scene::addRenderable(Renderable* renderable) {
     renderables_.addRenderable(renderable);
 }
 
-void Scene::addLight(Light* light) {
-    lights_.push_back(light);
-}
-
 Scene::Scene(int width, int height) {
     rendered_ = new Bitmap(width, height);
     width_ = width;

@@ -108,10 +108,6 @@ int main()
     Plane *topPlane = new Plane(Vector(0, 10, 0), Vector(0, -1, 0));
     Plane *backPlane = new Plane(Vector(0, 0, -10), Vector(0, 0, 1));
     
-    Light *testLight = new PointLight();
-    testLight->position = Vector(0, 12, 5);
-    testLight->brightness = 5.0;
-  
     oneLight->material.color = Vector(.95, .95, .95);
     oneLight->material.emittance = Vector(30, 30, 30);
 
@@ -140,8 +136,6 @@ int main()
     t3->material = m;
     */
     scene.addRenderable(oneLight);
-    
-    scene.addLight(testLight);
     
     //scene.addRenderable(t1);
     //scene.addRenderable(t2);

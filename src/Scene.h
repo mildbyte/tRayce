@@ -4,7 +4,6 @@
 
 #include "Ray.h"
 #include "RenderablesList.h"
-#include "Light.h"
 #include "Bitmap.h"
 #include "Camera.h"
 #include "PhotonMap.h"
@@ -37,9 +36,7 @@ enum RenderingMode {
 class Scene {
 private:
     //Scene objects
-    std::list<Light*> lights_;
     RenderablesList renderables_;
-    
     std::vector<Triangle*> trianglesVector_;
     KDNode* triangles_;
 
@@ -84,7 +81,6 @@ public:
 
     //Add objects to the scene
     void addRenderable(Renderable* renderable);
-    void addLight(Light* light);
     void addTriangle(Triangle* triangle);
 
     //Render the scene to a file
