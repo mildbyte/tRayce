@@ -56,6 +56,7 @@ Scene::Scene(int width, int height) {
 void Scene::importObj(char* filename, Material m, Vector shift, double scale) {
 	vector<Vector> vectors;
 	vector<Vector> normalVectors;
+	vector<Vector> textureVectors;
 
 	ifstream stream;
 	stream.open(filename);
@@ -76,6 +77,20 @@ void Scene::importObj(char* filename, Material m, Vector shift, double scale) {
 			stream >> x >> y >> z;
 			normalVectors.push_back(Vector(x, y, z));
 		}
+		else if (type == "vt") {
+			double u, v, w = 0;
+
+			string vertices;
+			stream >> vertices;
+
+			//u, v are mandatory, whereas w is optional
+			istringstream ss(vertices);
+			ss >> u >> v;
+
+			if (!ss.eof()) ss >> w;
+
+			textureVectors.push_back(Vector(u, v, w));
+		}
 		else if (type == "f") {
 			faces++;
 			//Face format: f vertex vertex vertex
@@ -87,6 +102,7 @@ void Scene::importObj(char* filename, Material m, Vector shift, double scale) {
 
 			int vIds[3];
 			int normalvIds[3] = { -1, -1, -1 };
+			int textureIds[3] = { -1, -1, -1 };
 
 			for (int i = 0; i < 3; i++) {
 				string vertices;
@@ -98,7 +114,10 @@ void Scene::importObj(char* filename, Material m, Vector shift, double scale) {
 				getline(ss, tok, '/'); //First number: vertex id
 				vIds[i] = atoi(tok.c_str());
 
-				if (!ss.eof()) getline(ss, tok, '/'); //Second number: texture UV coordinates (discard)
+				if (!ss.eof()) {
+					getline(ss, tok, '/'); //Second number: texture UV coordinates
+					textureIds[i] = atoi(tok.c_str());
+				}
 
 				if (!ss.eof()) {
 					getline(ss, tok, '/'); //Last number: normal vertex id
@@ -115,6 +134,10 @@ void Scene::importObj(char* filename, Material m, Vector shift, double scale) {
 			}
 			else {
 				t = new Triangle(vectors[vIds[0] - 1], vectors[vIds[1] - 1], vectors[vIds[2] - 1]);
+			}
+
+			if (textureIds[0] != -1 && textureIds[1] != -1 && textureIds[2] != -1) {
+				t->setTextureCoords(textureVectors[textureIds[0]], textureVectors[textureIds[1]], textureVectors[textureIds[2]]);
 			}
 
 			t->material = m;

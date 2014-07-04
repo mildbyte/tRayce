@@ -23,6 +23,11 @@ private:
     Vector n1; //if !customNormals, holds the normal derived via cross product
     Vector n2;
     Vector n3;
+
+	bool hasTextures = false;
+	Vector t1;
+	Vector t2;
+	Vector t3;
     
     double area;
     AABB boundingBox;
@@ -60,6 +65,13 @@ public:
         area = n1.normalize() / 2;
         calcBB();
     }
+
+	void setTextureCoords(Vector t1, Vector t2, Vector t3) {
+		customNormals = true;
+		this->t1 = t1;
+		this->t2 = t2;
+		this->t3 = t3;
+	}
     
     Vector getMidpoint() {
         return (v1 + v2 + v3) * (1.0/3.0);
