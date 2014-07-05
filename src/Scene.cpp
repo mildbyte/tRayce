@@ -117,7 +117,7 @@ void Scene::importObj(char* filename, Material m, Vector shift, double scale) {
 
 				if (!ss.eof()) {
 					getline(ss, tok, '/'); //Second number: texture UV coordinates
-					textureIds[i] = atoi(tok.c_str());
+					if (tok != "") textureIds[i] = atoi(tok.c_str());
 				}
 
 				if (!ss.eof()) {
