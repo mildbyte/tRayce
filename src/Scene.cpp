@@ -46,6 +46,7 @@ Scene::Scene(int width, int height) {
     
     pathTracingMaxDepth = 5;
     pathTracingSamplesPerPixel = 10;
+	pathTracingTerminationProbability = 0.5;
 
     samplingMode = STRATIFIED;
 }
@@ -266,8 +267,12 @@ Vector Scene::getColorAt(Vector point) {
 
 Vector Scene::pathTrace(const Ray ray, int depth, double &dist) {
     //If the maximum tracing depth has been reached, return
-    if (depth <= 0) return backgroundColor;
-    
+	//(do Russian Roulette for path termination)
+	if (depth <= 0) {
+		double decision = drand();
+		if (decision < pathTracingTerminationProbability) return Vector(0, 0, 0);
+	}
+
     //If we are casting a ray from the eye into the scene, cull collisions behind the image plane
     Intersection inter = getClosestIntersection(ray, depth == pathTracingMaxDepth ? camera.planeDistance : 0);
     
@@ -287,6 +292,8 @@ Vector Scene::pathTrace(const Ray ray, int depth, double &dist) {
 	// For specular, we reflect the ray and trace it; for transparent, use Fresnel equations
 	// to compute the weights of the reflected and the transmitted components.
 	double dummy;
+	Vector result;
+
 	if (decision > nonDiffuse) {
 		Ray nextRay;
 		nextRay.origin = inter.coords;
@@ -296,7 +303,7 @@ Vector Scene::pathTrace(const Ray ray, int depth, double &dist) {
 
 		Vector reflected = pathTrace(nextRay, depth - 1, dummy);
 
-		return inter.object->material.emittance + combineColors(brdf, reflected);
+		result = inter.object->material.emittance + combineColors(brdf, reflected);
 	} else if (inter.object->material.transparency > 0) {
 		// Transparent material, use Fresnel's equations to compute the reflectance
 		double reflectance;
@@ -307,20 +314,24 @@ Vector Scene::pathTrace(const Ray ray, int depth, double &dist) {
 		decision = drand();
 
 		if (decision > reflectance) {
-			return inter.object->material.emittance
+			result = inter.object->material.emittance
 				+ combineColors(inter.object->material.color, pathTrace(nextRay, depth - 1, dummy));
 		} else {
 			if (inter.normal.dot(ray.direction) > 0) inter.normal = -inter.normal;
 			Ray nextRay = reflectRay(inter, ray);
-			return inter.object->material.emittance
+			result = inter.object->material.emittance
 				+ combineColors(inter.object->material.color, pathTrace(nextRay, depth - 1, dummy));
 		}
 	} else {
 		// Specular reflection
 		Ray nextRay = reflectRay(inter, ray);
-		return inter.object->material.emittance
+		result = inter.object->material.emittance
 			+ combineColors(inter.object->material.color, pathTrace(nextRay, depth - 1, dummy));
     }
+
+	//The estimate will be divided by the termination probabiliy to compensate for the RR
+	if (depth <= 0) return result * (1.0 / (1.0 - pathTracingTerminationProbability));
+	else return result;
 }
 
 Intersection Scene::getClosestIntersection(Ray ray, double cullDistance) {
@@ -370,12 +381,12 @@ Vector Scene::tracePixel(double x, double y, double &dist) {
 		double d;
 		result += pathTrace(ray, pathTracingMaxDepth, d);
 		dist += d;
-
-		result /= (double)totalSamples;
-		dist /= (double)totalSamples;
-
-		return result;
 	}
+
+	result /= (double)totalSamples;
+	dist /= (double)totalSamples;
+
+	return result;
 }
 
 void Scene::threadDoWork(int threadId, int noThreads) {

@@ -105,6 +105,7 @@ public:
 
     int pathTracingSamplesPerPixel;
     int pathTracingMaxDepth;
+	double pathTracingTerminationProbability;
 
     SamplingMode samplingMode; //Stratified or Halton?
 };
