@@ -17,6 +17,43 @@ Bitmap::Bitmap(int width, int height) {
     for (register int i = 0; i < width; i++) {bits_[i] = new BitmapPixel[height+1];}
 }
 
+//Loads a BMP image from file
+Bitmap::Bitmap(char* filepath) {
+	//Read the header
+	FILE* input;
+
+	fopen_s(&input, filepath, "rb");
+
+	unsigned char bfheader[14];
+	unsigned char biheader[40];
+
+	fread(&bfheader, 1, sizeof(bfheader), input);
+	fread(&biheader, 1, sizeof(biheader), input);
+
+	width_ = 0;
+	height_ = 0;
+	
+	for (int i = 7; i >= 4; i--) width_ = (width_ << 8) + biheader[i];
+	for (int i = 11; i >= 8; i--) height_ = (height_ << 8) + biheader[i];
+
+	bits_ = new BitmapPixel*[width_ + 1];
+	for (register int i = 0; i < width_; i++) { bits_[i] = new BitmapPixel[height_ + 1]; }
+
+	int rowSize = (width_ * 3);
+	unsigned char* row = new unsigned char[rowSize];
+
+	for (int i = height_-1; i >= 0; i--) {
+		fread(row, 1, rowSize, input);
+		for (int j = 0; j < width_; j++) {
+			Vector pix;
+			for (int k = 0; k < 3; k++) pix[2 - k] = (row[j * 3 + k] / 255.0);
+			setPixel(j, i, pix, 0);
+		}
+	}
+
+	delete(row);
+}
+
 Bitmap::~Bitmap() {
     for (register int i = width_ - 1; i >= 0; i--) {delete[] bits_[i];}
     delete[] bits_;
@@ -30,6 +67,8 @@ void Bitmap::setPixel(int x, int y, Vector pixel, double depth)
     bits_[x][y].color = pixel;
     bits_[x][y].depth = depth;
 }
+
+
 
 void Bitmap::foreach(BitmapPixel (*callback)(BitmapPixel)) {
     for (int i = 0; i < width_; i++) {
@@ -82,6 +121,7 @@ void Bitmap::saveToFile(char* filename) {
     for (int i = height_ - 1; i >= 0; i--) {
         for (int j = 0; j < width_; j++) {
             //Normalize and clamp the colors
+			//TODO: maybe normalization should be done elsewhere
             bits_[j][i].color.reinhardMap();
             
             //Write the B, G, R to the output

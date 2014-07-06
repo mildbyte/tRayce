@@ -20,6 +20,7 @@ private:
 public:
     //Specifying width and height is necessary.
     Bitmap(int width, int height);
+	Bitmap(char* filepath);
     ~Bitmap();
 
     //Getters, setters
