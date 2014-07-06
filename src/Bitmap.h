@@ -33,6 +33,11 @@ public:
     void saveToFile(char* filename);
 
     void foreach(BitmapPixel(*callback)(BitmapPixel));
+
+	//Performs nearest-neighbour (for now) texture sampling
+	Vector textureSample(double u, double v) {
+		return getPixel(int(u * width_), int(v * height_));
+	}
 };
 
 #endif

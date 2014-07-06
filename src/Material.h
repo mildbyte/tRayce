@@ -3,6 +3,7 @@
 #define MATERIAL_H
 
 #include "Vector.h"
+#include "Bitmap.h"
 
 struct Material {
     Vector color;
@@ -13,6 +14,9 @@ struct Material {
     double refrIndex;
     double reflectivity;
     Vector emittance;
+	
+	bool isTextured;
+	Bitmap* texture;
 
     Material() {
         color.set(0, 0, 0);
@@ -23,6 +27,8 @@ struct Material {
         transparency = 0.0;
         reflectivity = 0.0;
         refrIndex = 1.0;
+		isTextured = false;
+		texture = NULL;
     }
 };
 

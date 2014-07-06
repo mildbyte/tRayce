@@ -100,6 +100,29 @@ Vector Triangle::getNormalAt(Vector position)
     } else return n1;
 }
 
+
+bool Triangle::getUVAt(Vector position, double *uTex, double *vTex) {
+	if (!hasTextures) return false;
+
+	//Use the same code as for getNormalAt to get the barycentric points
+	Vector relPos = position - v1;
+
+	double d00 = e1.dot(e1);
+	double d01 = e1.dot(e2);
+	double d11 = e2.dot(e2);
+	double d20 = relPos.dot(e1);
+	double d21 = relPos.dot(e2);
+	double denom = d00 * d11 - d01 * d01;
+	double v = (d11 * d20 - d01 * d21) / denom;
+	double w = (d00 * d21 - d01 * d20) / denom;
+	double u = 1.0 - v - w;
+
+	*uTex = t1[0] * w + t2[0] * u + t3[0] * v;
+	*vTex = t1[1] * w + t2[1] * u + t3[1] * v;
+
+	return true;
+}
+
 double Triangle::getSurfaceArea()
 {
     return area;

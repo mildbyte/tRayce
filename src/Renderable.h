@@ -17,6 +17,9 @@ public:
     virtual Intersection getIntersection(Ray ray) = 0;
     virtual Vector sampleSurface() = 0;
     virtual Vector getNormalAt(Vector position) = 0;
+
+	//Texture mapping
+	virtual bool getUVAt(Vector, double*, double*) { return false; } //does not support by default
     
     //Surface area for scaling in pathtracing
     virtual double getSurfaceArea() = 0;

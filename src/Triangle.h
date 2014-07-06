@@ -67,7 +67,7 @@ public:
     }
 
 	void setTextureCoords(Vector t1, Vector t2, Vector t3) {
-		customNormals = true;
+		hasTextures = true;
 		this->t1 = t1;
 		this->t2 = t2;
 		this->t3 = t3;
@@ -86,6 +86,7 @@ public:
     virtual Vector sampleSurface();
     virtual Vector getNormalAt(Vector position);
     virtual double getSurfaceArea();
+	virtual bool getUVAt(Vector position, double *u, double *v);
 };
 
 #endif

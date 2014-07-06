@@ -68,6 +68,13 @@ void Bitmap::setPixel(int x, int y, Vector pixel, double depth)
     bits_[x][y].depth = depth;
 }
 
+Vector Bitmap::getPixel(int x, int y) {
+	//TODO: mechanisms for wrapping the coords around?
+	if ((x > width_) || (x < 0) || (y > height_) || (y < 0)) return Vector(0, 0, 0);
+
+	return bits_[x][y].color;
+}
+
 
 
 void Bitmap::foreach(BitmapPixel (*callback)(BitmapPixel)) {

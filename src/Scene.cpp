@@ -299,7 +299,19 @@ Vector Scene::pathTrace(const Ray ray, int depth, double &dist) {
 		nextRay.origin = inter.coords;
 		nextRay.direction = sampleHemisphereCosine(inter.normal, drand(), drand());
 
-		Vector brdf = inter.object->material.color  * nextRay.direction.dot(inter.normal);
+		Vector color = inter.object->material.color;
+		//See if we can texture the object
+
+		if (inter.object->material.isTextured) {
+			double u;
+			double v;
+
+			if (inter.object->getUVAt(inter.coords, &u, &v)) {
+				color = inter.object->material.texture->textureSample(u, v);
+			}
+		}
+
+		Vector brdf = color * nextRay.direction.dot(inter.normal);
 
 		Vector reflected = pathTrace(nextRay, depth - 1, dummy);
 
