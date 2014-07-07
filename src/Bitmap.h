@@ -34,9 +34,21 @@ public:
 
     void foreach(BitmapPixel(*callback)(BitmapPixel));
 
-	//Performs nearest-neighbour (for now) texture sampling
+	//Performs bilinear texture sampling, adapted from the Wikipedia article
 	Vector textureSample(double u, double v) {
-		return getPixel(int(u * width_), int(v * height_));
+		u = u * width_ - 0.5;
+		v = v * height_ - 0.5;
+		int x = floor(u);
+		int y = floor(v);
+		double u_ratio = u - x;
+		double v_ratio = v - y;
+		double u_opposite = 1 - u_ratio;
+		double v_opposite = 1 - v_ratio;
+
+		//Wrap pixels outside of the range around the texture
+		Vector result = (getPixel(x, y) * u_opposite + getPixel((x + 1) % width_, y) * u_ratio) * v_opposite +
+			(getPixel(x, (y + 1) % height_) * u_opposite + getPixel((x + 1) % width_, (y + 1) % height_) * u_ratio) * v_ratio;
+		return result;
 	}
 };
 
