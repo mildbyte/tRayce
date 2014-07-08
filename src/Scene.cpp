@@ -82,7 +82,7 @@ void Scene::importObj(char* filename, Material m, Vector shift, double scale) {
 			double u, v, w = 0;
 
 			string vertices;
-			stream >> vertices;
+			getline(stream, vertices);
 
 			//u, v are mandatory, whereas w is optional
 			istringstream ss(vertices);
@@ -138,7 +138,7 @@ void Scene::importObj(char* filename, Material m, Vector shift, double scale) {
 			}
 
 			if (textureIds[0] != -1 && textureIds[1] != -1 && textureIds[2] != -1) {
-				t->setTextureCoords(textureVectors[textureIds[0]], textureVectors[textureIds[1]], textureVectors[textureIds[2]]);
+				t->setTextureCoords(textureVectors[textureIds[0] - 1], textureVectors[textureIds[1] - 1], textureVectors[textureIds[2] - 1]);
 			}
 
 			t->material = m;
@@ -152,7 +152,7 @@ void Scene::importObj(char* filename, Material m, Vector shift, double scale) {
 	}
 
 	cout << "Loaded " << vectors.size() << " vertices, " << normalVectors.size() <<
-		" normal vectors and " << faces << " faces." << endl;
+		" normal vectors, " << textureVectors.size() << " UV coordinates and " << faces << " faces." << endl;
 
 	stream.close();
 }
