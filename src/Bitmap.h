@@ -46,8 +46,8 @@ public:
 		double v_opposite = 1 - v_ratio;
 
 		//Wrap pixels outside of the range around the texture
-		Vector result = (getPixel(x, y) * u_opposite + getPixel((x + 1) % width_, y) * u_ratio) * v_opposite +
-			(getPixel(x, (y + 1) % height_) * u_opposite + getPixel((x + 1) % width_, (y + 1) % height_) * u_ratio) * v_ratio;
+		Vector result = (getPixel(x % width_, y % height_) * u_opposite + getPixel((x + 1) % width_,  y % height_) * u_ratio) * v_opposite +
+			(getPixel(x % width_, (y + 1) % height_) * u_opposite + getPixel((x + 1) % width_, (y + 1) % height_) * u_ratio) * v_ratio;
 		return result;
 	}
 };

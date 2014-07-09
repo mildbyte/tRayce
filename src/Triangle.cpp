@@ -80,21 +80,17 @@ Vector Triangle::getNormalAt(Vector position)
         //Interpolate the normal
         
         //Get the barycentric coordinates of the point
-        //(from https://gamedev.stackexchange.com/questions/23743/whats-the-most-efficient-way-to-find-barycentric-coordinates)
+        //(from http://answers.unity3d.com/questions/383804/calculate-uv-coordinates-of-3d-point-on-plane-of-m.html)
         
-        Vector relPos = position - v1;
-        
-        double d00 = e1.dot(e1);
-        double d01 = e1.dot(e2);
-        double d11 = e2.dot(e2);
-        double d20 = relPos.dot(e1);
-        double d21 = relPos.dot(e2);
-        double denom = d00 * d11 - d01 * d01;
-        double v = (d11 * d20 - d01 * d21) / denom;
-        double w = (d00 * d21 - d01 * d20) / denom;
-        double u = 1.0 - v - w;
+		Vector p1 = position - v1;
+		Vector p2 = position - v2;
+		Vector p3 = position - v3;
 
-        Vector n = n1 * w + n2 * u + n3 * v;
+		double a1 = p2.cross(p3).modulus() / area;
+		double a2 = p3.cross(p1).modulus() / area;
+		double a3 = p1.cross(p2).modulus() / area;
+
+        Vector n = n1 * a1 + n2 * a2 + n3 * a3;
 		n.normalize();
 		return n;
     } else return n1;
@@ -105,20 +101,16 @@ bool Triangle::getUVAt(Vector position, double *uTex, double *vTex) {
 	if (!hasTextures) return false;
 
 	//Use the same code as for getNormalAt to get the barycentric points
-	Vector relPos = position - v1;
+	Vector p1 = position - v1;
+	Vector p2 = position - v2;
+	Vector p3 = position - v3;
 
-	double d00 = e1.dot(e1);
-	double d01 = e1.dot(e2);
-	double d11 = e2.dot(e2);
-	double d20 = relPos.dot(e1);
-	double d21 = relPos.dot(e2);
-	double denom = d00 * d11 - d01 * d01;
-	double v = (d11 * d20 - d01 * d21) / denom;
-	double w = (d00 * d21 - d01 * d20) / denom;
-	double u = 1.0 - v - w;
+	double a1 = p2.cross(p3).modulus() / area;
+	double a2 = p3.cross(p1).modulus() / area;
+	double a3 = p1.cross(p2).modulus() / area;
 
-	*uTex = t1[0] * w + t2[0] * u + t3[0] * v;
-	*vTex = t1[1] * w + t2[1] * u + t3[1] * v;
+	*uTex = t1[0] * a1 + t2[0] * a2 + t3[0] * a3;
+	*vTex = t1[1] * a1 + t2[1] * a2 + t3[1] * a3;
 
 	return true;
 }
