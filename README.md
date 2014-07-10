@@ -4,7 +4,7 @@ tRayce
 Introduction
 ------------
 
-tRayce is a basic path tracer (ex-raytracier and photon mapper) written in C++, inspired by various articles on the
+tRayce is a basic path tracer (ex-raytracer and photon mapper) written in C++, inspired by various articles on the
 Internet (such as [this one](http://www.codermind.com/articles/Raytracer-in-C++-Introduction-What-is-ray-tracing.html)).
 
 It supports basically nothing, including, but not limited to:
@@ -14,10 +14,10 @@ It supports basically nothing, including, but not limited to:
 * Not using CUDA/SSE.
 * Not being able to export the rendered image into anything but an uncompressed
     BMP file.
-* Not supporting textures, procedural or not, unless we call a plain colour a texture.
+* ~~Not supporting textures, procedural or not, unless we call a plain colour a texture.~~
 * Not being realtime, unless we call 30 FPS at 160x100 on a 2.1 GHz dualcore realtime.
 * Not having a good enough photon mapping (it kind of casts them and stores them, but it only looks nice with a final gathering step with horrendously large amounts of final gather rays, which is rather slow since I don't do any irradiance caching (at the time of writing, it's been rendering a 320x240 scene with 175000 photons, 500 photons used in an irradiance estimate and 512 final gather rays per pixel) for about a couple hours now)
-* Not being a raytracer anymore, the raytracer and photonmapper-enabled code can be found in the with-pt-and-rt branch.
+* Not being a raytracer or a photonmapper anymore, the raytracer and photonmapper-enabled code can be found in the with-pt-and-rt branch.
 
 Compilation
 -----------
@@ -51,7 +51,9 @@ Some features that tRayce does support:
     effects such as light falloff or playing around with colour intensities.
 * **Multithreading!**
 * **Spheres!** **Triangles!** **Planes!** **Axis-aligned bounding boxes!**
-* **Importing OBJ files** (only triangles so far, but can also import and interpolate their normals)
+* **Importing OBJ files** (only triangles so far, but can also import and interpolate their normals, as well as texture UV coordinates)
+* **Textures!** A BMP image can be used as a texture (`Material::isTextured`, `Material::texture`), so far, only triangles support
+    texture loading and UV interpolation
 * **Specific to raytracing**:
     * **Soft shadows** (`Scene::softShadowSamples`): when using area lights, instead
         of placing only one point light, approximates the area light with several
@@ -118,7 +120,6 @@ TODO
     * kd-tree for triangles has buggy lookups, so I need to check the bounding boxes of both branches.
 * **Improve the pathtracer**: bidirectional path tracing, then probably move on to Metropolis
     Light Transport
-* **Textures**: importing and interpolating them across triangles
 
 References
 ----------
