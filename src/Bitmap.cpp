@@ -84,6 +84,12 @@ void Bitmap::foreach(BitmapPixel (*callback)(BitmapPixel)) {
     }
 }
 
+void Bitmap::reinhardMap() {
+	for (int i = 0; i < height_; i++)
+		for (int j = 0; j < width_; j++)
+		bits_[i][j].color.reinhardMap();
+}
+
 void Bitmap::saveToFile(char* filename) {
     //Converts the color values to 0..255, clamps them
     //and saves the bitmap to file (overwrites)
@@ -126,9 +132,8 @@ void Bitmap::saveToFile(char* filename) {
 
     for (int i = height_ - 1; i >= 0; i--) {
         for (int j = 0; j < width_; j++) {
-            //Normalize and clamp the colors
-			//TODO: maybe normalization should be done elsewhere
-            bits_[j][i].color.reinhardMap();
+            //Export the clamped and 0-255 mapped colours.
+			//Assume they are already normalized to 0..1.
             
             //Write the B, G, R to the output
             unsigned char clamped;

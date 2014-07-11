@@ -483,6 +483,7 @@ void Scene::render(char* filename, BitmapPixel (*postProcess)(BitmapPixel), int 
 
     printf("Saving...\n");
     //Save the resulting bitmap to file
+	rendered_->reinhardMap();
     rendered_->saveToFile(filename);
 
     printf("Done.\n");

@@ -31,6 +31,7 @@ public:
     int getHeight() {return height_;}
 
     void saveToFile(char* filename);
+	void reinhardMap();
 
     void foreach(BitmapPixel(*callback)(BitmapPixel));
 
