@@ -85,8 +85,8 @@ void Bitmap::foreach(BitmapPixel (*callback)(BitmapPixel)) {
 }
 
 void Bitmap::reinhardMap() {
-	for (int i = 0; i < height_; i++)
-		for (int j = 0; j < width_; j++)
+	for (int i = 0; i < width_; i++)
+		for (int j = 0; j < height_; j++)
 		bits_[i][j].color.reinhardMap();
 }
 
