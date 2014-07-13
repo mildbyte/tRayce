@@ -17,6 +17,12 @@ private:
     int width_;
     int height_;
     BitmapPixel** bits_;
+
+	int mod(int x, int y) {
+		int m = x % y;
+		return (m >= 0 ? m : m + y);
+	}
+
 public:
     //Specifying width and height is necessary.
     Bitmap(int width, int height);
@@ -47,8 +53,10 @@ public:
 		double v_opposite = 1 - v_ratio;
 
 		//Wrap pixels outside of the range around the texture
-		Vector result = (getPixel(x % width_, y % height_) * u_opposite + getPixel((x + 1) % width_,  y % height_) * u_ratio) * v_opposite +
-			(getPixel(x % width_, (y + 1) % height_) * u_opposite + getPixel((x + 1) % width_, (y + 1) % height_) * u_ratio) * v_ratio;
+		Vector result = (getPixel(mod(x, width_), mod(y, height_)) * u_opposite 
+			+ getPixel(mod(x + 1, width_),  mod(y, height_) * u_ratio)) * v_opposite
+			+ (getPixel(mod(x, width_), mod(y + 1, height_)) * u_opposite 
+			+ getPixel(mod(x + 1, width_), mod(y + 1, height_)) * u_ratio) * v_ratio;
 		return result;
 	}
 };
