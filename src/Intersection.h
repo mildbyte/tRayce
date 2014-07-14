@@ -13,6 +13,7 @@ struct Intersection {
     Vector normal;
     double distance;
     Renderable* object;
+	int intersectedTriangles;
 };
 
 #endif

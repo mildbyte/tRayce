@@ -48,6 +48,11 @@ Scene::Scene(int width, int height) {
     pathTracingSamplesPerPixel = 10;
 	pathTracingTerminationProbability = 0.5;
 
+#ifdef _DEBUG
+	intersectedTriangles = 0;
+	totalKDLookups = 0;
+#endif
+
     samplingMode = STRATIFIED;
 }
 
@@ -350,6 +355,11 @@ Intersection Scene::getClosestIntersection(Ray ray, double cullDistance) {
 	Intersection inter = renderables_.getFirstIntersection(ray, cullDistance);
 
 	Intersection inter2 = triangles_->getFirstIntersection(ray, cullDistance);
+
+#ifdef _DEBUG
+	intersectedTriangles.fetch_add(inter2.intersectedTriangles);
+	totalKDLookups.fetch_add(1);
+#endif
 	if (!inter.happened || (inter2.happened && inter.distance > inter2.distance)) inter = inter2;
 
 	return inter;
@@ -482,6 +492,11 @@ void Scene::render(char* filename, BitmapPixel (*postProcess)(BitmapPixel), int 
     if (postProcess) rendered_->foreach(postProcess);
 
     printf("Saving...\n");
+
+#ifdef _DEBUG
+	printf("Triangle intersections: %lld, total kd-tree lookups: %lld\n", intersectedTriangles, totalKDLookups);
+#endif
+
     //Save the resulting bitmap to file
 	rendered_->reinhardMap();
     rendered_->saveToFile(filename);

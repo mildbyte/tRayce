@@ -20,6 +20,7 @@
 #include <fstream>
 #include <string>
 #include <sstream>
+#include <atomic>
 
 
 enum SamplingMode {
@@ -74,6 +75,9 @@ private:
 	std::thread *renderingThreads_;
 	
 	void threadDoWork(int threadId, int noThreads);
+
+	std::atomic_llong totalKDLookups;
+	std::atomic_llong intersectedTriangles;
 	
 public:
     //Necessary to specify width and height to allocate memory
