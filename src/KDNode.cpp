@@ -1,6 +1,12 @@
 #include "KDNode.h"
 #include <cassert>
 
+double surfaceArea(AABB box) {
+	Vector size = box.getSize();
+
+	return 2 * (size[0] * size[1] + size[1] * size[2] + size[2] * size[0]);
+}
+
 KDNode* KDNode::build(vector<Triangle*>& triangles, int depth) {
     KDNode* node = new KDNode();
     node->left = NULL;
@@ -30,40 +36,63 @@ KDNode* KDNode::build(vector<Triangle*>& triangles, int depth) {
 		return node;
 	}
     
-	
+	//Best currently: don't split
 	int bestAx = -1;
-	int bestStraddle = 0;
+	int bestPos = -1;
+	double bestSAH = triangles.size() * surfaceArea(node->boundingBox);
+	int bestStraddling = 0;
 
-	//Find the axis with which as few triangles straddle the boundary as possible
 	for (int ax = 0; ax < 3; ax++) {
-		sort(triangles.begin(), triangles.end(),
+
+		//TODO: improve to a plane-sweeping algo
+		/*sort(triangles.begin(), triangles.end(),
 			[ax](Triangle* t1, Triangle* t2) {
 			return t1->getMidpoint()[ax] < t2->getMidpoint()[ax];
-		});
+			});*/
 
-		//Split so that the surface areas in the left and the right child
-		//are similar (surface area heuristic)
-		vector<double> cumulSA(triangles.size());
-		cumulSA[0] = triangles[0]->getSurfaceArea();
-		for (unsigned int i = 1; i < triangles.size(); i++)
-			cumulSA[i] = cumulSA[i - 1] + triangles[i]->getSurfaceArea();
+		//Iterate through all possible split positions
+		for (int pos = 0; pos < triangles.size(); pos++) {
+			double splitCoordinate = triangles[pos]->getMidpoint()[ax];
 
-		double split = cumulSA[cumulSA.size() - 1] / 2.0;
-		int splitPos = distance(cumulSA.begin(), upper_bound(cumulSA.begin(), cumulSA.end(), split));
+			int leftCount = 0;
+			int rightCount = 0;
 
-		double splitCoordinate = triangles[splitPos]->getBoundingBox().getStartpoint()[ax];
-		int straddling = 0;
+			AABB leftAABB;
+			AABB rightAABB;
 
-		for (auto t : triangles) {
-			if ((t->getBoundingBox().getStartpoint()[ax] <= splitCoordinate)
-				&& (t->getBoundingBox().getEndpoint()[ax] >= splitCoordinate)) straddling++;
+			int straddling = 0;
+
+			//Count the hypothetical number of triangles in left and right halves
+			for (auto t : triangles) {
+				AABB box = t->getBoundingBox();
+
+				bool inLeft = false;
+
+				if (box.getStartpoint()[ax] <= splitCoordinate) {
+					if (leftCount++ == 0) leftAABB = box; else leftAABB.addBox(box);
+					inLeft = true;
+				}
+				if (box.getEndpoint()[ax] >= splitCoordinate) {
+					if (rightCount++ == 0) rightAABB = box; else rightAABB.addBox(box);
+					if (inLeft) straddling++;
+				}
+			}
+
+			//Calculate the surface area heuristic
+			double sah = surfaceArea(leftAABB) * leftCount + surfaceArea(rightAABB) + rightCount;
+
+			//If we can improve and it's not a degenerate case (one side is a subset of the other one), record
+			if (sah < bestSAH && straddling != leftCount && straddling != rightCount) {
+				bestAx = ax;
+				bestSAH = sah;
+				bestPos = pos;
+
+				bestStraddling = straddling;
+			}
+
 		}
-
-		if (bestAx == -1 || straddling < bestStraddle) {
-			bestAx = ax;
-			bestStraddle = straddling;
-		}	
 	}
+
 
 #ifdef _DEBUG
 	printf("splitting on %d\n", bestAx);
@@ -73,55 +102,26 @@ KDNode* KDNode::build(vector<Triangle*>& triangles, int depth) {
 	node->boundingBox.getEndpoint().print();
 	printf("\n");
 #endif
-	
 
-	//Now do it for real
-	//TODO: reuse the results of the best split
-
-	sort(triangles.begin(), triangles.end(),
-		[bestAx](Triangle* t1, Triangle* t2) {
-		return t1->getMidpoint()[bestAx] < t2->getMidpoint()[bestAx];
-	});
-
-	//Split so that the surface areas in the left and the right child
-	//are similar (surface area heuristic)
-	vector<double> cumulSA(triangles.size());
-	cumulSA[0] = triangles[0]->getSurfaceArea();
-	for (unsigned int i = 1; i < triangles.size(); i++)
-		cumulSA[i] = cumulSA[i - 1] + triangles[i]->getSurfaceArea();
-
-	double split = cumulSA[cumulSA.size() - 1] / 2.0;
-	int splitPos = distance(cumulSA.begin(), upper_bound(cumulSA.begin(), cumulSA.end(), split));
-    
-    double splitCoordinate = triangles[splitPos]->getBoundingBox().getStartpoint()[bestAx];
-
-    vector<Triangle*> left;
-    vector<Triangle*> right;
-    
-    for(auto t : triangles) {
-        //If the triangle's bounding box starts before the split coordinate,
-        //add it to the left subtree.
-        bool inLeft = false;
-        
-        if (t->getBoundingBox().getStartpoint()[bestAx] <= splitCoordinate) {
-            left.push_back(t);
-        }
-        //If the triangle's BB ends after the split coordinate, add it to
-        //the right subtree.
-        if (t->getBoundingBox().getEndpoint()[bestAx] >= splitCoordinate) {
-            right.push_back(t);
-        }
-        //This way, a triangle whose BB straddles the coordinate ends up in
-        //both subtrees.
-    }
-    
-    //If more than 50% of the triangles end up in both subtrees, make this node a leaf.
-	//If the L/R nodes are a subset of R/L nodes, we get infinite recursion and so
-	//turn the node into a leaf.
-	if (bestStraddle * 2 > triangles.size() || bestStraddle == right.size() || bestStraddle == left.size()) {
+	//If no better split found, make ourselves a leaf.
+	if (bestAx == -1) {
 		node->triangles = triangles;
 		return node;
 	}
+
+	//Recreate the split
+	vector<Triangle*> left;
+	vector<Triangle*> right;
+
+	double splitCoordinate = triangles[bestPos]->getMidpoint()[bestAx];
+
+	for (auto t : triangles) {
+		AABB box = t->getBoundingBox();
+
+		if (box.getStartpoint()[bestAx] <= splitCoordinate) left.push_back(t);
+		if (box.getEndpoint()[bestAx] >= splitCoordinate) right.push_back(t);
+	}
+    
     
     node->left = KDNode::build(left, depth+1);
     node->right = KDNode::build(right, depth+1);
