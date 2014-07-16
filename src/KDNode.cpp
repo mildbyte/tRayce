@@ -79,7 +79,7 @@ KDNode* KDNode::build(vector<Triangle*>& triangles, int depth) {
 			}
 
 			//Calculate the surface area heuristic
-			double sah = surfaceArea(leftAABB) * leftCount + surfaceArea(rightAABB) + rightCount;
+			double sah = surfaceArea(leftAABB) * leftCount + surfaceArea(rightAABB) * rightCount;
 
 			//If we can improve and it's not a degenerate case (one side is a subset of the other one), record
 			if (sah < bestSAH && straddling != leftCount && straddling != rightCount) {
