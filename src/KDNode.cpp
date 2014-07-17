@@ -206,43 +206,31 @@ Intersection KDNode::getFirstIntersection(Ray r, double planeDist) {
     
     bool lInter = left->boundingBox.intersects(r, lDist);
     bool rInter = right->boundingBox.intersects(r, rDist);
-	/*
+	
     KDNode* first;
     KDNode* second;
 
     Intersection inter;
     inter.happened = false;
     
-    if (lInter && (lDist <= rDist || !rInter)) {
+    if (lInter && (lDist - rDist < -100*EPSILON || !rInter)) {
         inter = left->getFirstIntersection(r, planeDist);
         if (!inter.happened && rInter) inter = right->getFirstIntersection(r, planeDist);
-    } else if (rInter && (rDist <= lDist || !lInter)) {
+    } else if (rInter && (rDist - lDist < -100*EPSILON || !lInter)) {
         inter = right->getFirstIntersection(r, planeDist);
         if (!inter.happened && lInter) inter = left->getFirstIntersection(r, planeDist);
-    }
+	} else {
+		Intersection i1, i2;
+		i1.happened = false;
+		i2.happened = false;
+		if (lInter) i1 = left->getFirstIntersection(r, planeDist);
+		if (rInter) i2 = right->getFirstIntersection(r, planeDist);
+		if (!i1.happened) return i2;
+		if (!i2.happened) return i1;
+
+		if (i1.distance < i2.distance) return i1; else return i2;
+	}
+
     
     return inter;
-	*/
-    
-    Intersection i1, i2;
-    i1.happened = false;
-    i2.happened = false;
-
-#ifdef _DEBUG
-	i1.intersectedTriangles = 0;
-	i2.intersectedTriangles = 0;
-#endif
-    
-    if (lInter) i1 = left->getFirstIntersection(r, planeDist);
-    if (rInter) i2 = right->getFirstIntersection(r, planeDist);
-
-#ifdef _DEBUG
-	i1.intersectedTriangles += i2.intersectedTriangles;
-	i2.intersectedTriangles = i1.intersectedTriangles;
-#endif
-    
-	if (!i1.happened) return i2;
-	if (!i2.happened) return i1;
-	
-	if (i1.distance < i2.distance) return i1; else return i2;
 }
