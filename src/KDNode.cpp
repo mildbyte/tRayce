@@ -216,10 +216,13 @@ Intersection KDNode::getFirstIntersection(Ray r, double planeDist) {
     if (lInter && (lDist - rDist < -100*EPSILON || !rInter)) {
         inter = left->getFirstIntersection(r, planeDist);
         if (!inter.happened && rInter) inter = right->getFirstIntersection(r, planeDist);
-    } else if (rInter && (rDist - lDist < -100*EPSILON || !lInter)) {
-        inter = right->getFirstIntersection(r, planeDist);
-        if (!inter.happened && lInter) inter = left->getFirstIntersection(r, planeDist);
-	} else {
+	}
+	else if (rInter && (rDist - lDist < -100 * EPSILON || !lInter)) {
+		inter = right->getFirstIntersection(r, planeDist);
+		if (!inter.happened && lInter) inter = left->getFirstIntersection(r, planeDist);
+	}
+	else if (!rInter && !lInter) return inter;
+	else {
 		Intersection i1, i2;
 		i1.happened = false;
 		i2.happened = false;
