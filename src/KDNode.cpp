@@ -7,6 +7,81 @@ double surfaceArea(AABB box) {
 	return 2 * (size[0] * size[1] + size[1] * size[2] + size[2] * size[0]);
 }
 
+double cost(double ratioLeft, double ratioRight, int left, int right) {
+	return ratioLeft * left + ratioRight * right;
+}
+
+pair<double, SplitSide> SAH(SplitPlane plane, AABB box, int left, int right, int planar) {
+	pair<AABB, AABB> boxes = box.split(plane);
+	double area = surfaceArea(box);
+	double ratioLeft = surfaceArea(boxes.first) / area;
+	double ratioRight = surfaceArea(boxes.second) / area;
+
+	double costLeft = cost(ratioLeft, ratioRight, left + planar, right);
+	double costRight = cost(ratioLeft, ratioRight, left, planar + right);
+
+	if (costLeft < costRight) return make_pair(costLeft, LEFT);
+	else return make_pair(costRight, RIGHT);
+}
+
+//Performs a plane sweep across the triangles to find the best splitting plane using the SAH.
+//From "On building fast kd-Trees for Ray Tracing, and on doing that in O(N log N)" by I. Wald and V. Havran
+pair<pair<SplitPlane, SplitSide>, double> KDNode::findPlane(vector<Triangle*>& triangles) {
+	double bestCost = INFINITY;
+	SplitPlane bestPlane(0, 0);
+	SplitSide bestSide;
+
+	for (int dim = 0; dim < 3; dim++) {
+		vector<SweepEvent> events;
+
+		for (auto t : triangles) {
+			AABB b = t->getBoundingBox().intersection(boundingBox);
+
+			if (b.isPlanar()) {
+				events.push_back(SweepEvent(t, b.getStartpoint()[dim], PLANAR));
+			}
+			else {
+				events.push_back(SweepEvent(t, b.getStartpoint()[dim], START));
+				events.push_back(SweepEvent(t, b.getEndpoint()[dim], END));
+			}
+		}
+		sort(events.begin(), events.end());
+
+		int left = 0;
+		int planar = 0;
+		int right = triangles.size();
+
+		for (int i = 0; i < events.size(); i++) {
+			double coordinate = events[i].coordinate;
+			SplitPlane plane(coordinate, dim);
+
+			int pAdd = 0; int pPlan = 0; int pRem = 0;
+
+			while (i < events.size() && events[i].coordinate == coordinate && events[i].type == END) {
+				pRem++; i++;
+			}
+			while (i < events.size() && events[i].coordinate == coordinate && events[i].type == PLANAR) {
+				pPlan++; i++;
+			}
+			while (i < events.size() && events[i].coordinate == coordinate && events[i].type == START) {
+				pAdd++; i++;
+			}
+
+			planar = pPlan; right -= pPlan; right -= pRem;
+
+			pair<double, SplitSide> result = SAH(plane, boundingBox, left, right, planar);
+			
+			if (result.first < bestCost) {
+				bestCost = result.first;
+				bestPlane = plane;
+				bestSide = result.second;
+			}
+			left += pAdd; left += pPlan; planar = 0;
+		}
+	}
+	return make_pair(make_pair(bestPlane, bestSide), bestCost);
+}
+
 KDNode* KDNode::build(vector<Triangle*>& triangles, int depth) {
     KDNode* node = new KDNode();
     node->left = NULL;
@@ -35,98 +110,44 @@ KDNode* KDNode::build(vector<Triangle*>& triangles, int depth) {
 		node->triangles = triangles;
 		return node;
 	}
-    
-	//Best currently: don't split
-	int bestAx = -1;
-	int bestPos = -1;
-	double bestSAH = triangles.size() * surfaceArea(node->boundingBox);
-	int bestStraddling = 0;
 
-	for (int ax = 0; ax < 3; ax++) {
+	
+	pair<pair<SplitPlane, SplitSide>, double> split = node->findPlane(triangles);
 
-		//TODO: improve to a plane-sweeping algo
-		/*sort(triangles.begin(), triangles.end(),
-			[ax](Triangle* t1, Triangle* t2) {
-			return t1->getMidpoint()[ax] < t2->getMidpoint()[ax];
-			});*/
+	//If can't get a better SAH, by splitting, make a leaf
+	if (split.second > surfaceArea(node->boundingBox) * triangles.size()) {
+		node->triangles = triangles;
+		return node;
+	}
 
-		//Iterate through all possible split positions
-		for (int pos = 0; pos < triangles.size(); pos++) {
-			double splitCoordinate = triangles[pos]->getMidpoint()[ax];
+	double splitCoordinate = split.first.first.getCoordinate();
+	vector<Triangle*> left;
+	vector<Triangle*> right;
 
-			int leftCount = 0;
-			int rightCount = 0;
-
-			AABB leftAABB;
-			AABB rightAABB;
-
-			int straddling = 0;
-
-			//Count the hypothetical number of triangles in left and right halves
-			for (auto t : triangles) {
-				AABB box = t->getBoundingBox();
-
-				bool inLeft = false;
-
-				if (box.getStartpoint()[ax] <= splitCoordinate) {
-					if (leftCount++ == 0) leftAABB = box; else leftAABB.addBox(box);
-					inLeft = true;
-				}
-				if (box.getEndpoint()[ax] >= splitCoordinate) {
-					if (rightCount++ == 0) rightAABB = box; else rightAABB.addBox(box);
-					if (inLeft) straddling++;
-				}
-			}
-
-			//Calculate the surface area heuristic
-			double sah = surfaceArea(leftAABB) * leftCount + surfaceArea(rightAABB) * rightCount;
-
-			//If we can improve and it's not a degenerate case (one side is a subset of the other one), record
-			if (sah < bestSAH && straddling != leftCount && straddling != rightCount) {
-				bestAx = ax;
-				bestSAH = sah;
-				bestPos = pos;
-
-				bestStraddling = straddling;
-			}
-
+	for (auto t : triangles) {
+		double triangleStart = t->getBoundingBox().getStartpoint()[split.first.first.getAxis()];
+		double triangleEnd = t->getBoundingBox().getEndpoint()[split.first.first.getAxis()];
+		
+		
+		if (triangleStart == triangleEnd) 
+			if (split.first.second == LEFT) left.push_back(t); else right.push_back(t);
+		else {
+			if (triangleStart < splitCoordinate) left.push_back(t);
+			if (triangleEnd > splitCoordinate) right.push_back(t);
 		}
 	}
 
+	node->left = build(left, depth++);
+	node->right = build(right, depth++);
 
 #ifdef _DEBUG
-	printf("splitting on %d\n", bestAx);
 	printf("bounding box: from ");
 	node->boundingBox.getStartpoint().print();
 	printf(" to ");
 	node->boundingBox.getEndpoint().print();
 	printf("\n");
 #endif
-
-	//If no better split found, make ourselves a leaf.
-	if (bestAx == -1) {
-		node->triangles = triangles;
-		return node;
-	}
-
-	//Recreate the split
-	vector<Triangle*> left;
-	vector<Triangle*> right;
-
-	double splitCoordinate = triangles[bestPos]->getMidpoint()[bestAx];
-
-	for (auto t : triangles) {
-		AABB box = t->getBoundingBox();
-
-		if (box.getStartpoint()[bestAx] <= splitCoordinate) left.push_back(t);
-		if (box.getEndpoint()[bestAx] >= splitCoordinate) right.push_back(t);
-	}
-    
-    
-    node->left = KDNode::build(left, depth+1);
-    node->right = KDNode::build(right, depth+1);
-    
-    return node;
+	
 }
 
 //ignore hits that happened less than planeDist away from the ray origin

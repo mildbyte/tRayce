@@ -12,7 +12,28 @@
 #include <set>
 using namespace std;
 
+typedef enum {
+	END = 0,
+	PLANAR,
+	START
+} SweepEventType;
+
+typedef struct SweepEvent {
+	Triangle* t;
+	double coordinate;
+	SweepEventType type;
+
+	SweepEvent(Triangle* t, double coordinate, SweepEventType type) : t(t), coordinate(coordinate), type(type) {}
+
+	bool operator< (SweepEvent& event) {
+		return (coordinate < event.coordinate) || (coordinate == event.coordinate && type < event.type);
+	}
+} SweepEvent;
+
+typedef enum { LEFT, RIGHT } SplitSide;
+
 class KDNode {
+	pair<pair<SplitPlane, SplitSide>, double> findPlane(vector<Triangle*>& triangles);
 public:
     AABB boundingBox;
     KDNode* left;

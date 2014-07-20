@@ -22,6 +22,8 @@ private:
     Vector end;
 	bool empty;
 	bool planar;
+
+	Vector size;
 public:
 	AABB() {}
 	AABB(Vector startPoint, Vector endPoint) : start(startPoint), end(endPoint) {
@@ -30,6 +32,7 @@ public:
 		for (int i = 0; i < 3; i++) {
 			if (startPoint[i] > endPoint[i]) empty = true;
 			if (startPoint[i] == endPoint[i]) planar = true;
+			size[i] = max(0.0, endPoint[i] - startPoint[i]);
 		}
 	}
 	bool intersects(Ray ray, double &dist);
