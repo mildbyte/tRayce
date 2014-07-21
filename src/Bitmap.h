@@ -5,6 +5,7 @@
 #define BITMAP_H
 
 #include "Vector.h"
+#define _CRT_SECURE_NO_DEPRECATE
 #include <cstdio>
 
 struct BitmapPixel{

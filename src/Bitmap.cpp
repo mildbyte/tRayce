@@ -20,9 +20,7 @@ Bitmap::Bitmap(int width, int height) {
 //Loads a BMP image from file
 Bitmap::Bitmap(char* filepath) {
 	//Read the header
-	FILE* input;
-
-	fopen_s(&input, filepath, "rb");
+	FILE* input = fopen(filepath, "rb");
 
 	unsigned char bfheader[14];
 	unsigned char biheader[40];
@@ -119,9 +117,7 @@ void Bitmap::saveToFile(char* filename) {
     
 
     //Open the output file and write the header
-    FILE* output;
-	
-	fopen_s(&output, filename, "wb");
+    FILE* output = fopen(filename, "wb");
 
     fwrite(&bfheader, 1, sizeof(bfheader), output);
     fwrite(&biheader, 1, sizeof(biheader), output);
