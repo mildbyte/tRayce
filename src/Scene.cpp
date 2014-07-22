@@ -447,7 +447,7 @@ void Scene::render(char* filename, BitmapPixel (*postProcess)(BitmapPixel), int 
 
     //Build a kd-tree for the triangles
     printf("Building a kd-tree for the triangles...\n");
-    triangles_ = KDNode::build(trianglesVector_, 0);
+    triangles_ = KDNode::build(trianglesVector_);
     
     printf("Built, %d triangles\n", triangles_->getItems().size());
     printf("Rendering...\n");

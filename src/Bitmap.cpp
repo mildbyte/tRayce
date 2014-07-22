@@ -20,7 +20,10 @@ Bitmap::Bitmap(int width, int height) {
 //Loads a BMP image from file
 Bitmap::Bitmap(char* filepath) {
 	//Read the header
+
+#pragma warning(disable: 4996)
 	FILE* input = fopen(filepath, "rb");
+#pragma warning(default: 4996)
 
 	unsigned char bfheader[14];
 	unsigned char biheader[40];

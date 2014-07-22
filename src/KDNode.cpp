@@ -82,36 +82,36 @@ pair<pair<SplitPlane, SplitSide>, double> KDNode::findPlane(vector<Triangle*>& t
 	return make_pair(make_pair(bestPlane, bestSide), bestCost);
 }
 
-KDNode* KDNode::build(vector<Triangle*>& triangles, int depth) {
-    KDNode* node = new KDNode();
-    node->left = NULL;
-    node->right = NULL;
+KDNode* KDNode::limitedBuild(vector<Triangle*>& triangles, int depth, int depthLimit) {
+	KDNode* node = new KDNode();
+	node->left = NULL;
+	node->right = NULL;
 
 #ifdef _DEBUG
-    printf("level %d, %d triangles\n", depth, triangles.size());
+	printf("level %d, %d triangles\n", depth, triangles.size());
 #endif
-    
-    //Calculate the bounding box
-    bool firstTriangle = true;
-    
-    for (auto it : triangles) {
-        if (firstTriangle) {
-            firstTriangle = false;
-            //Use the first triangle's bounding box as base since 0,0,0->0,0,0 still
-            //keeps the end at 0,0,0 even if all triangles have negative coordinates.
-            //Are we guaranteed to have > 0 triangles?
-            node->boundingBox = it->getBoundingBox();
-        }
-        node->boundingBox.addBox(it->getBoundingBox());
-    }
-    
-    //Leaf node: fewer than 16 triangles
-	if (triangles.size() < 4) {
+
+	//Calculate the bounding box
+	bool firstTriangle = true;
+
+	for (auto it : triangles) {
+		if (firstTriangle) {
+			firstTriangle = false;
+			//Use the first triangle's bounding box as base since 0,0,0->0,0,0 still
+			//keeps the end at 0,0,0 even if all triangles have negative coordinates.
+			//Are we guaranteed to have > 0 triangles?
+			node->boundingBox = it->getBoundingBox();
+		}
+		node->boundingBox.addBox(it->getBoundingBox());
+	}
+
+	//Leaf node: fewer than 4 triangles or reached sufficient depth
+	if (triangles.size() < 4 || depth >= depthLimit) {
 		node->triangles = triangles;
 		return node;
 	}
 
-	
+
 	pair<pair<SplitPlane, SplitSide>, double> split = node->findPlane(triangles);
 
 	//If can't get a better SAH, by splitting, make a leaf
@@ -127,18 +127,19 @@ KDNode* KDNode::build(vector<Triangle*>& triangles, int depth) {
 	for (auto t : triangles) {
 		double triangleStart = t->getBoundingBox().getStartpoint()[split.first.first.getAxis()];
 		double triangleEnd = t->getBoundingBox().getEndpoint()[split.first.first.getAxis()];
-		
-		
-		if (triangleStart == triangleEnd) 
-			if (split.first.second == LEFT) left.push_back(t); else right.push_back(t);
+
+
+		if (triangleStart == triangleEnd)
+		if (split.first.second == LEFT) left.push_back(t); else right.push_back(t);
 		else {
 			if (triangleStart < splitCoordinate) left.push_back(t);
 			if (triangleEnd > splitCoordinate) right.push_back(t);
 		}
 	}
 
-	node->left = build(left, depth++);
-	node->right = build(right, depth++);
+	//TODO deal with one side being a subset of another.
+	node->left = limitedBuild(left, depth + 1, depthLimit);
+	node->right = limitedBuild(right, depth + 1, depthLimit);
 
 #ifdef _DEBUG
 	printf("bounding box: from ");
@@ -147,7 +148,15 @@ KDNode* KDNode::build(vector<Triangle*>& triangles, int depth) {
 	node->boundingBox.getEndpoint().print();
 	printf("\n");
 #endif
-	
+
+}
+
+KDNode* KDNode::build(vector<Triangle*>& triangles) {
+	int limit = 1; int tmp = 1;
+	while (tmp < triangles.size()) {
+		tmp *= 2; limit++;
+	}
+	return limitedBuild(triangles, 0, limit);
 }
 
 //ignore hits that happened less than planeDist away from the ray origin

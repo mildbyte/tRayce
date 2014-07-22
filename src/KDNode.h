@@ -34,6 +34,7 @@ typedef enum { LEFT, RIGHT } SplitSide;
 
 class KDNode {
 	pair<pair<SplitPlane, SplitSide>, double> findPlane(vector<Triangle*>& triangles);
+	static KDNode* limitedBuild(vector<Triangle*>&triangles, int depth, int limit);
 public:
     AABB boundingBox;
     KDNode* left;
@@ -42,12 +43,13 @@ public:
     
     KDNode() {}
     
-    static KDNode* build(vector<Triangle*>&triangles, int depth);
+    static KDNode* build(vector<Triangle*>&triangles);
     
     Intersection getFirstIntersection(Ray r, double planeDist);
     
     set<Triangle*> getItems() {
-        if (left == NULL) return set<Triangle*>(triangles.begin(), triangles.end());
+		if (left == NULL)
+			if (triangles.size() == 0) return set<Triangle*>(); else return set<Triangle*>(triangles.begin(), triangles.end());
         
         set<Triangle*> leftI = left->getItems();
         set<Triangle*> rightI = right->getItems();
