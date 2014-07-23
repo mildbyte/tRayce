@@ -141,6 +141,7 @@ KDNode* KDNode::limitedBuild(vector<Triangle*>& triangles, int depth, int depthL
 	node->left = limitedBuild(left, depth + 1, depthLimit);
 	node->right = limitedBuild(right, depth + 1, depthLimit);
 
+
 #ifdef _DEBUG
 	printf("bounding box: from ");
 	node->boundingBox.getStartpoint().print();
@@ -148,6 +149,8 @@ KDNode* KDNode::limitedBuild(vector<Triangle*>& triangles, int depth, int depthL
 	node->boundingBox.getEndpoint().print();
 	printf("\n");
 #endif
+
+	return node;
 
 }
 

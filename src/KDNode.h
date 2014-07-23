@@ -49,7 +49,10 @@ public:
     
     set<Triangle*> getItems() {
 		if (left == NULL)
-			if (triangles.size() == 0) return set<Triangle*>(); else return set<Triangle*>(triangles.begin(), triangles.end());
+		if (triangles.size() == 0) {
+			return set<Triangle*>();
+		}
+		else return set<Triangle*>(triangles.begin(), triangles.end());
         
         set<Triangle*> leftI = left->getItems();
         set<Triangle*> rightI = right->getItems();
