@@ -48,7 +48,7 @@ public:
 	}
 
 	Vector getStartpoint() { return start; }
-	Vector getSize() { return end - start; }
+	Vector getSize() { return size; }
 	Vector getEndpoint() { return end; }
 
 	AABB intersection(AABB box) {
