@@ -88,6 +88,9 @@ KDNode* KDNode::limitedBuild(vector<Triangle*>& triangles, int depth, int depthL
 	node->right = NULL;
 
 #ifdef _DEBUG
+	if (triangles.size() == 4405) {
+		printf("w");
+	}
 	printf("level %d, %d triangles\n", depth, triangles.size());
 #endif
 
