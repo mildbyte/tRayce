@@ -37,7 +37,7 @@ pair<pair<SplitPlane, SplitSide>, double> KDNode::findPlane(vector<Triangle*>& t
 		for (auto t : triangles) {
 			AABB b = t->getBoundingBox().intersection(boundingBox);
 
-			if (b.isPlanar()) {
+			if (b.getSize()[dim] == 0.0) {
 				events.push_back(SweepEvent(t, b.getStartpoint()[dim], PLANAR));
 			}
 			else {
@@ -115,7 +115,7 @@ KDNode* KDNode::limitedBuild(vector<Triangle*>& triangles, int depth, int depthL
 	pair<pair<SplitPlane, SplitSide>, double> split = node->findPlane(triangles);
 
 	//If can't get a better SAH, by splitting, make a leaf
-	if (split.second > surfaceArea(node->boundingBox) * triangles.size()) {
+	if (split.second >= surfaceArea(node->boundingBox) * triangles.size()) {
 		node->triangles = triangles;
 		return node;
 	}
@@ -128,9 +128,8 @@ KDNode* KDNode::limitedBuild(vector<Triangle*>& triangles, int depth, int depthL
 		double triangleStart = t->getBoundingBox().getStartpoint()[split.first.first.getAxis()];
 		double triangleEnd = t->getBoundingBox().getEndpoint()[split.first.first.getAxis()];
 
-
-		if (triangleStart == triangleEnd)
-		if (split.first.second == LEFT) left.push_back(t); else right.push_back(t);
+		if (triangleStart == triangleEnd && triangleStart == splitCoordinate)
+			if (split.first.second == LEFT) left.push_back(t); else right.push_back(t);
 		else {
 			if (triangleStart < splitCoordinate) left.push_back(t);
 			if (triangleEnd > splitCoordinate) right.push_back(t);
