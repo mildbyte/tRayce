@@ -211,24 +211,6 @@ Intersection KDNode::getFirstIntersection(Ray r, double planeDist) {
         return bestInter;
     }
     
-//#ifdef _DEBUG
-//	printf("Ray: ");
-//    r.origin.print();
-//    printf(" -> ");
-//    r.direction.print();
-//    printf("\n");
-//    
-//    printf("Left box: ");
-//    left->boundingBox.getStartpoint().print();
-//    printf(" -> ");
-//    left->boundingBox.getEndpoint().print();
-//    
-//    printf("\nRight box: ");
-//    right->boundingBox.getStartpoint().print();
-//    printf(" -> ");
-//    right->boundingBox.getEndpoint().print();
-//#endif
-    
     // Try the closest-intersecting box first, if nothing, move on to the second one
 	// TODO: doesn't completely work, sometimes returns later intersections if the ray goes
 	// through where two boxes merge.
@@ -239,7 +221,7 @@ Intersection KDNode::getFirstIntersection(Ray r, double planeDist) {
     bool lInter = left->boundingBox.intersects(r, lDist);
     bool rInter = right->boundingBox.intersects(r, rDist);
 	
-    KDNode* first;
+    /*KDNode* first;
     KDNode* second;
 
     Intersection inter;
@@ -254,7 +236,7 @@ Intersection KDNode::getFirstIntersection(Ray r, double planeDist) {
 		if (!inter.happened && lInter) inter = left->getFirstIntersection(r, planeDist);
 	}
 	else if (!rInter && !lInter) return inter;
-	else {
+	else {*/
 		Intersection i1, i2;
 		i1.happened = false;
 		i2.happened = false;
@@ -264,8 +246,8 @@ Intersection KDNode::getFirstIntersection(Ray r, double planeDist) {
 		if (!i2.happened) return i1;
 
 		if (i1.distance < i2.distance) return i1; else return i2;
-	}
+	//}
 
     
-    return inter;
+    //return inter;
 }
