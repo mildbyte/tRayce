@@ -354,7 +354,7 @@ Vector Scene::pathTrace(const Ray ray, int depth, double &dist) {
 Intersection Scene::getClosestIntersection(Ray ray, double cullDistance) {
 	Intersection inter = renderables_.getFirstIntersection(ray, cullDistance);
 
-	Intersection inter2 = triangles_->getFirstIntersection(ray, cullDistance);
+	Intersection inter2 = triangles_->getFirstIntersection(ray, cullDistance, 0, INFINITY);
 
 #ifdef _DEBUG
 	intersectedTriangles.fetch_add(inter2.intersectedTriangles);

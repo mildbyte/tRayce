@@ -24,9 +24,18 @@ pair<double, SplitSide> SAH(SplitPlane plane, AABB box, int left, int right, int
 	else return make_pair(costRight, RIGHT);
 }
 
+bool planeIntersectsRay(SplitPlane plane, Ray r, double &dist) {
+	double rayO = r.origin[plane.getAxis()];
+	double rayC = r.direction[plane.getAxis()];
+	if (abs(rayC) < EPSILON) return false;
+
+	dist = (plane.getCoordinate() - rayO) / rayC;
+	return true;
+}
+
 //Performs a plane sweep across the triangles to find the best splitting plane using the SAH.
 //From "On building fast kd-Trees for Ray Tracing, and on doing that in O(N log N)" by I. Wald and V. Havran
-pair<pair<SplitPlane, SplitSide>, double> KDNode::findPlane(vector<Triangle*>& triangles) {
+pair<pair<SplitPlane, SplitSide>, double> KDNode::findPlane(vector<Triangle*>& triangles, AABB boundingBox) {
 	double bestCost = INFINITY;
 	SplitPlane bestPlane(0, 0);
 	SplitSide bestSide;
@@ -93,6 +102,7 @@ KDNode* KDNode::limitedBuild(vector<Triangle*>& triangles, int depth, int depthL
 
 	//Calculate the bounding box
 	bool firstTriangle = true;
+	AABB boundingBox;
 
 	for (auto it : triangles) {
 		if (firstTriangle) {
@@ -100,9 +110,9 @@ KDNode* KDNode::limitedBuild(vector<Triangle*>& triangles, int depth, int depthL
 			//Use the first triangle's bounding box as base since 0,0,0->0,0,0 still
 			//keeps the end at 0,0,0 even if all triangles have negative coordinates.
 			//Are we guaranteed to have > 0 triangles?
-			node->boundingBox = it->getBoundingBox();
+			boundingBox = it->getBoundingBox();
 		}
-		node->boundingBox.addBox(it->getBoundingBox());
+		boundingBox.addBox(it->getBoundingBox());
 	}
 
 	//Leaf node: fewer than 4 triangles or reached sufficient depth
@@ -112,10 +122,10 @@ KDNode* KDNode::limitedBuild(vector<Triangle*>& triangles, int depth, int depthL
 	}
 
 
-	pair<pair<SplitPlane, SplitSide>, double> split = node->findPlane(triangles);
+	pair<pair<SplitPlane, SplitSide>, double> split = node->findPlane(triangles, boundingBox);
 
 	//If can't get a better SAH, by splitting, make a leaf
-	if (split.second >= surfaceArea(node->boundingBox) * triangles.size()) {
+	if (split.second >= surfaceArea(boundingBox) * triangles.size()) {
 		node->triangles = triangles;
 		return node;
 	}
@@ -139,13 +149,14 @@ KDNode* KDNode::limitedBuild(vector<Triangle*>& triangles, int depth, int depthL
 	//TODO deal with one side being a subset of another.
 	node->left = limitedBuild(left, depth + 1, depthLimit);
 	node->right = limitedBuild(right, depth + 1, depthLimit);
+	node->plane = split.first.first;
 
 
 #ifdef _DEBUG
 	printf("bounding box: from ");
-	node->boundingBox.getStartpoint().print();
+	boundingBox.getStartpoint().print();
 	printf(" to ");
-	node->boundingBox.getEndpoint().print();
+	boundingBox.getEndpoint().print();
 	printf("\n");
 #endif
 
@@ -162,7 +173,7 @@ KDNode* KDNode::build(vector<Triangle*>& triangles) {
 }
 
 //ignore hits that happened less than planeDist away from the ray origin
-Intersection KDNode::getFirstIntersection(Ray r, double planeDist) {
+Intersection KDNode::getFirstIntersection(Ray r, double planeDist, double tMin, double tMax) {
     //Base case: do an O(n) search through the triangles
     if (left == NULL && right == NULL) {
         Intersection bestInter;
@@ -210,44 +221,36 @@ Intersection KDNode::getFirstIntersection(Ray r, double planeDist) {
 
         return bestInter;
     }
-    
-    // Try the closest-intersecting box first, if nothing, move on to the second one
-	// TODO: doesn't completely work, sometimes returns later intersections if the ray goes
-	// through where two boxes merge.
 
-    double lDist;
-    double rDist;
-    
-    bool lInter = left->boundingBox.intersects(r, lDist);
-    bool rInter = right->boundingBox.intersects(r, rDist);
-	
-    /*KDNode* first;
-    KDNode* second;
+	double tSplit;
+	planeIntersectsRay(plane, r, tSplit);
 
-    Intersection inter;
-    inter.happened = false;
-    
-    if (lInter && (lDist - rDist < -100*EPSILON || !rInter)) {
-        inter = left->getFirstIntersection(r, planeDist);
-        if (!inter.happened && rInter) inter = right->getFirstIntersection(r, planeDist);
+	KDNode* near;
+	KDNode* far;
+	if (r.origin[plane.getAxis()] < plane.getCoordinate()) near = left, far = right; else near = right, far = left;
+
+
+	if (tSplit > tMax) {
+		return near->getFirstIntersection(r, planeDist, tMin, tMax);
 	}
-	else if (rInter && (rDist - lDist < -100 * EPSILON || !lInter)) {
-		inter = right->getFirstIntersection(r, planeDist);
-		if (!inter.happened && lInter) inter = left->getFirstIntersection(r, planeDist);
+	else if (tSplit < tMin) {
+		if (tSplit > 0) return far->getFirstIntersection(r, planeDist, tMin, tMax);
+		else if (tSplit < 0) return near->getFirstIntersection(r, planeDist, tMin, tMax);
+		else {
+			if (r.direction[plane.getAxis()] < 0) return far->getFirstIntersection(r, planeDist, tMin, tMax);
+			else return near->getFirstIntersection(r, planeDist, tMin, tMax);
+		}
 	}
-	else if (!rInter && !lInter) return inter;
-	else {*/
-		Intersection i1, i2;
-		i1.happened = false;
-		i2.happened = false;
-		if (lInter) i1 = left->getFirstIntersection(r, planeDist);
-		if (rInter) i2 = right->getFirstIntersection(r, planeDist);
-		if (!i1.happened) return i2;
-		if (!i2.happened) return i1;
-
-		if (i1.distance < i2.distance) return i1; else return i2;
-	//}
-
-    
-    //return inter;
+	else {
+		if (tSplit > 0) {
+			Intersection inter = near->getFirstIntersection(r, planeDist, tMin, tSplit);
+			if (inter.happened) {
+				if (inter.distance <= tSplit) return inter;
+				Intersection inter2 = far->getFirstIntersection(r, planeDist, tSplit, tMax);
+				if (inter2.happened && inter2.distance < inter.distance) return inter2; else return inter;
+			}
+			return far->getFirstIntersection(r, planeDist, tSplit, tMax);
+		}
+		else return near->getFirstIntersection(r, planeDist, tSplit, tMax);
+	}
 }

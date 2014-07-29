@@ -33,10 +33,10 @@ typedef struct SweepEvent {
 typedef enum { LEFT, RIGHT } SplitSide;
 
 class KDNode {
-	pair<pair<SplitPlane, SplitSide>, double> findPlane(vector<Triangle*>& triangles);
+	pair<pair<SplitPlane, SplitSide>, double> findPlane(vector<Triangle*>& triangles, AABB boundingBox);
 	static KDNode* limitedBuild(vector<Triangle*>&triangles, int depth, int limit);
 public:
-    AABB boundingBox;
+	SplitPlane plane;
     KDNode* left;
     KDNode* right;
     vector<Triangle*> triangles;
@@ -45,7 +45,7 @@ public:
     
     static KDNode* build(vector<Triangle*>&triangles);
     
-    Intersection getFirstIntersection(Ray r, double planeDist);
+    Intersection getFirstIntersection(Ray r, double planeDist, double tMin, double tMax);
     
     set<Triangle*> getItems() {
 		if (left == NULL)

@@ -14,6 +14,7 @@ public:
 	double getCoordinate() { return coordinate; }
 	int getAxis() { return axis; }
 	SplitPlane(double coordinate, int axis) : coordinate(coordinate), axis(axis) {}
+	SplitPlane() {}
 };
 
 class AABB {
