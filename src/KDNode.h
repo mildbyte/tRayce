@@ -45,7 +45,7 @@ public:
     
     static KDNode* build(vector<Triangle*>&triangles);
     
-    Intersection getFirstIntersection(Ray r, double planeDist, double tMin, double tMax);
+    Intersection getFirstIntersection(Ray r, double tMin, double tMax);
     
     set<Triangle*> getItems() {
 		if (left == NULL)

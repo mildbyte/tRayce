@@ -173,7 +173,7 @@ KDNode* KDNode::build(vector<Triangle*>& triangles) {
 }
 
 //ignore hits that happened less than planeDist away from the ray origin
-Intersection KDNode::getFirstIntersection(Ray r, double planeDist, double tMin, double tMax) {
+Intersection KDNode::getFirstIntersection(Ray r, double tMin, double tMax) {
     //Base case: do an O(n) search through the triangles
     if (left == NULL && right == NULL) {
         Intersection bestInter;
@@ -187,7 +187,7 @@ Intersection KDNode::getFirstIntersection(Ray r, double planeDist, double tMin, 
             
             if (currInter.happened) { 
                 //Ignore hits that happened before the image plane
-                if (currInter.distance < planeDist) continue;
+                if (currInter.distance < tMin) continue;
                 if (!found || (currInter.distance < mindist)) {
                     bestInter = currInter;
                     mindist = currInter.distance;
@@ -231,26 +231,26 @@ Intersection KDNode::getFirstIntersection(Ray r, double planeDist, double tMin, 
 
 
 	if (tSplit > tMax) {
-		return near->getFirstIntersection(r, planeDist, tMin, tMax);
+		return near->getFirstIntersection(r, tMin, tMax);
 	}
 	else if (tSplit < tMin) {
-		if (tSplit > 0) return far->getFirstIntersection(r, planeDist, tMin, tMax);
-		else if (tSplit < 0) return near->getFirstIntersection(r, planeDist, tMin, tMax);
+		if (tSplit > 0) return far->getFirstIntersection(r, tMin, tMax);
+		else if (tSplit < 0) return near->getFirstIntersection(r, tMin, tMax);
 		else {
-			if (r.direction[plane.getAxis()] < 0) return far->getFirstIntersection(r, planeDist, tMin, tMax);
-			else return near->getFirstIntersection(r, planeDist, tMin, tMax);
+			if (r.direction[plane.getAxis()] < 0) return far->getFirstIntersection(r, tMin, tMax);
+			else return near->getFirstIntersection(r, tMin, tMax);
 		}
 	}
 	else {
 		if (tSplit > 0) {
-			Intersection inter = near->getFirstIntersection(r, planeDist, tMin, tSplit);
+			Intersection inter = near->getFirstIntersection(r, tMin, tSplit);
 			if (inter.happened) {
 				if (inter.distance <= tSplit) return inter;
-				Intersection inter2 = far->getFirstIntersection(r, planeDist, tSplit, tMax);
+				Intersection inter2 = far->getFirstIntersection(r, tSplit, tMax);
 				if (inter2.happened && inter2.distance < inter.distance) return inter2; else return inter;
 			}
-			return far->getFirstIntersection(r, planeDist, tSplit, tMax);
+			return far->getFirstIntersection(r, tSplit, tMax);
 		}
-		else return near->getFirstIntersection(r, planeDist, tSplit, tMax);
+		else return near->getFirstIntersection(r, tSplit, tMax);
 	}
 }
