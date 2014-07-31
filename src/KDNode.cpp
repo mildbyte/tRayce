@@ -247,6 +247,12 @@ Intersection KDNode::getFirstIntersection(Ray r, double tMin, double tMax) {
 			if (inter.happened) {
 				if (inter.distance <= tSplit) return inter;
 				Intersection inter2 = far->getFirstIntersection(r, tSplit, tMax);
+
+#ifdef _DEBUG
+				inter.intersectedTriangles += inter2.intersectedTriangles;
+				inter2.intersectedTriangles = inter.intersectedTriangles;
+#endif
+
 				if (inter2.happened && inter2.distance < inter.distance) return inter2; else return inter;
 			}
 			return far->getFirstIntersection(r, tSplit, tMax);
