@@ -151,15 +151,6 @@ KDNode* KDNode::limitedBuild(vector<Triangle*>& triangles, int depth, int depthL
 	node->right = limitedBuild(right, depth + 1, depthLimit);
 	node->plane = split.first.first;
 
-
-#ifdef _DEBUG
-	printf("bounding box: from ");
-	boundingBox.getStartpoint().print();
-	printf(" to ");
-	boundingBox.getEndpoint().print();
-	printf("\n");
-#endif
-
 	return node;
 
 }
@@ -169,7 +160,7 @@ KDNode* KDNode::build(vector<Triangle*>& triangles) {
 	while (tmp < triangles.size()) {
 		tmp *= 2; limit++;
 	}
-	return limitedBuild(triangles, 0, limit);
+	return limitedBuild(triangles, 0, limit + 2);
 }
 
 //ignore hits that happened less than planeDist away from the ray origin
@@ -193,23 +184,6 @@ Intersection KDNode::getFirstIntersection(Ray r, double tMin, double tMax) {
                     mindist = currInter.distance;
                     found = true;
                 }
-#ifdef _DEBUG
-                AABB bb = t->getBoundingBox();
-                double d;
-                if (!bb.intersects(r, d)) {
-                    printf("ASSERTION FAILED: triangle ");
-                    t->print();
-                    printf("; ray ");
-                    r.origin.print();
-                    printf(" -> ");
-                    r.direction.print();
-                    printf("; box ");
-                    bb.getStartpoint().print();
-                    printf(" -> ");
-                    bb.getEndpoint().print();
-                    printf(": Triangle intersected, BB wasn't\n");
-                }
-#endif
             }
         }
 
