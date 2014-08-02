@@ -52,14 +52,14 @@ private:
     Ray reflectRay(Intersection inter, Ray ray);
 
 	//Returns the closest intersection of the ray from the triangles' or other renderables' list
-	Intersection getClosestIntersection(Ray ray, double cullDistance);
+	Intersection getClosestIntersection(Ray ray, double cullDistance, int& intersectedTriangles);
 
     //Convert one pixel to world coordinates and trace it
 	//dist: distance to the first intersection (INFINITY if no intersections)
     Vector tracePixel(double x, double y, double &dist);
     
     //Path tracing
-    Vector pathTrace(const Ray ray, int depth, double &dist);
+    Vector pathTrace(const Ray ray, int depth, double &dist, int& intersectedTriangles);
 
 	Vector getColorAt(Vector point);
 
@@ -76,8 +76,9 @@ private:
 	
 	void threadDoWork(int threadId, int noThreads);
 
-	std::atomic_llong totalKDLookups;
-	std::atomic_llong intersectedTriangles;
+#ifdef _DEBUG
+	Bitmap* triangleIntersectionMap;
+#endif
 	
 public:
     //Necessary to specify width and height to allocate memory

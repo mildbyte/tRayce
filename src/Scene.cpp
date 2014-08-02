@@ -30,6 +30,11 @@ void Scene::addRenderable(Renderable* renderable) {
 
 Scene::Scene(int width, int height) {
     rendered_ = new Bitmap(width, height);
+
+#ifdef _DEBUG
+	triangleIntersectionMap = new Bitmap(width, height);
+#endif
+
     width_ = width;
     height_ = height;
 
@@ -48,10 +53,6 @@ Scene::Scene(int width, int height) {
     pathTracingSamplesPerPixel = 10;
 	pathTracingTerminationProbability = 0.5;
 
-#ifdef _DEBUG
-	intersectedTriangles = 0;
-	totalKDLookups = 0;
-#endif
 
     samplingMode = STRATIFIED;
 }
@@ -270,7 +271,7 @@ Vector Scene::getColorAt(Vector point) {
 	return Vector(1, 1, 1);
 }
 
-Vector Scene::pathTrace(const Ray ray, int depth, double &dist) {
+Vector Scene::pathTrace(const Ray ray, int depth, double &dist, int &triangleIntersections) {
     //If the maximum tracing depth has been reached, return
 	//(do Russian Roulette for path termination)
 	if (depth <= 0) {
@@ -279,7 +280,7 @@ Vector Scene::pathTrace(const Ray ray, int depth, double &dist) {
 	}
 
     //If we are casting a ray from the eye into the scene, cull collisions behind the image plane
-    Intersection inter = getClosestIntersection(ray, depth == pathTracingMaxDepth ? camera.planeDistance : 0);
+    Intersection inter = getClosestIntersection(ray, depth == pathTracingMaxDepth ? camera.planeDistance : 0, triangleIntersections);
     
     if (!inter.happened) {
 		dist = INFINITY;
@@ -318,7 +319,7 @@ Vector Scene::pathTrace(const Ray ray, int depth, double &dist) {
 
 		Vector brdf = color * nextRay.direction.dot(inter.normal);
 
-		Vector reflected = pathTrace(nextRay, depth - 1, dummy);
+		Vector reflected = pathTrace(nextRay, depth - 1, dummy, triangleIntersections);
 
 		result = inter.object->material.emittance + combineColors(brdf, reflected);
 	} else if (inter.object->material.transparency > 0) {
@@ -332,18 +333,18 @@ Vector Scene::pathTrace(const Ray ray, int depth, double &dist) {
 
 		if (decision > reflectance) {
 			result = inter.object->material.emittance
-				+ combineColors(inter.object->material.color, pathTrace(nextRay, depth - 1, dummy));
+				+ combineColors(inter.object->material.color, pathTrace(nextRay, depth - 1, dummy, triangleIntersections));
 		} else {
 			if (inter.normal.dot(ray.direction) > 0) inter.normal = -inter.normal;
 			Ray nextRay = reflectRay(inter, ray);
 			result = inter.object->material.emittance
-				+ combineColors(inter.object->material.color, pathTrace(nextRay, depth - 1, dummy));
+				+ combineColors(inter.object->material.color, pathTrace(nextRay, depth - 1, dummy, triangleIntersections));
 		}
 	} else {
 		// Specular reflection
 		Ray nextRay = reflectRay(inter, ray);
 		result = inter.object->material.emittance
-			+ combineColors(inter.object->material.color, pathTrace(nextRay, depth - 1, dummy));
+			+ combineColors(inter.object->material.color, pathTrace(nextRay, depth - 1, dummy, triangleIntersections));
     }
 
 	//The estimate will be divided by the termination probabiliy to compensate for the RR
@@ -351,14 +352,13 @@ Vector Scene::pathTrace(const Ray ray, int depth, double &dist) {
 	else return result;
 }
 
-Intersection Scene::getClosestIntersection(Ray ray, double cullDistance) {
+Intersection Scene::getClosestIntersection(Ray ray, double cullDistance, int& triangleIntersections) {
 	Intersection inter = renderables_.getFirstIntersection(ray, cullDistance);
 
 	Intersection inter2 = triangles_->getFirstIntersection(ray, cullDistance, INFINITY);
 
 #ifdef _DEBUG
-	intersectedTriangles.fetch_add(inter2.intersectedTriangles);
-	totalKDLookups.fetch_add(1);
+	triangleIntersections += inter2.intersectedTriangles;
 #endif
 	if (!inter.happened || (inter2.happened && inter.distance > inter2.distance)) inter = inter2;
 
@@ -370,6 +370,7 @@ Vector Scene::tracePixel(double x, double y, double &dist) {
 	dist = 0;
 
     int totalSamples = pathTracingSamplesPerPixel * pathTracingSamplesPerPixel;
+	int triangleIntersections = 0;
     
     Vector result(0, 0, 0);
 	for (int i = 0; i < totalSamples; i++) {
@@ -401,12 +402,17 @@ Vector Scene::tracePixel(double x, double y, double &dist) {
 		ray.direction.normalize();
 
 		double d;
-		result += pathTrace(ray, pathTracingMaxDepth, d);
+		result += pathTrace(ray, pathTracingMaxDepth, d, triangleIntersections);
 		dist += d;
 	}
 
 	result /= (double)totalSamples;
 	dist /= (double)totalSamples;
+	triangleIntersections /= ((double)totalSamples * 16);
+
+#ifdef _DEBUG
+	triangleIntersectionMap->setPixel(x, y, Vector(triangleIntersections, triangleIntersections, triangleIntersections), dist);
+#endif
 
 	return result;
 }
@@ -494,7 +500,8 @@ void Scene::render(char* filename, BitmapPixel (*postProcess)(BitmapPixel), int 
     printf("Saving...\n");
 
 #ifdef _DEBUG
-	printf("Triangle intersections: %lld, total kd-tree lookups: %lld\n", intersectedTriangles, totalKDLookups);
+	triangleIntersectionMap->reinhardMap();
+	triangleIntersectionMap->saveToFile("intersections.bmp");
 #endif
 
     //Save the resulting bitmap to file
