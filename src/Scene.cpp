@@ -223,18 +223,6 @@ Ray Scene::reflectRay(Intersection inter, Ray ray) {
     return result;
 }
 
-Vector sampleHemisphere(Vector normal) {
-    while (true) {
-        Vector direction(2*drand()-1, 2*drand()-1, 2*drand()-1);
-        
-        double dot = normal.dot(direction);
-        if (dot >= 0.0 && dot <= 1.0) {
-            direction.normalize();
-            return direction;
-        }
-    }
-}
-
 Vector sampleHemisphereCosine(Vector normal, double Xi1, double Xi2) {
     //Cosine-weighted hemisphere sampling.
     //Adapted from http://pathtracing.wordpress.com/2011/03/03/cosine-weighted-hemisphere/
@@ -408,7 +396,7 @@ Vector Scene::tracePixel(double x, double y, double &dist) {
 
 	result /= (double)totalSamples;
 	dist /= (double)totalSamples;
-	triangleIntersections /= ((double)totalSamples * 16);
+	triangleIntersections /= ((double)totalSamples * 16.0);
 
 #ifdef _DEBUG
 	triangleIntersectionMap->setPixel(x, y, Vector(triangleIntersections, triangleIntersections, triangleIntersections), dist);
