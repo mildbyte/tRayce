@@ -15,7 +15,6 @@ public:
 
     virtual bool intersects(Ray ray) = 0;
     virtual Intersection getIntersection(Ray ray) = 0;
-    virtual Vector sampleSurface() = 0;
     virtual Vector getNormalAt(Vector position) = 0;
 
 	//Texture mapping

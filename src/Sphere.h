@@ -18,7 +18,6 @@ public:
     Sphere(double radius, Vector position) {radius_ = radius; position_ = position;}
     virtual bool intersects(Ray ray);
     virtual Intersection getIntersection (Ray ray);
-    virtual Vector sampleSurface();
     virtual Vector getNormalAt(Vector position);
     virtual double getSurfaceArea();
 };

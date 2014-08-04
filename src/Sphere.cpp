@@ -63,16 +63,6 @@ Intersection Sphere::getIntersection(Ray ray) {
     return result;
 }
 
-Vector Sphere::sampleSurface() {
-    while (true) {
-        Vector dir(drand() * 2 - 1, drand() * 2 - 1, drand() * 2 - 1);
-        if (dir.normalize() < 1.0) {
-            Vector pos = position_ + dir * radius_;
-            return pos;
-        }
-    }
-}
-
 Vector Sphere::getNormalAt(Vector position) {
     Vector normal = position - position_;
     normal.normalize();

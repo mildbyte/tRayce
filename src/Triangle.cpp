@@ -61,19 +61,6 @@ Intersection Triangle::getIntersection (Ray ray)
     return result;
 }
 
-Vector Triangle::sampleSurface()
-{
-    double u;
-    double v;
-    
-    do {
-        u = drand();
-        v = drand();
-    } while (u + v > 1.0);
-    
-    return v1 * (1 - u - v) + v2 * u + v3 * v;
-}
-
 Vector Triangle::getNormalAt(Vector position)
 {
     if (customNormals) {
