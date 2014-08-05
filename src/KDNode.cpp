@@ -146,7 +146,6 @@ KDNode* KDNode::limitedBuild(vector<Triangle*>& triangles, int depth, int depthL
 		}
 	}
 
-	//TODO deal with one side being a subset of another.
 	node->left = limitedBuild(left, depth + 1, depthLimit);
 	node->right = limitedBuild(right, depth + 1, depthLimit);
 	node->plane = split.first.first;

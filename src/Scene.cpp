@@ -253,12 +253,6 @@ Vector sampleHemisphereCosine(Vector normal, double Xi1, double Xi2) {
     return direction;
 }
 
-Vector Scene::getColorAt(Vector point) {
-	double thresh = 0.05;
-	if (abs(point[0] - round(point[0])) < thresh || abs(point[2] - round(point[2])) < thresh) return Vector(0, 0, 0);
-	return Vector(1, 1, 1);
-}
-
 Vector Scene::pathTrace(const Ray ray, int depth, double &dist, int &triangleIntersections) {
     //If the maximum tracing depth has been reached, return
 	//(do Russian Roulette for path termination)
