@@ -68,7 +68,3 @@ Vector Sphere::getNormalAt(Vector position) {
     normal.normalize();
     return normal;
 }
-
-double Sphere::getSurfaceArea() {
-    return 4 * PI * radius_ * radius_;
-}

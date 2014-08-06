@@ -101,8 +101,3 @@ bool Triangle::getUVAt(Vector position, double *uTex, double *vTex) {
 
 	return true;
 }
-
-double Triangle::getSurfaceArea()
-{
-    return area;
-}

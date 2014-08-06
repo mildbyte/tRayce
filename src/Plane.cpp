@@ -43,7 +43,3 @@ Intersection Plane::getIntersection(Ray ray) {
 Vector Plane::getNormalAt(Vector) {
     return normal_;
 }
-    
-double Plane::getSurfaceArea() {
-    return 1.0; // Treat the plane as a point light
-}

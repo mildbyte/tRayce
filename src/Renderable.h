@@ -19,9 +19,6 @@ public:
 
 	//Texture mapping
 	virtual bool getUVAt(Vector, double*, double*) { return false; } //does not support by default
-    
-    //Surface area for scaling in pathtracing
-    virtual double getSurfaceArea() = 0;
 };
 
 #endif

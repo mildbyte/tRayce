@@ -149,7 +149,6 @@ void Scene::importObj(char* filename, Material m, Vector shift, double scale) {
 
 			t->material = m;
 			addTriangle(t);
-			//addRenderable(t);
 		}
 		else {
 			stream.ignore(numeric_limits<streamsize>::max(), '\n');
@@ -405,9 +404,6 @@ void Scene::threadDoWork(int threadId, int noThreads) {
 	
     //The resulting color of the pixel
     Vector resultColor;
-
-    //Renderable that has been hit previously
-    //Renderable* prevHit = NULL;
     
     int onePercent = width_ * height_ / 1000;
     
